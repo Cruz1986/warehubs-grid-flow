@@ -8,16 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import FacilityInput from './FacilityInput';
+import FacilityTypeSelector from './FacilityTypeSelector';
 
 // Mock data for now, would be replaced with data from Supabase
 const mockFacilities = ['Facility A', 'Facility B', 'Facility C', 'Facility D'];
@@ -61,54 +54,30 @@ const EditMappingDialog: React.FC<EditMappingDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="edit-source">Source Facility</Label>
-            <Input
-              id="edit-source"
-              value={selectedMapping.source}
-              onChange={(e) => onChangeMapping({...selectedMapping, source: e.target.value})}
-              placeholder="Enter source facility"
-              list="edit-sources-list"
-            />
-            <datalist id="edit-sources-list">
-              {sources.map((source) => (
-                <option key={source} value={source} />
-              ))}
-            </datalist>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-destination">Destination</Label>
-            <Input
-              id="edit-destination"
-              value={selectedMapping.destination}
-              onChange={(e) => onChangeMapping({...selectedMapping, destination: e.target.value})}
-              placeholder="Enter destination"
-              list="edit-destinations-list"
-            />
-            <datalist id="edit-destinations-list">
-              {destinations.map((destination) => (
-                <option key={destination} value={destination} />
-              ))}
-            </datalist>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-facility">Main Facility</Label>
-            <Select
-              value={selectedMapping.facility}
-              onValueChange={(value) => onChangeMapping({...selectedMapping, facility: value})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select facility" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockFacilities.map((facility) => (
-                  <SelectItem key={facility} value={facility}>
-                    {facility}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <FacilityInput
+            id="edit-source"
+            label="Source Facility"
+            value={selectedMapping.source}
+            onChange={(value) => onChangeMapping({...selectedMapping, source: value})}
+            suggestions={sources}
+            placeholder="Enter source facility"
+          />
+          
+          <FacilityInput
+            id="edit-destination"
+            label="Destination"
+            value={selectedMapping.destination}
+            onChange={(value) => onChangeMapping({...selectedMapping, destination: value})}
+            suggestions={destinations}
+            placeholder="Enter destination"
+          />
+          
+          <FacilityTypeSelector
+            value={selectedMapping.facility}
+            onChange={(value) => onChangeMapping({...selectedMapping, facility: value})}
+            facilities={mockFacilities}
+            label="Main Facility"
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

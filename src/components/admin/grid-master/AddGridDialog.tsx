@@ -9,18 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus, Grid } from 'lucide-react';
+import { Grid } from 'lucide-react';
 import { toast } from 'sonner';
+import MappingSelector from './MappingSelector';
+import GridNumberField from './GridNumberField';
 
 interface GridMapping {
   id: string;
@@ -35,7 +28,10 @@ interface AddGridDialogProps {
   onAddGrid: (mappingId: string, gridNumber: string) => void;
 }
 
-const AddGridDialog: React.FC<AddGridDialogProps> = ({ gridMappings, onAddGrid }) => {
+const AddGridDialog: React.FC<AddGridDialogProps> = ({ 
+  gridMappings, 
+  onAddGrid 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [newGrid, setNewGrid] = useState({
     mappingId: '',
@@ -82,33 +78,17 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({ gridMappings, onAddGrid }
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="mapping">Source-Destination Mapping</Label>
-            <Select
-              value={newGrid.mappingId}
-              onValueChange={(value) => setNewGrid({...newGrid, mappingId: value})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select mapping" />
-              </SelectTrigger>
-              <SelectContent>
-                {gridMappings.map((mapping) => (
-                  <SelectItem key={mapping.id} value={mapping.id}>
-                    {mapping.source} → {mapping.destination} ({mapping.facility})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="gridNumber">Grid Number</Label>
-            <Input
-              id="gridNumber"
-              value={newGrid.gridNumber}
-              onChange={(e) => setNewGrid({...newGrid, gridNumber: e.target.value})}
-              placeholder="Enter grid number"
-            />
-          </div>
+          <MappingSelector 
+            mappings={gridMappings}
+            selectedMappingId={newGrid.mappingId}
+            onSelectMapping={(mappingId) => setNewGrid({...newGrid, mappingId})}
+          />
+          
+          <GridNumberField
+            gridNumber={newGrid.gridNumber}
+            onChange={(gridNumber) => setNewGrid({...newGrid, gridNumber})}
+            disabled={!newGrid.mappingId}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>
