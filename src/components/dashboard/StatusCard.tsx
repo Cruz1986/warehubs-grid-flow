@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, ArrowUp, Grid, Package } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface StatusCardProps {
   title: string;
-  value: string | number;
+  value: string;
   description?: string;
   icon?: React.ReactNode;
   trend?: 'up' | 'down' | 'neutral';

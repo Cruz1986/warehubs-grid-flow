@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +9,10 @@ import { BarChart, Package, Grid2X2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Activity data structure
 interface ActivityData {
   [key: string]: number;
 }
 
-// Grid status type
 interface GridStatus {
   id: string;
   grid_number: string;
@@ -23,12 +20,10 @@ interface GridStatus {
 }
 
 const Status = () => {
-  // State for totes data
   const [inboundTotes, setInboundTotes] = useState<Tote[]>([]);
   const [stagedTotes, setStagedTotes] = useState<Tote[]>([]);
   const [outboundTotes, setOutboundTotes] = useState<Tote[]>([]);
   
-  // State for facility activity data
   const [facilityData, setFacilityData] = useState<ActivityData>({
     'Inbound': 0,
     'Staged': 0,
@@ -36,21 +31,17 @@ const Status = () => {
     'Pending': 0,
   });
   
-  // State for grid data
   const [gridStatuses, setGridStatuses] = useState<GridStatus[]>([]);
   
-  // Loading states
   const [isLoadingTotes, setIsLoadingTotes] = useState(true);
   const [isLoadingActivity, setIsLoadingActivity] = useState(true);
   const [isLoadingGrids, setIsLoadingGrids] = useState(true);
 
-  // Fetch totes data
   useEffect(() => {
     const fetchTotes = async () => {
       try {
         setIsLoadingTotes(true);
         
-        // Fetch inbound totes
         const { data: inboundData, error: inboundError } = await supabase
           .from('totes')
           .select('*, users(username)')
@@ -61,7 +52,6 @@ const Status = () => {
         if (inboundError) {
           console.error('Error fetching inbound totes:', inboundError);
         } else {
-          // Transform to Tote type
           const formattedInbound = inboundData.map(tote => ({
             id: tote.tote_number,
             status: 'inbound' as const,
@@ -74,7 +64,6 @@ const Status = () => {
           setInboundTotes(formattedInbound);
         }
         
-        // Fetch staged totes
         const { data: stagedData, error: stagedError } = await supabase
           .from('grids')
           .select('*, totes(*, users(username))')
@@ -85,7 +74,6 @@ const Status = () => {
         if (stagedError) {
           console.error('Error fetching staged totes:', stagedError);
         } else {
-          // Transform to Tote type
           const formattedStaged = stagedData.filter(grid => grid.totes).map(grid => ({
             id: grid.totes?.tote_number || 'Unknown',
             status: 'staged' as const,
@@ -98,7 +86,6 @@ const Status = () => {
           setStagedTotes(formattedStaged);
         }
         
-        // Fetch outbound totes
         const { data: outboundData, error: outboundError } = await supabase
           .from('totes')
           .select('*, users(username)')
@@ -109,7 +96,6 @@ const Status = () => {
         if (outboundError) {
           console.error('Error fetching outbound totes:', outboundError);
         } else {
-          // Transform to Tote type
           const formattedOutbound = outboundData.map(tote => ({
             id: tote.tote_number,
             status: 'outbound' as const,
@@ -130,7 +116,6 @@ const Status = () => {
     
     fetchTotes();
     
-    // Set up real-time subscription for totes
     const channel = supabase
       .channel('totes-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'totes' }, () => {
@@ -146,13 +131,11 @@ const Status = () => {
     };
   }, []);
 
-  // Fetch activity data
   useEffect(() => {
     const fetchActivityData = async () => {
       try {
         setIsLoadingActivity(true);
         
-        // Get counts for different statuses
         const { data: inboundCount, error: inboundError } = await supabase
           .from('totes')
           .select('count')
@@ -196,7 +179,6 @@ const Status = () => {
     
     fetchActivityData();
     
-    // Set up real-time subscription for activity data
     const channel = supabase
       .channel('activity-changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
@@ -209,7 +191,6 @@ const Status = () => {
     };
   }, []);
 
-  // Fetch grid data
   useEffect(() => {
     const fetchGridData = async () => {
       try {
@@ -234,7 +215,6 @@ const Status = () => {
     
     fetchGridData();
     
-    // Set up real-time subscription for grid data
     const channel = supabase
       .channel('grid-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'grids' }, () => {
@@ -342,7 +322,6 @@ const Status = () => {
                       );
                     }) : 
                     Array.from({ length: 25 }).map((_, index) => {
-                      // Dummy grid display when no data available
                       return (
                         <div 
                           key={index}
