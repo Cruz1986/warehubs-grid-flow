@@ -48,10 +48,10 @@ export const useFacilityData = () => {
           console.error('Error fetching activity counts');
         } else {
           setFacilityData({
-            'Inbound': parseInt(inboundCount?.count || '0'),
-            'Staged': parseInt(gridCount?.count || '0'),
-            'Outbound': parseInt(outboundCount?.count || '0'),
-            'Pending': parseInt(pendingCount?.count || '0'),
+            'Inbound': parseInt(String(inboundCount?.count || '0')),
+            'Staged': parseInt(String(gridCount?.count || '0')),
+            'Outbound': parseInt(String(outboundCount?.count || '0')),
+            'Pending': parseInt(String(pendingCount?.count || '0')),
           });
         }
       } catch (error) {
