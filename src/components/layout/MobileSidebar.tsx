@@ -7,7 +7,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, PackageOpen, Grid2X2, PackageCheck, Users, LayoutDashboard } from 'lucide-react';
+import { Menu, PackageOpen, Grid2X2, PackageCheck, Users, LayoutDashboard, Activity } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const MobileSidebar = () => {
@@ -19,6 +19,7 @@ const MobileSidebar = () => {
     { name: 'Inbound', path: '/inbound', icon: <PackageOpen size={20} /> },
     { name: 'Grid Management', path: '/grid-management', icon: <Grid2X2 size={20} /> },
     { name: 'Outbound', path: '/outbound', icon: <PackageCheck size={20} /> },
+    { name: 'Status Dashboard', path: '/status', icon: <Activity size={20} /> },
   ];
   
   // Admin menu items only shown to admin users

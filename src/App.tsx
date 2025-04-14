@@ -11,6 +11,7 @@ import Outbound from "./pages/Outbound";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
+import Status from "./pages/Status";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/inbound" element={<Inbound />} />
           <Route path="/grid-management" element={<GridManagement />} />
           <Route path="/outbound" element={<Outbound />} />
+          <Route path="/status" element={<Status />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/user-management" element={<UserManagement />} />
           <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />

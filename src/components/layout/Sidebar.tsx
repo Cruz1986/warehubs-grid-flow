@@ -7,7 +7,8 @@ import {
   Grid2X2,
   PackageCheck,
   Users,
-  LayoutDashboard
+  LayoutDashboard,
+  Activity
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +28,7 @@ const Sidebar = () => {
     { name: 'Inbound', path: '/inbound', icon: <PackageOpen size={20} /> },
     { name: 'Grid Management', path: '/grid-management', icon: <Grid2X2 size={20} /> },
     { name: 'Outbound', path: '/outbound', icon: <PackageCheck size={20} /> },
+    { name: 'Status Dashboard', path: '/status', icon: <Activity size={20} /> },
   ];
 
   // Admin menu items only shown to admin users
