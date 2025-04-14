@@ -13,8 +13,16 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import Status from "./pages/Status";
 import GridMaster from "./pages/GridMaster";
+import Index from "./pages/Index";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,7 +31,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/inbound" element={<Inbound />} />
           <Route path="/grid-management" element={<GridManagement />} />
           <Route path="/outbound" element={<Outbound />} />
@@ -31,7 +40,7 @@ const App = () => (
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/user-management" element={<UserManagement />} />
           <Route path="/grid-master" element={<GridMaster />} />
-          <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/status" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

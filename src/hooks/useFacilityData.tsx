@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ActivityData {
   [key: string]: number;
@@ -19,6 +20,8 @@ export const useFacilityData = () => {
     const fetchActivityData = async () => {
       try {
         setIsLoadingActivity(true);
+        
+        console.log('Fetching facility data...');
         
         const { data: inboundCount, error: inboundError } = await supabase
           .from('totes')
@@ -45,8 +48,13 @@ export const useFacilityData = () => {
           .single();
         
         if (inboundError || outboundError || gridError || pendingError) {
-          console.error('Error fetching activity counts');
+          console.error('Error fetching activity counts:', { inboundError, outboundError, gridError, pendingError });
+          if (inboundError) toast.error('Failed to load inbound data');
+          if (outboundError) toast.error('Failed to load outbound data');
+          if (gridError) toast.error('Failed to load grid data');
+          if (pendingError) toast.error('Failed to load pending data');
         } else {
+          console.log('Activity data fetched:', { inboundCount, outboundCount, gridCount, pendingCount });
           setFacilityData({
             'Inbound': parseInt(String(inboundCount?.count || '0')),
             'Staged': parseInt(String(gridCount?.count || '0')),
@@ -56,6 +64,7 @@ export const useFacilityData = () => {
         }
       } catch (error) {
         console.error('Error fetching activity data:', error);
+        toast.error('Failed to load activity data');
       } finally {
         setIsLoadingActivity(false);
       }
