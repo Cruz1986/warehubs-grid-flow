@@ -7,13 +7,19 @@ interface GridNumberFieldProps {
   gridNumber: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  validGrids?: string[];
+  error?: string;
 }
 
 const GridNumberField: React.FC<GridNumberFieldProps> = ({ 
   gridNumber, 
   onChange, 
-  disabled 
+  disabled,
+  validGrids,
+  error
 }) => {
+  const isValid = !validGrids || validGrids.length === 0 || !gridNumber || validGrids.includes(gridNumber);
+
   return (
     <div className="grid gap-2">
       <Label htmlFor="gridNumber">Grid Number</Label>
@@ -23,7 +29,12 @@ const GridNumberField: React.FC<GridNumberFieldProps> = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter grid number"
         disabled={disabled}
+        className={!isValid ? "border-red-500" : ""}
       />
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      {!isValid && !error && (
+        <p className="text-sm text-red-500">Grid number is not valid</p>
+      )}
     </div>
   );
 };

@@ -8,26 +8,65 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Grid2X2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock grid data - would be fetched from Google Sheets
-const gridMappings = {
-  'G101': 'Facility B',
-  'G102': 'Facility C',
-  'G103': 'Facility D',
-  'G104': 'Facility A',
-  'G105': 'Facility B',
-};
+// Grid Mapping interface
+interface GridMapping {
+  id: string;
+  source: string;
+  sourceType: string;
+  destination: string;
+  destinationType: string;
+  gridNumber: string;
+}
 
 const GridManagement = () => {
   const [scannedTote, setScannedTote] = useState('');
   const [gridId, setGridId] = useState('');
   const [stagedTotes, setStagedTotes] = useState<any[]>([]);
+  const [validGrids, setValidGrids] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const gridInputRef = useRef<HTMLInputElement>(null);
   const toteInputRef = useRef<HTMLInputElement>(null);
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  // Fetch valid grid mappings from Supabase
+  useEffect(() => {
+    const fetchGridData = async () => {
+      setIsLoading(true);
+      try {
+        // For now, we're fetching all grid mappings - in a production app, 
+        // you would want to filter by the user's facility
+        const { data, error } = await supabase
+          .from('grid_mappings')
+          .select('*');
+
+        if (error) {
+          throw error;
+        }
+
+        // Create a mapping of grid numbers to destinations
+        const gridMap: Record<string, string> = {};
+        if (data) {
+          data.forEach((mapping: any) => {
+            gridMap[mapping.gridNumber] = mapping.destination;
+          });
+        }
+        
+        setValidGrids(gridMap);
+      } catch (error) {
+        console.error('Error fetching grid data:', error);
+        toast.error('Failed to load grid data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGridData();
+  }, []);
   
   // Focus on tote input initially
   useEffect(() => {
@@ -61,13 +100,41 @@ const GridManagement = () => {
       return;
     }
     
-    // Check if grid exists in our mapping
-    const destination = gridMappings[gridId as keyof typeof gridMappings];
-    if (!destination) {
-      toast.error(`Grid ${gridId} not found in grid mappings`);
-      return;
+    // Check if grid exists in our valid grids
+    if (Object.keys(validGrids).length > 0) {
+      const destination = validGrids[gridId];
+      if (!destination) {
+        toast.error(`Grid ${gridId} is not valid. Please scan a valid grid.`);
+        setGridId('');
+        return;
+      }
+      
+      // Grid is valid, proceed with staging
+      addToStagedTotes(destination);
+    } else {
+      // Fallback to the mock data if no valid grids are loaded
+      // This would be removed in a production version
+      const mockGridMappings = {
+        'G101': 'Facility B',
+        'G102': 'Facility C',
+        'G103': 'Facility D',
+        'G104': 'Facility A',
+        'G105': 'Facility B',
+      };
+      
+      const destination = mockGridMappings[gridId as keyof typeof mockGridMappings];
+      if (!destination) {
+        toast.error(`Grid ${gridId} is not valid. Please scan a valid grid.`);
+        setGridId('');
+        return;
+      }
+      
+      // Grid is valid, proceed with staging
+      addToStagedTotes(destination);
     }
-    
+  };
+  
+  const addToStagedTotes = (destination: string) => {
     // Get current timestamp
     const now = new Date();
     const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
@@ -96,7 +163,7 @@ const GridManagement = () => {
       toteInputRef.current.focus();
     }
     
-    // In a real app, this would also update the tote status in Google Sheets
+    // In a real app, this would also update the tote status in Supabase
   };
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -149,6 +216,12 @@ const GridManagement = () => {
                   Tote <span className="font-bold">{scannedTote}</span> is ready to be assigned to a grid.
                   Please scan a grid location.
                 </p>
+              </div>
+            )}
+            
+            {isLoading && (
+              <div className="mt-4 p-3 bg-gray-50 text-gray-800 rounded-md">
+                <p className="text-sm">Loading grid data...</p>
               </div>
             )}
           </CardContent>
