@@ -18,12 +18,14 @@ type FormData = {
 const Login = () => {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, loading } = useAuth();
 
   const onSubmit = async (data: FormData) => {
     try {
       // Show a loading toast
       const loadingToast = toast.loading('Signing in...');
+      
+      console.log('Attempting to sign in with:', data.email);
       
       // Attempt to sign in with Supabase
       const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -35,6 +37,7 @@ const Login = () => {
       toast.dismiss(loadingToast);
 
       if (error) {
+        console.error('Login error:', error);
         throw error;
       }
 
@@ -42,6 +45,9 @@ const Login = () => {
         throw new Error('No user data returned');
       }
 
+      console.log('Login successful for user:', authData.user.email);
+      console.log('User metadata:', authData.user.user_metadata);
+      
       // Create user object directly from auth data and user metadata
       const role = authData.user.user_metadata?.role || 'user';
       

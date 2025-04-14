@@ -43,12 +43,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const getInitialSession = async () => {
       try {
+        console.log("Checking initial session...");
         // Check for existing session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Instead of querying the users table which might have recursive policies,
-          // get the user data from the session and auth metadata
+          console.log("Found existing session", session.user);
+          // Get the user data from the session and auth metadata
           const email = session.user.email || '';
           const role = session.user.user_metadata?.role || 'user';
           
@@ -61,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isAdmin: role === 'admin'
           });
         } else {
+          console.log("No existing session found");
           setUser(null);
         }
       } catch (error) {
@@ -76,6 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.email);
+        
         if (event === 'SIGNED_IN' && session?.user) {
           // Get metadata from the session instead of querying the users table
           const email = session.user.email || '';
@@ -90,6 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isAdmin: role === 'admin'
           });
           
+          setLoading(false);
+          
           if (role === 'admin') {
             navigate('/admin-dashboard');
           } else {
@@ -97,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          setLoading(false);
           navigate('/');
         }
       }
@@ -109,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -118,6 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Error logging out:', error.message);
       toast.error('Error logging out');
+    } finally {
+      setLoading(false);
     }
   };
 
