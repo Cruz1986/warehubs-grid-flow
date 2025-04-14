@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   children?: React.ReactNode;
@@ -10,11 +11,10 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
   const navigate = useNavigate();
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
+  const { currentUser, logout } = useAuth();
   
-  const handleLogout = () => {
-    localStorage.removeItem('user');
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
   
@@ -26,10 +26,10 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       </div>
       
       <div className="flex items-center gap-4">
-        {user && (
+        {currentUser && (
           <>
             <span className="hidden md:inline text-sm text-gray-600">
-              {user.username}
+              {currentUser.email}
             </span>
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />

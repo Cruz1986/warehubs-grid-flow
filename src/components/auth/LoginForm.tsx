@@ -81,6 +81,11 @@ const LoginForm = () => {
             {isLoading ? 'Logging in...' : 'Sign In'}
           </Button>
         </form>
+        <div className="mt-4 text-sm text-center text-gray-500">
+          <p>Demo Credentials:</p>
+          <p>Admin: admin@example.com / admin123</p>
+          <p>User: user@example.com / user123</p>
+        </div>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-gray-500">WMS v1.0</p>

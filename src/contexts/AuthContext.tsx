@@ -1,20 +1,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  User, 
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { auth } from '../integrations/firebase/client';
+
+// Define user type
+interface User {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+}
 
 // Define types for our context
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAdmin: boolean;
 }
@@ -31,66 +29,65 @@ export function useAuth() {
   return context;
 }
 
+// Define some mock users for local authentication
+const mockUsers = [
+  { id: '1', email: 'admin@example.com', password: 'admin123', isAdmin: true },
+  { id: '2', email: 'user@example.com', password: 'user123', isAdmin: false }
+];
+
 // Provider component that wraps the app and makes auth object available
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Sign up function
-  async function signup(email: string, password: string) {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error("Error signing up:", error);
-      throw error;
-    }
-  }
-
-  // Log in function
+  // Login function - checks against mock users
   async function login(email: string, password: string) {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // In a real app, admin status would come from Firestore
-      setIsAdmin(email.toLowerCase().includes('admin'));
-    } catch (error) {
-      console.error("Error logging in:", error);
-      throw error;
-    }
+    return new Promise<void>((resolve, reject) => {
+      const user = mockUsers.find(u => 
+        u.email.toLowerCase() === email.toLowerCase() && 
+        u.password === password
+      );
+      
+      if (user) {
+        const { password: _, ...userWithoutPassword } = user;
+        setCurrentUser(userWithoutPassword);
+        setIsAdmin(user.isAdmin);
+        
+        // Store in localStorage
+        localStorage.setItem('wms_user', JSON.stringify(userWithoutPassword));
+        resolve();
+      } else {
+        reject(new Error('Invalid email or password'));
+      }
+    });
   }
 
   // Log out function
   async function logout() {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error logging out:", error);
-      throw error;
-    }
+    return new Promise<void>((resolve) => {
+      setCurrentUser(null);
+      setIsAdmin(false);
+      localStorage.removeItem('wms_user');
+      resolve();
+    });
   }
 
-  // Subscribe to auth state changes
+  // Check if user is already logged in from localStorage
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const storedUser = localStorage.getItem('wms_user');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
       setCurrentUser(user);
-      // In a real app, admin status would come from Firestore
-      if (user) {
-        setIsAdmin(user.email?.toLowerCase().includes('admin') || false);
-      } else {
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    });
-
-    // Cleanup subscription on unmount
-    return unsubscribe;
+      setIsAdmin(user.isAdmin);
+    }
+    setLoading(false);
   }, []);
 
   const value = {
     currentUser,
     loading,
     login,
-    signup,
     logout,
     isAdmin
   };
