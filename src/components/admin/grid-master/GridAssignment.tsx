@@ -81,6 +81,23 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({ facilities, isLoading }
       };
       
       setGridMappings([...gridMappings, newMapping]);
+      
+      // Refresh grid mappings from database to get the actual ID
+      const { data, error } = await supabase
+        .from('grid_mappings')
+        .select('*');
+      
+      if (!error && data) {
+        const mappings: GridMapping[] = data.map(item => ({
+          id: item.id,
+          source: item.source,
+          sourceType: item.source_type,
+          destination: item.destination,
+          destinationType: item.destination_type,
+          gridNumber: item.grid_number
+        }));
+        setGridMappings(mappings);
+      }
     } catch (error) {
       console.error('Error assigning grid:', error);
       toast.error('Failed to assign grid');

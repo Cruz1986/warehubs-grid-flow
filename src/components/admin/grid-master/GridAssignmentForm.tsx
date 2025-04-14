@@ -36,7 +36,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
   const [sourceFacility, setSourceFacility] = useState<string>('');
   const [destinationFacility, setDestinationFacility] = useState<string>('');
   const [gridNumber, setGridNumber] = useState<string>('');
-  const [existingGrids, setExistingGrids] = useState<string[]>([]);
+  const [existingGrids, setExistingGrids] = useState<{source: string, grid_number: string}[]>([]);
   const [isCheckingGrid, setIsCheckingGrid] = useState(false);
 
   // Fetch existing grid numbers when component mounts
@@ -45,7 +45,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       try {
         const { data, error } = await supabase
           .from('grid_mappings')
-          .select('grid_number');
+          .select('source, grid_number');
         
         if (error) {
           console.error('Error fetching existing grids:', error);
@@ -53,8 +53,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
         }
         
         if (data) {
-          const gridNumbers = data.map(item => item.grid_number);
-          setExistingGrids(gridNumbers);
+          setExistingGrids(data);
         }
       } catch (err) {
         console.error('Error in grid fetch:', err);
@@ -80,12 +79,6 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       return;
     }
 
-    // Check if grid number already exists
-    if (existingGrids.includes(gridNumber)) {
-      toast.error(`Grid number ${gridNumber} already exists. Please use a different grid number.`);
-      return;
-    }
-
     const selectedSource = facilities.find(f => f.id === sourceFacility);
     const selectedDestination = facilities.find(f => f.id === destinationFacility);
     
@@ -97,15 +90,13 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
     setIsCheckingGrid(true);
     
     try {
-      // First check if the grid already exists
-      const { data: existingGrid, error: checkError } = await supabase
-        .from('grid_mappings')
-        .select('id')
-        .eq('grid_number', gridNumber)
-        .single();
+      // Check if the grid already exists for this source facility
+      const isDuplicate = existingGrids.some(
+        mapping => mapping.grid_number === gridNumber && mapping.source === selectedSource.name
+      );
       
-      if (!checkError && existingGrid) {
-        toast.error(`Grid number ${gridNumber} already exists. Please use a different grid number.`);
+      if (isDuplicate) {
+        toast.error(`Grid number ${gridNumber} already exists for source ${selectedSource.name}. Please use a different grid number for this source.`);
         setIsCheckingGrid(false);
         return;
       }
@@ -124,7 +115,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
 
       if (error) {
         if (error.code === '23505') {
-          toast.error(`Grid number ${gridNumber} already exists. Please use a different grid number.`);
+          toast.error(`This exact source-destination-grid combination already exists.`);
         } else {
           console.error('Error adding grid mapping:', error);
           toast.error('Failed to add grid mapping');
@@ -133,7 +124,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       }
 
       // Update the local list of existing grids
-      setExistingGrids([...existingGrids, gridNumber]);
+      setExistingGrids([...existingGrids, {source: selectedSource.name, grid_number: gridNumber}]);
 
       // Call the prop function to update local state
       onAssignGrid({
