@@ -67,24 +67,24 @@ const AddMappingDialog: React.FC<AddMappingDialogProps> = ({
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          Add Mapping
+          Add Source-Destination Mapping
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Grid Mapping</DialogTitle>
+          <DialogTitle>Add New Source-Destination Mapping</DialogTitle>
           <DialogDescription>
-            Create a new source to destination mapping.
+            Create a new source to destination mapping for grid assignment.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="source">Source</Label>
+            <Label htmlFor="source">Source Facility</Label>
             <Input
               id="source"
               value={newMapping.source}
               onChange={(e) => setNewMapping({...newMapping, source: e.target.value})}
-              placeholder="Enter source"
+              placeholder="Enter source facility"
               list="sources-list"
             />
             <datalist id="sources-list">
@@ -109,7 +109,7 @@ const AddMappingDialog: React.FC<AddMappingDialogProps> = ({
             </datalist>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="facility">Facility</Label>
+            <Label htmlFor="facility">Main Facility</Label>
             <Select
               value={newMapping.facility}
               onValueChange={(value) => setNewMapping({...newMapping, facility: value})}

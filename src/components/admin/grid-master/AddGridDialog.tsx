@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from 'lucide-react';
+import { Plus, Grid } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface GridMapping {
@@ -48,6 +48,13 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({ gridMappings, onAddGrid }
       return;
     }
     
+    // Check if grid number already exists in this mapping
+    const mapping = gridMappings.find(m => m.id === newGrid.mappingId);
+    if (mapping && mapping.gridNumbers.includes(newGrid.gridNumber)) {
+      toast.error(`Grid number ${newGrid.gridNumber} already exists in this mapping`);
+      return;
+    }
+    
     // Add grid to mapping
     onAddGrid(newGrid.mappingId, newGrid.gridNumber);
     
@@ -63,20 +70,20 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({ gridMappings, onAddGrid }
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Grid
+          <Grid className="h-4 w-4 mr-2" />
+          Assign Grid
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Grid to Mapping</DialogTitle>
+          <DialogTitle>Assign Grid to Source-Destination Mapping</DialogTitle>
           <DialogDescription>
-            Assign a grid number to a source-destination mapping.
+            Add a grid number to a specific source-destination mapping.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="mapping">Mapping</Label>
+            <Label htmlFor="mapping">Source-Destination Mapping</Label>
             <Select
               value={newGrid.mappingId}
               onValueChange={(value) => setNewGrid({...newGrid, mappingId: value})}
@@ -87,7 +94,7 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({ gridMappings, onAddGrid }
               <SelectContent>
                 {gridMappings.map((mapping) => (
                   <SelectItem key={mapping.id} value={mapping.id}>
-                    {mapping.source} → {mapping.destination}
+                    {mapping.source} → {mapping.destination} ({mapping.facility})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -108,7 +115,7 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({ gridMappings, onAddGrid }
             Cancel
           </Button>
           <Button onClick={handleAddGrid}>
-            Add Grid
+            Assign Grid
           </Button>
         </DialogFooter>
       </DialogContent>

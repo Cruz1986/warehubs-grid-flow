@@ -6,6 +6,7 @@ import AddMappingDialog from './grid-master/AddMappingDialog';
 import AddGridDialog from './grid-master/AddGridDialog';
 import EditMappingDialog from './grid-master/EditMappingDialog';
 import GridMappingCard from './grid-master/GridMappingCard';
+import FacilitySelector from '../operations/FacilitySelector';
 
 interface GridMapping {
   id: string;
@@ -39,6 +40,12 @@ const GridMasterComponent = () => {
   // Sources and destinations lists
   const [sources, setSources] = useState<string[]>([]);
   const [destinations, setDestinations] = useState<string[]>([]);
+  
+  // All available facilities
+  const [facilities, setFacilities] = useState<string[]>(['Facility A', 'Facility B', 'Facility C', 'Facility D']);
+  
+  // Selected facility for filtering
+  const [selectedFacility, setSelectedFacility] = useState<string>('');
 
   // Fetch sources and destinations from Supabase in a real implementation
   useEffect(() => {
@@ -49,6 +56,11 @@ const GridMasterComponent = () => {
     setSources(uniqueSources);
     setDestinations(uniqueDestinations);
   }, [gridMappings]);
+
+  // Filtered mappings based on selected facility
+  const filteredMappings = selectedFacility 
+    ? gridMappings.filter(mapping => mapping.facility === selectedFacility)
+    : gridMappings;
 
   const handleAddMapping = (newMapping: { source: string; destination: string; facility: string }) => {
     // Add mapping (in production, this would call your Supabase API)
@@ -134,8 +146,17 @@ const GridMasterComponent = () => {
 
   return (
     <div className="space-y-6">
+      <div className="p-4 bg-white rounded-md shadow-sm">
+        <FacilitySelector
+          facilities={facilities}
+          selectedFacility={selectedFacility}
+          onChange={setSelectedFacility}
+          label="Filter by Facility"
+        />
+      </div>
+      
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Grid Mappings</h2>
+        <h2 className="text-xl font-semibold">Source-Destination Mappings</h2>
         <div className="flex space-x-2">
           <AddMappingDialog 
             sources={sources} 
@@ -151,7 +172,7 @@ const GridMasterComponent = () => {
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        {gridMappings.map((mapping) => (
+        {filteredMappings.map((mapping) => (
           <GridMappingCard
             key={mapping.id}
             mapping={mapping}

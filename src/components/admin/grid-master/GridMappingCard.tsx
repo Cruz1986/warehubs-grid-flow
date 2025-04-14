@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash } from 'lucide-react';
+import { Edit, Trash, Grid } from 'lucide-react';
 
 interface GridMapping {
   id: string;
@@ -30,7 +30,7 @@ const GridMappingCard: React.FC<GridMappingCardProps> = ({
       <div className="bg-slate-50 p-4 flex justify-between items-center border-b">
         <div>
           <h3 className="text-lg font-medium">
-            {mapping.source} → {mapping.destination}
+            <span className="font-semibold">Source:</span> {mapping.source} → <span className="font-semibold">Destination:</span> {mapping.destination}
           </h3>
           <p className="text-sm text-gray-500">Facility: {mapping.facility}</p>
         </div>
@@ -57,6 +57,7 @@ const GridMappingCard: React.FC<GridMappingCardProps> = ({
           <div className="flex flex-wrap gap-2">
             {mapping.gridNumbers.map((grid) => (
               <div key={grid} className="flex items-center bg-blue-50 px-3 py-1 rounded-full">
+                <Grid className="h-3 w-3 mr-1 text-blue-700" />
                 <span className="text-sm font-medium text-blue-700 mr-2">{grid}</span>
                 <button
                   onClick={() => onDeleteGrid(mapping.id, grid)}
@@ -68,7 +69,7 @@ const GridMappingCard: React.FC<GridMappingCardProps> = ({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No grids assigned</p>
+          <p className="text-sm text-gray-500">No grids assigned to this source-destination mapping</p>
         )}
       </CardContent>
     </Card>

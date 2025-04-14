@@ -55,19 +55,19 @@ const EditMappingDialog: React.FC<EditMappingDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Grid Mapping</DialogTitle>
+          <DialogTitle>Edit Source-Destination Mapping</DialogTitle>
           <DialogDescription>
-            Update the source to destination mapping.
+            Update the source-destination mapping and facility.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="edit-source">Source</Label>
+            <Label htmlFor="edit-source">Source Facility</Label>
             <Input
               id="edit-source"
               value={selectedMapping.source}
               onChange={(e) => onChangeMapping({...selectedMapping, source: e.target.value})}
-              placeholder="Enter source"
+              placeholder="Enter source facility"
               list="edit-sources-list"
             />
             <datalist id="edit-sources-list">
@@ -92,7 +92,7 @@ const EditMappingDialog: React.FC<EditMappingDialogProps> = ({
             </datalist>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="edit-facility">Facility</Label>
+            <Label htmlFor="edit-facility">Main Facility</Label>
             <Select
               value={selectedMapping.facility}
               onValueChange={(value) => onChangeMapping({...selectedMapping, facility: value})}
