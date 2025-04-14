@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MobileSidebar from './MobileSidebar';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -12,21 +13,20 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmin = false }) => {
   const navigate = useNavigate();
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
+  const { currentUser, isAdmin } = useAuth();
 
   useEffect(() => {
     // Redirect if no user is logged in
-    if (!user) {
+    if (!currentUser) {
       navigate('/');
       return;
     }
 
     // Redirect if admin access is required but user is not an admin
-    if (requireAdmin && !user.isAdmin) {
+    if (requireAdmin && !isAdmin) {
       navigate('/inbound');
     }
-  }, [user, navigate, requireAdmin]);
+  }, [currentUser, navigate, requireAdmin, isAdmin]);
 
   return (
     <div className="flex h-screen bg-white">

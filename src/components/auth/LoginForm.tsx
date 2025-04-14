@@ -5,44 +5,39 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LoginForm = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login, isAdmin } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // This is a mock authentication - in production, this would connect to your Google Apps Script
-      if (username && password) {
-        // Mock user verification - replace with actual API call to Google Script
-        const isAdmin = username.toLowerCase().includes('admin');
-        
-        // Store user info in localStorage (in production, use a better state management solution)
-        localStorage.setItem('user', JSON.stringify({
-          username,
-          isAdmin,
-          facility: isAdmin ? 'All' : 'Facility A', // Mock facility assignment
-        }));
-        
-        toast.success("Login successful!");
-        
-        // Redirect based on user role
-        if (isAdmin) {
-          navigate('/admin-dashboard');
-        } else {
-          navigate('/inbound');
-        }
+      if (!email || !password) {
+        toast.error("Please enter both email and password");
+        setIsLoading(false);
+        return;
+      }
+      
+      await login(email, password);
+      
+      toast.success("Login successful!");
+      
+      // Redirect based on user role
+      if (isAdmin) {
+        navigate('/admin-dashboard');
       } else {
-        toast.error("Please enter both username and password");
+        navigate('/inbound');
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed. Please try again.");
+      toast.error("Login failed. Please check your credentials and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -57,13 +52,13 @@ const LoginForm = () => {
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="username" className="text-sm font-medium">Username</label>
+            <label htmlFor="email" className="text-sm font-medium">Email</label>
             <Input 
-              id="username" 
-              type="text" 
-              placeholder="Enter your username" 
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="email" 
+              type="email" 
+              placeholder="Enter your email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
