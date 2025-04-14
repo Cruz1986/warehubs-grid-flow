@@ -30,9 +30,10 @@ interface AddUserDialogProps {
     role: string;
     facility: string;
   }) => void;
+  isLoading?: boolean;
 }
 
-const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser }) => {
+const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, isLoading = false }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [newUser, setNewUser] = React.useState({
     username: '',
@@ -115,21 +116,31 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser }) 
             <Select
               value={newUser.facility}
               onValueChange={(value) => setNewUser({...newUser, facility: value})}
+              disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select facility" />
+                <SelectValue placeholder={isLoading ? "Loading facilities..." : "Select facility"} />
               </SelectTrigger>
               <SelectContent>
                 {newUser.role === 'Admin' && (
                   <SelectItem value="All">All Facilities</SelectItem>
                 )}
-                {facilities.map((facility) => (
-                  <SelectItem key={facility} value={facility}>
-                    {facility}
+                {facilities.length > 0 ? (
+                  facilities.map((facility) => (
+                    <SelectItem key={facility} value={facility}>
+                      {facility}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-facilities" disabled>
+                    {isLoading ? "Loading facilities..." : "No facilities available"}
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
+            {isLoading && (
+              <p className="text-xs text-muted-foreground">Loading facilities from database...</p>
+            )}
           </div>
         </div>
         <DialogFooter>
