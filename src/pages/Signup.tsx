@@ -23,31 +23,29 @@ const Signup = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
+      // Show a loading toast
+      const loadingToast = toast.loading('Creating your account...');
+      
+      // Attempt to sign up with Supabase
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            role: 'user',
+            facility: 'Default Facility'
+          }
+        }
       });
+
+      // Clear the loading toast
+      toast.dismiss(loadingToast);
 
       if (error) {
         throw error;
       }
 
-      // Create a user record in our custom users table
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          username: data.email,
-          password: 'supabase-auth', // We don't store actual passwords
-          role: 'user', // Default role for new signups
-          facility: 'Default Facility'
-        });
-
-      if (userError) {
-        console.error("Error creating user:", userError);
-        toast.error("Account created but there was an error setting up your profile.");
-      } else {
-        toast.success('Account created successfully! Please check your email for verification.');
-      }
+      toast.success('Account created successfully! Please check your email for verification.');
       navigate('/');
     } catch (error: any) {
       console.error('Signup error:', error.message);

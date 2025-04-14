@@ -22,58 +22,46 @@ const Login = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
+      // Show a loading toast
+      const loadingToast = toast.loading('Signing in...');
+      
+      // Attempt to sign in with Supabase
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password
       });
 
+      // Clear the loading toast
+      toast.dismiss(loadingToast);
+
       if (error) {
         throw error;
       }
 
-      // Check if user exists in our users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', data.email)
-        .single();
-
-      if (userError && userError.code !== 'PGSQL_ERROR') {
-        console.error("Error fetching user data:", userError);
-        toast.error("Error fetching user data. Please try again.");
-        return;
+      if (!authData.user) {
+        throw new Error('No user data returned');
       }
 
-      // If user doesn't exist in our custom users table, create one
-      if (!userData) {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            username: data.email,
-            password: 'supabase-auth', // We don't store actual passwords anymore
-            role: 'user', // Default role
-            facility: 'Default Facility'
-          });
-
-        if (insertError) {
-          console.error("Error creating user:", insertError);
-          toast.error("Error setting up your account. Please try again.");
-          return;
-        }
-      }
-
-      // Set user in context with role
+      // Create user object directly from auth data and user metadata
+      const role = authData.user.user_metadata?.role || 'user';
+      
       setUser({
-        id: authData.user?.id || '',
+        id: authData.user.id,
         email: data.email,
-        role: userData?.role || 'user',
-        facility: userData?.facility || 'Default Facility',
+        role,
+        facility: authData.user.user_metadata?.facility || 'Default Facility',
         isAuthenticated: true,
-        isAdmin: userData?.role === 'admin'
+        isAdmin: role === 'admin'
       });
 
       toast.success('Logged in successfully');
-      navigate('/inbound');
+      
+      // Navigate based on role
+      if (role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/inbound');
+      }
     } catch (error: any) {
       console.error('Login error:', error.message);
       toast.error(error.message || 'Login failed. Please check your credentials.');
@@ -138,6 +126,15 @@ const Login = () => {
                 </Button>
               </p>
             </form>
+
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <p className="text-sm text-center font-medium mb-2">Test Accounts:</p>
+              <div className="space-y-1 text-xs text-center text-gray-500">
+                <p>Admin: admin@example.com / admin123</p>
+                <p>User: user@example.com / user123</p>
+                <p className="mt-2 text-amber-600">Note: These are for demonstration only.</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -47,50 +47,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Fetch user data from our custom users table
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', session.user.email)
-            .single();
-
-          if (userError && userError.code !== 'PGSQL_ERROR') {
-            console.error("Error fetching user data:", userError);
-            setUser(null);
-          } else if (userData) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              role: userData.role || 'user',
-              facility: userData.facility || 'Default Facility',
-              isAuthenticated: true,
-              isAdmin: userData.role === 'admin'
-            });
-          } else {
-            // User in auth but not in our custom table, create record
-            const { error: insertError } = await supabase
-              .from('users')
-              .insert({
-                username: session.user.email || '',
-                password: 'supabase-auth',
-                role: 'user',
-                facility: 'Default Facility'
-              });
-
-            if (insertError) {
-              console.error("Error creating user:", insertError);
-              setUser(null);
-            } else {
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                role: 'user',
-                facility: 'Default Facility',
-                isAuthenticated: true,
-                isAdmin: false
-              });
-            }
-          }
+          // Instead of querying the users table which might have recursive policies,
+          // get the user data from the session and auth metadata
+          const email = session.user.email || '';
+          const role = session.user.user_metadata?.role || 'user';
+          
+          setUser({
+            id: session.user.id,
+            email,
+            role,
+            facility: session.user.user_metadata?.facility || 'Default Facility',
+            isAuthenticated: true,
+            isAdmin: role === 'admin'
+          });
         } else {
           setUser(null);
         }
@@ -108,24 +77,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          // Fetch user data from our custom users table
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('username', session.user.email)
-            .single();
-
-          if (userError && userError.code !== 'PGSQL_ERROR') {
-            console.error("Error fetching user data:", userError);
-          } else if (userData) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              role: userData.role || 'user',
-              facility: userData.facility || 'Default Facility',
-              isAuthenticated: true,
-              isAdmin: userData.role === 'admin'
-            });
+          // Get metadata from the session instead of querying the users table
+          const email = session.user.email || '';
+          const role = session.user.user_metadata?.role || 'user';
+          
+          setUser({
+            id: session.user.id,
+            email,
+            role,
+            facility: session.user.user_metadata?.facility || 'Default Facility',
+            isAuthenticated: true,
+            isAdmin: role === 'admin'
+          });
+          
+          if (role === 'admin') {
+            navigate('/admin-dashboard');
+          } else {
+            navigate('/inbound');
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
