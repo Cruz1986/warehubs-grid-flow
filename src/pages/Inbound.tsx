@@ -1,22 +1,64 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ToteScanner from '../components/operations/ToteScanner';
 import ToteTable from '../components/operations/ToteTable';
 import FacilitySelector from '../components/operations/FacilitySelector';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { FacilityType } from '@/components/admin/GridMasterComponent';
 
-// Mock facilities - would be fetched from Google Sheets
-const facilities = ['Facility A', 'Facility B', 'Facility C', 'Facility D'];
+// Define the Facility interface to match what's used in the GridMasterComponent
+interface Facility {
+  id: string;
+  name: string;
+  type: FacilityType;
+  location?: string;
+}
 
 const Inbound = () => {
   const [selectedFacility, setSelectedFacility] = useState('');
   const [scannedTotes, setScannedTotes] = useState<any[]>([]);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  // Fetch facilities from Supabase
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('facilities')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Ensure type is correctly mapped
+        const typedFacilities = data.map(facility => ({
+          id: facility.id,
+          name: facility.name,
+          type: facility.type as FacilityType,
+          location: facility.location
+        }));
+        
+        setFacilities(typedFacilities);
+      } catch (error) {
+        console.error('Error fetching facilities:', error);
+        toast.error('Failed to load facilities');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFacilities();
+  }, []);
   
   const handleToteScan = (toteId: string) => {
     if (!selectedFacility) {
@@ -51,6 +93,9 @@ const Inbound = () => {
     // In a real app, this would also save to Google Sheets
   };
 
+  // Convert facilities to the format expected by the FacilitySelector
+  const facilityNames = facilities.map(facility => facility.name);
+
   return (
     <DashboardLayout>
       <h1 className="text-2xl font-bold mb-6">Inbound Processing</h1>
@@ -59,10 +104,11 @@ const Inbound = () => {
         <Card>
           <CardContent className="pt-6">
             <FacilitySelector
-              facilities={facilities}
+              facilities={facilityNames}
               selectedFacility={selectedFacility}
               onChange={setSelectedFacility}
               label="Source Facility"
+              isLoading={isLoading}
             />
           </CardContent>
         </Card>
