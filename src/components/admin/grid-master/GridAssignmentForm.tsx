@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -36,6 +36,33 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
   const [sourceFacility, setSourceFacility] = useState<string>('');
   const [destinationFacility, setDestinationFacility] = useState<string>('');
   const [gridNumber, setGridNumber] = useState<string>('');
+  const [existingGrids, setExistingGrids] = useState<string[]>([]);
+  const [isCheckingGrid, setIsCheckingGrid] = useState(false);
+
+  // Fetch existing grid numbers when component mounts
+  useEffect(() => {
+    const fetchExistingGrids = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('grid_mappings')
+          .select('grid_number');
+        
+        if (error) {
+          console.error('Error fetching existing grids:', error);
+          return;
+        }
+        
+        if (data) {
+          const gridNumbers = data.map(item => item.grid_number);
+          setExistingGrids(gridNumbers);
+        }
+      } catch (err) {
+        console.error('Error in grid fetch:', err);
+      }
+    };
+    
+    fetchExistingGrids();
+  }, []);
 
   const facilitiesByType = (type: string) => {
     return facilities.filter(f => f.type === type);
@@ -53,6 +80,12 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       return;
     }
 
+    // Check if grid number already exists
+    if (existingGrids.includes(gridNumber)) {
+      toast.error(`Grid number ${gridNumber} already exists. Please use a different grid number.`);
+      return;
+    }
+
     const selectedSource = facilities.find(f => f.id === sourceFacility);
     const selectedDestination = facilities.find(f => f.id === destinationFacility);
     
@@ -61,7 +94,22 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       return;
     }
 
+    setIsCheckingGrid(true);
+    
     try {
+      // First check if the grid already exists
+      const { data: existingGrid, error: checkError } = await supabase
+        .from('grid_mappings')
+        .select('id')
+        .eq('grid_number', gridNumber)
+        .single();
+      
+      if (!checkError && existingGrid) {
+        toast.error(`Grid number ${gridNumber} already exists. Please use a different grid number.`);
+        setIsCheckingGrid(false);
+        return;
+      }
+      
       // Insert grid mapping into Supabase
       const { data, error } = await supabase
         .from('grid_mappings')
@@ -74,7 +122,18 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
         })
         .select();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          toast.error(`Grid number ${gridNumber} already exists. Please use a different grid number.`);
+        } else {
+          console.error('Error adding grid mapping:', error);
+          toast.error('Failed to add grid mapping');
+        }
+        return;
+      }
+
+      // Update the local list of existing grids
+      setExistingGrids([...existingGrids, gridNumber]);
 
       // Call the prop function to update local state
       onAssignGrid({
@@ -91,6 +150,8 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
     } catch (err) {
       console.error('Error adding grid mapping:', err);
       toast.error('Failed to add grid mapping');
+    } finally {
+      setIsCheckingGrid(false);
     }
   };
 
@@ -171,11 +232,11 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
         </div>
         <Button 
           onClick={handleAssignGrid} 
-          disabled={!gridNumber || isSubmitting}
+          disabled={!gridNumber || isSubmitting || isCheckingGrid}
           className="mb-0.5"
         >
           <Grid className="h-4 w-4 mr-2" />
-          Assign
+          {isCheckingGrid ? 'Checking...' : 'Assign'}
         </Button>
       </div>
     </div>
