@@ -10,36 +10,23 @@ import { useAuth } from '../../contexts/AuthContext';
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, isAdmin } = useAuth();
+  const { login } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
-    try {
-      if (!email || !password) {
-        toast.error("Please enter both email and password");
-        setIsLoading(false);
-        return;
-      }
-      
-      await login(email, password);
-      
-      toast.success("Login successful!");
-      
-      // Redirect based on user role
-      if (isAdmin) {
-        navigate('/admin-dashboard');
-      } else {
-        navigate('/inbound');
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("Login failed. Please check your credentials and try again.");
-    } finally {
-      setIsLoading(false);
+    // Mock authentication logic
+    if (email === 'admin@example.com' && password === 'admin123') {
+      login(true);
+      toast.success("Admin Login Successful!");
+      navigate('/admin-dashboard');
+    } else if (email === 'user@example.com' && password === 'user123') {
+      login(false);
+      toast.success("User Login Successful!");
+      navigate('/inbound');
+    } else {
+      toast.error("Invalid credentials. Please try again.");
     }
   };
 
@@ -75,10 +62,9 @@ const LoginForm = () => {
           </div>
           <Button 
             type="submit" 
-            className="w-full" 
-            disabled={isLoading}
+            className="w-full"
           >
-            {isLoading ? 'Logging in...' : 'Sign In'}
+            Sign In
           </Button>
         </form>
         <div className="mt-4 text-sm text-center text-gray-500">
