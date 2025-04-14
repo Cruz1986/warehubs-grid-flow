@@ -190,7 +190,7 @@ const StatusCards = () => {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatusCard
         title="Inbound Today"
-        value={stats.inbound.today}
+        value={String(stats.inbound.today)}
         description="Total totes received"
         icon={<ArrowDownRight className="h-4 w-4" />}
         trend={stats.inbound.trend}
@@ -200,7 +200,7 @@ const StatusCards = () => {
       
       <StatusCard
         title="Outbound Today"
-        value={stats.outbound.today}
+        value={String(stats.outbound.today)}
         description="Total totes shipped"
         icon={<ArrowUpRight className="h-4 w-4" />}
         trend={stats.outbound.trend}
@@ -219,7 +219,7 @@ const StatusCards = () => {
       
       <StatusCard
         title="Pending Totes"
-        value={stats.pendingTotes}
+        value={String(stats.pendingTotes)}
         description="Waiting for processing"
         icon={<Package className="h-4 w-4" />}
         isLoading={isLoading}
