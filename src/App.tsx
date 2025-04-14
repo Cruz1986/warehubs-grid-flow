@@ -5,13 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import UserManagement from "./pages/UserManagement";
 import Inbound from "./pages/Inbound";
 import GridManagement from "./pages/GridManagement";
 import Outbound from "./pages/Outbound";
-import Status from "./pages/Status";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,13 +20,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/user-management" element={<UserManagement />} />
           <Route path="/inbound" element={<Inbound />} />
           <Route path="/grid-management" element={<GridManagement />} />
           <Route path="/outbound" element={<Outbound />} />
-          <Route path="/status" element={<Status />} />
+          <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

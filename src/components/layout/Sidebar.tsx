@@ -3,31 +3,28 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard,
-  Users,
   PackageOpen,
   Grid2X2,
-  PackageCheck,
-  BarChart3
+  PackageCheck
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Sidebar = () => {
   const location = useLocation();
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
-  const isAdmin = user?.isAdmin;
+  const isMobile = useIsMobile();
+  
+  // Don't render the sidebar on mobile
+  if (isMobile) {
+    return null;
+  }
 
   const menuItems = [
-    ...(isAdmin ? [
-      { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
-      { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
-    ] : []),
-    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'Inbound', path: '/inbound', icon: <PackageOpen size={20} /> },
     { name: 'Grid Management', path: '/grid-management', icon: <Grid2X2 size={20} /> },
     { name: 'Outbound', path: '/outbound', icon: <PackageCheck size={20} /> },
-    { name: 'Status', path: '/status', icon: <BarChart3 size={20} /> },
   ];
 
   return (
