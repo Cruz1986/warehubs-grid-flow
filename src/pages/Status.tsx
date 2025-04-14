@@ -1,10 +1,10 @@
-
 import React from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusCards from '../components/dashboard/StatusCards';
 import ToteTable from '../components/operations/ToteTable';
+import { Tote } from '../components/operations/ToteTable';
 import { BarChart, Package, Grid2X2 } from 'lucide-react';
 
 // Mock data for facility status - would be fetched from Google Sheets
@@ -15,8 +15,8 @@ const facilityData = {
   'Pending': 22,
 };
 
-// Mock data for totes - would be fetched from Google Sheets
-const inboundTotes = [
+// Correctly typed mock totes data
+const inboundTotes: Tote[] = [
   {
     id: 'TOTE123456',
     status: 'inbound',
@@ -24,6 +24,7 @@ const inboundTotes = [
     destination: 'Facility A',
     timestamp: '2023-04-14 09:30:15',
     user: 'user1',
+    grid: undefined,
   },
   {
     id: 'TOTE789012',
@@ -32,10 +33,11 @@ const inboundTotes = [
     destination: 'Facility A',
     timestamp: '2023-04-14 09:25:42',
     user: 'user2',
+    grid: undefined,
   },
 ];
 
-const stagedTotes = [
+const stagedTotes: Tote[] = [
   {
     id: 'TOTE123457',
     status: 'staged',
@@ -56,7 +58,7 @@ const stagedTotes = [
   },
 ];
 
-const outboundTotes = [
+const outboundTotes: Tote[] = [
   {
     id: 'TOTE123458',
     status: 'outbound',

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusCards from '../components/dashboard/StatusCards';
@@ -6,9 +5,10 @@ import ToteTable from '../components/operations/ToteTable';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowRight, PackageOpen, PackageCheck, Grid2X2 } from 'lucide-react';
+import { Tote } from '../components/operations/ToteTable';  // Import Tote type
 
-// Mock totes data - would be replaced with data from Google Sheets
-const recentTotes = [
+// Correctly typed mock totes data
+const recentTotes: Tote[] = [
   {
     id: 'TOTE123456',
     status: 'inbound',
@@ -16,6 +16,7 @@ const recentTotes = [
     destination: 'Facility A',
     timestamp: '2023-04-14 09:30:15',
     user: 'user1',
+    grid: undefined,  // Add missing optional grid property
   },
   {
     id: 'TOTE123457',
@@ -35,7 +36,7 @@ const recentTotes = [
     timestamp: '2023-04-14 08:45:10',
     user: 'user2',
   },
-] as const;
+];
 
 const Dashboard = () => {
   return (
