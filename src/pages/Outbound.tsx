@@ -56,7 +56,7 @@ const Outbound = () => {
   // Extract facility names for the selector
   const facilityNames = facilities.map(facility => facility.name);
   
-  const handleToteScan = (toteId: string) => {
+  const handleToteScan = async (toteId: string) => {
     if (!selectedDestination) {
       toast.error("Please select a destination facility first");
       return;
@@ -68,25 +68,81 @@ const Outbound = () => {
       return;
     }
     
-    // Get current timestamp
-    const now = new Date();
-    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
-    
-    // Create new tote record
-    const newTote = {
-      id: toteId,
-      status: 'outbound',
-      source: user?.facility || '',
-      destination: selectedDestination,
-      timestamp,
-      user: user?.username || 'unknown',
-    };
-    
-    // Add to outbound totes list
-    setOutboundTotes([newTote, ...outboundTotes]);
-    toast.success(`Tote ${toteId} has been shipped to ${selectedDestination}`);
-    
-    // In a real app, this would also save to Google Sheets
+    try {
+      // Check if tote exists and is staged for the selected destination
+      const { data: toteData, error: toteError } = await supabase
+        .from('totes')
+        .select('*')
+        .eq('tote_number', toteId)
+        .single();
+        
+      if (toteError) {
+        toast.error(`Tote ${toteId} not found in the system`);
+        return;
+      }
+      
+      // Check if the tote is staged
+      if (toteData.status !== 'staged') {
+        toast.error(`Tote ${toteId} must be staged before outbound processing`);
+        return;
+      }
+      
+      // Check if tote is staged for the correct destination
+      const { data: gridData, error: gridError } = await supabase
+        .from('grids')
+        .select('*')
+        .eq('tote_id', toteData.id)
+        .maybeSingle();
+      
+      if (gridError) {
+        console.error('Error checking grid data:', gridError);
+        toast.error('Failed to verify tote staging information');
+        return;
+      }
+      
+      if (!gridData) {
+        toast.error(`Tote ${toteId} is not correctly staged in a grid`);
+        return;
+      }
+      
+      if (gridData.destination !== selectedDestination) {
+        toast.error(`Tote ${toteId} is staged for ${gridData.destination}, not ${selectedDestination}`);
+        return;
+      }
+      
+      // Get current timestamp
+      const now = new Date();
+      const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+      
+      // Create new tote record
+      const newTote = {
+        id: toteId,
+        status: 'outbound',
+        source: user?.facility || '',
+        destination: selectedDestination,
+        timestamp,
+        user: user?.username || 'unknown',
+      };
+      
+      // Add to outbound totes list
+      setOutboundTotes([newTote, ...outboundTotes]);
+      toast.success(`Tote ${toteId} has been shipped to ${selectedDestination}`);
+      
+      // Update the tote status in the database
+      const { error: updateError } = await supabase
+        .from('totes')
+        .update({ status: 'outbound' })
+        .eq('tote_number', toteId);
+        
+      if (updateError) {
+        console.error('Error updating tote status:', updateError);
+        toast.error('Failed to update tote status in the database');
+      }
+      
+    } catch (error) {
+      console.error('Error processing tote outbound:', error);
+      toast.error('Failed to process tote for outbound');
+    }
   };
   
   // Mock data for pending totes - in a real app, this would be fetched
