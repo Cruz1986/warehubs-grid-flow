@@ -7,76 +7,51 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import { Label } from '@/components/ui/label';
 
 type FormData = {
   email: string;
   password: string;
+  confirmPassword: string;
 };
 
-const Login = () => {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>();
+const Signup = () => {
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  
+  const password = watch('password');
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
-        password: data.password
+        password: data.password,
       });
 
       if (error) {
         throw error;
       }
 
-      // Check if user exists in our users table
-      const { data: userData, error: userError } = await supabase
+      // Create a user record in our custom users table
+      const { error: userError } = await supabase
         .from('users')
-        .select('*')
-        .eq('username', data.email)
-        .single();
+        .insert({
+          username: data.email,
+          password: 'supabase-auth', // We don't store actual passwords
+          role: 'user', // Default role for new signups
+          facility: 'Default Facility'
+        });
 
-      if (userError && userError.code !== 'PGSQL_ERROR') {
-        console.error("Error fetching user data:", userError);
-        toast.error("Error fetching user data. Please try again.");
-        return;
+      if (userError) {
+        console.error("Error creating user:", userError);
+        toast.error("Account created but there was an error setting up your profile.");
+      } else {
+        toast.success('Account created successfully! Please check your email for verification.');
       }
-
-      // If user doesn't exist in our custom users table, create one
-      if (!userData) {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            username: data.email,
-            password: 'supabase-auth', // We don't store actual passwords anymore
-            role: 'user', // Default role
-            facility: 'Default Facility'
-          });
-
-        if (insertError) {
-          console.error("Error creating user:", insertError);
-          toast.error("Error setting up your account. Please try again.");
-          return;
-        }
-      }
-
-      // Set user in context with role
-      setUser({
-        id: authData.user?.id || '',
-        email: data.email,
-        role: userData?.role || 'user',
-        facility: userData?.facility || 'Default Facility',
-        isAuthenticated: true,
-        isAdmin: userData?.role === 'admin'
-      });
-
-      toast.success('Logged in successfully');
-      navigate('/inbound');
+      navigate('/');
     } catch (error: any) {
-      console.error('Login error:', error.message);
-      toast.error(error.message || 'Login failed. Please check your credentials.');
+      console.error('Signup error:', error.message);
+      toast.error(error.message || 'Signup failed. Please try again.');
     }
   };
 
@@ -85,9 +60,9 @@ const Login = () => {
       <div className="w-full max-w-md p-4">
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
             <CardDescription className="text-center">
-              Enter your credentials to access the dashboard
+              Enter your details to create your account
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -110,31 +85,54 @@ const Login = () => {
                   <p className="text-sm text-red-500">{errors.email.message}</p>
                 )}
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
-                  {...register('password', { required: 'Password is required' })}
+                  {...register('password', { 
+                    required: 'Password is required',
+                    minLength: {
+                      value: 6,
+                      message: 'Password must be at least 6 characters'
+                    }
+                  })}
                 />
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password.message}</p>
                 )}
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register('confirmPassword', { 
+                    required: 'Please confirm your password',
+                    validate: value => value === password || 'Passwords do not match'
+                  })}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+                )}
+              </div>
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in...' : 'Sign in'}
+                {isSubmitting ? 'Creating account...' : 'Create account'}
               </Button>
               
               <p className="text-sm text-center text-gray-500 mt-4">
-                Don't have an account?{' '}
+                Already have an account?{' '}
                 <Button 
                   variant="link" 
                   className="p-0 h-auto text-sm" 
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate('/')}
                 >
-                  Sign up
+                  Sign in
                 </Button>
               </p>
             </form>
@@ -145,4 +143,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
