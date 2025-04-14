@@ -37,24 +37,18 @@ const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }
     }
   };
   
-  if (isLoading) {
-    return (
-      <div>
-        {title && <h2 className="text-xl font-semibold mb-4">{title}</h2>}
-        <div className="rounded-md border overflow-hidden">
-          <div className="p-4 space-y-4">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <Skeleton className="h-6 w-6 rounded-full" />
-                <Skeleton className="h-5 w-[150px]" />
-                <Skeleton className="h-5 w-[100px] ml-auto" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'inbound':
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case 'outbound':
+        return "bg-green-100 text-green-800 border-green-200";
+      case 'staged':
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
   
   return (
     <div>
@@ -74,7 +68,18 @@ const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }
               </TableRow>
             </TableHeader>
             <TableBody>
-              {totes.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`loading-${i}`}>
+                    <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
+                  </TableRow>
+                ))
+              ) : totes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
                     No totes found

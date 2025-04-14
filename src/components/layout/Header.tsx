@@ -2,9 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Home } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Badge } from '@/components/ui/badge';
+import { LogOut } from 'lucide-react';
 
 interface HeaderProps {
   children?: React.ReactNode;
@@ -12,9 +10,11 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
   
-  const handleHome = () => {
+  const handleLogout = () => {
+    localStorage.removeItem('user');
     navigate('/');
   };
   
@@ -26,13 +26,17 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       </div>
       
       <div className="flex items-center gap-4">
-        <Badge variant={isAdmin ? "destructive" : "secondary"}>
-          {isAdmin ? 'Admin Access' : 'User Access'}
-        </Badge>
-        <Button variant="ghost" size="icon" onClick={handleHome}>
-          <Home className="h-5 w-5" />
-          <span className="sr-only">Home</span>
-        </Button>
+        {user && (
+          <>
+            <span className="hidden md:inline text-sm text-gray-600">
+              {user.username}
+            </span>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />
+              <span className="sr-only">Logout</span>
+            </Button>
+          </>
+        )}
       </div>
     </header>
   );

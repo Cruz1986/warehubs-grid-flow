@@ -18,6 +18,10 @@ export const useGridManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [gridError, setGridError] = useState('');
   
+  // Get current user from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  
   // Fetch valid grid mappings from Supabase
   useEffect(() => {
     const fetchGridData = async () => {
@@ -90,15 +94,6 @@ export const useGridManagement = () => {
       
       // Grid is valid, proceed with staging
       addToStagedTotes(destination);
-      
-      // Focus back on tote scanner input after successful grid assignment
-      setTimeout(() => {
-        // Find the tote input element
-        const toteInput = document.querySelector('input[placeholder="Scan tote to place in grid"]') as HTMLInputElement;
-        if (toteInput) {
-          toteInput.focus();
-        }
-      }, 100);
     } else {
       setGridError("No valid grids available. Please add grid mappings in the Grid Master section.");
       return;
@@ -114,11 +109,11 @@ export const useGridManagement = () => {
     const newTote: Tote = {
       id: scannedTote,
       status: 'staged',
-      source: 'Current Facility',
+      source: user?.facility || '',
       destination,
       grid: gridId,
       timestamp,
-      user: 'system',
+      user: user?.username || 'unknown',
     };
     
     // Add to staged totes list

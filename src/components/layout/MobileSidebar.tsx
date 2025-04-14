@@ -9,13 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Menu, PackageOpen, Grid2X2, PackageCheck, Users, LayoutDashboard, Activity, Grid } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { useAuth } from "../../contexts/AuthContext";
 
 const MobileSidebar = () => {
   const location = useLocation();
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
-  const { isAdmin } = useAuth();
 
   const menuItems = [
     { name: 'Inbound', path: '/inbound', icon: <PackageOpen size={20} /> },
@@ -25,7 +23,7 @@ const MobileSidebar = () => {
   ];
   
   // Admin menu items only shown to admin users
-  const adminMenuItems = isAdmin ? [
+  const adminMenuItems = user?.isAdmin ? [
     { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
     { name: 'Grid Master', path: '/grid-master', icon: <Grid size={20} /> },

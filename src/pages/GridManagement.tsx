@@ -28,13 +28,6 @@ const GridManagement = () => {
     }
   }, []);
 
-  // Custom wrapper for grid scan that will refocus the tote input
-  const handleGridScanAndRefocus = () => {
-    handleGridScan();
-    // The actual refocus happens in the useGridManagement hook
-    // after successful grid assignment
-  };
-
   return (
     <DashboardLayout>
       <h1 className="text-2xl font-bold mb-6">Grid Management</h1>
@@ -53,8 +46,7 @@ const GridManagement = () => {
           isLoading={isLoading}
           gridError={gridError}
           onGridChange={handleGridChange}
-          onGridScan={handleGridScanAndRefocus}
-          toteInputRef={toteInputRef}
+          onGridScan={handleGridScan}
         />
       </div>
       

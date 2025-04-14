@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -12,9 +12,7 @@ import { toast } from 'sonner';
 import AddUserDialog from './user-management/AddUserDialog';
 import ResetPasswordDialog from './user-management/ResetPasswordDialog';
 import UserTableRow from './user-management/UserTableRow';
-
-// Mock data - would be replaced with Google Sheet data
-const mockFacilities = ['Facility A', 'Facility B', 'Facility C', 'Facility D'];
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -32,7 +30,35 @@ const UserManagementTable = () => {
   ]);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [facilities, setFacilities] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('facilities')
+          .select('name');
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Extract facility names from the data
+        const facilityNames = data.map(facility => facility.name);
+        setFacilities(facilityNames);
+      } catch (error) {
+        console.error('Error fetching facilities:', error);
+        toast.error('Failed to load facilities');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFacilities();
+  }, []);
+
   const handleAddUser = (newUserData: {
     username: string;
     password: string;
@@ -72,8 +98,9 @@ const UserManagementTable = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">User Management</h2>
         <AddUserDialog 
-          facilities={mockFacilities}
+          facilities={facilities}
           onAddUser={handleAddUser}
+          isLoading={isLoading}
         />
       </div>
       
