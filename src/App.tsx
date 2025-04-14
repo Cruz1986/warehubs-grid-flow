@@ -9,6 +9,8 @@ import Inbound from "./pages/Inbound";
 import GridManagement from "./pages/GridManagement";
 import Outbound from "./pages/Outbound";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
+import UserManagement from "./pages/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/inbound" element={<Inbound />} />
           <Route path="/grid-management" element={<GridManagement />} />
           <Route path="/outbound" element={<Outbound />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/user-management" element={<UserManagement />} />
           <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

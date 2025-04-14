@@ -35,7 +35,7 @@ const LoginForm = () => {
         if (isAdmin) {
           navigate('/admin-dashboard');
         } else {
-          navigate('/dashboard');
+          navigate('/inbound');
         }
       } else {
         toast.error("Please enter both username and password");

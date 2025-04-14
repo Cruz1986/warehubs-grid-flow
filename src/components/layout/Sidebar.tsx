@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import {
   PackageOpen,
   Grid2X2,
-  PackageCheck
+  PackageCheck,
+  Users,
+  LayoutDashboard
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -26,6 +28,12 @@ const Sidebar = () => {
     { name: 'Grid Management', path: '/grid-management', icon: <Grid2X2 size={20} /> },
     { name: 'Outbound', path: '/outbound', icon: <PackageCheck size={20} /> },
   ];
+
+  // Admin menu items only shown to admin users
+  const adminMenuItems = user?.isAdmin ? [
+    { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
+    { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
+  ] : [];
 
   return (
     <aside className="h-screen w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
@@ -50,6 +58,32 @@ const Sidebar = () => {
               </Link>
             </li>
           ))}
+          
+          {adminMenuItems.length > 0 && (
+            <>
+              <li className="pt-2">
+                <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Admin
+                </div>
+              </li>
+              {adminMenuItems.map((item) => (
+                <li key={item.path}>
+                  <Link to={item.path}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start",
+                        location.pathname === item.path ? "bg-blue-50 text-blue-700" : ""
+                      )}
+                    >
+                      <span className="mr-2">{item.icon}</span>
+                      {item.name}
+                    </Button>
+                  </Link>
+                </li>
+              ))}
+            </>
+          )}
         </ul>
       </nav>
       <div className="p-4 border-t border-gray-200">
