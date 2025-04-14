@@ -64,7 +64,7 @@ const Status = () => {
           // Transform to Tote type
           const formattedInbound = inboundData.map(tote => ({
             id: tote.tote_number,
-            status: tote.status,
+            status: 'inbound' as const,
             source: tote.facility_id || 'Unknown',
             destination: 'Current Facility',
             timestamp: new Date(tote.created_at).toLocaleString(),
@@ -88,7 +88,7 @@ const Status = () => {
           // Transform to Tote type
           const formattedStaged = stagedData.filter(grid => grid.totes).map(grid => ({
             id: grid.totes?.tote_number || 'Unknown',
-            status: 'staged',
+            status: 'staged' as const,
             source: grid.totes?.facility_id || 'Unknown',
             destination: grid.destination || 'Unknown',
             timestamp: new Date(grid.created_at).toLocaleString(),
@@ -112,7 +112,7 @@ const Status = () => {
           // Transform to Tote type
           const formattedOutbound = outboundData.map(tote => ({
             id: tote.tote_number,
-            status: tote.status,
+            status: 'outbound' as const,
             source: 'Current Facility',
             destination: tote.facility_id || 'Unknown',
             timestamp: new Date(tote.created_at).toLocaleString(),

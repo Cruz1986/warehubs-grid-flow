@@ -212,7 +212,7 @@ const StatusCards = () => {
         title="Grid Capacity"
         value={`${stats.gridCapacity.used > 0 && stats.gridCapacity.total > 0 ? 
           Math.round((stats.gridCapacity.used / stats.gridCapacity.total) * 100) : 0}%`}
-        description={`${stats.gridCapacity.used}/${stats.gridCapacity.total} grids in use`}
+        description={`${String(stats.gridCapacity.used)}/${String(stats.gridCapacity.total)} grids in use`}
         icon={<Grid className="h-4 w-4" />}
         isLoading={isLoading}
       />

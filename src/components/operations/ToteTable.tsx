@@ -7,6 +7,7 @@ import {
   Package // staged or other
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface Tote {
   id: string;
@@ -21,9 +22,10 @@ export interface Tote {
 interface ToteTableProps {
   totes: Tote[];
   title?: string;
+  isLoading?: boolean;
 }
 
-const ToteTable: React.FC<ToteTableProps> = ({ totes, title }) => {
+const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'inbound':
@@ -66,7 +68,18 @@ const ToteTable: React.FC<ToteTableProps> = ({ totes, title }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {totes.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={`loading-${i}`}>
+                    <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
+                  </TableRow>
+                ))
+              ) : totes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
                     No totes found
