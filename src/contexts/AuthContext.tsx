@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState } from 'react';
 interface AuthContextType {
   isAdmin: boolean;
   setIsAdmin: (value: boolean) => void;
+  login: (asAdmin: boolean) => void;
 }
 
 // Create the context with a default value
@@ -24,9 +25,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Default to non-admin access
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Simple login function that sets admin status
+  const login = (asAdmin: boolean) => {
+    setIsAdmin(asAdmin);
+    
+    // Store role in localStorage for persistence
+    const userData = {
+      isAdmin: asAdmin,
+      facility: asAdmin ? 'All Facilities' : 'Fulfillment Center 1'
+    };
+    
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const value = {
     isAdmin,
-    setIsAdmin
+    setIsAdmin,
+    login
   };
 
   return (

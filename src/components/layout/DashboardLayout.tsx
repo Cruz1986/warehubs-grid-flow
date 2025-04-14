@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import MobileSidebar from './MobileSidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,9 +15,15 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmin = false }) => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
 
   // Only redirect if admin access is required but user is not an admin
   if (requireAdmin && !isAdmin) {
+    toast({
+      title: "Access Denied",
+      description: "You need admin permissions to access this page.",
+      variant: "destructive"
+    });
     navigate('/inbound');
     return null;
   }

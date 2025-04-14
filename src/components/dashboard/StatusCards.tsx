@@ -1,229 +1,197 @@
 
-import React, { useEffect, useState } from 'react';
-import { Package, ArrowUpRight, ArrowDownRight, Grid } from 'lucide-react';
+import React from 'react';
+import { Activity, ArrowRight, CheckCircle, Clock, Grid3X3, Package } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import StatusCard from './StatusCard';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+
+// Placeholder data for demonstration
+const statsData = {
+  inbound: {
+    total: 245,
+    scanned: 187,
+    staged: 154,
+    pending: 58
+  },
+  outbound: {
+    total: 198,
+    scanned: 172,
+    packed: 143,
+    shipped: 126
+  },
+  grid: {
+    total: 90,
+    occupied: 68,
+    available: 22,
+    utilization: 75
+  },
+  fulfillment: {
+    rate: 94.2,
+    onTime: 97.3,
+    accuracy: 99.1
+  }
+};
 
 const StatusCards = () => {
-  const [stats, setStats] = useState({
-    inbound: {
-      today: 0,
-      yesterday: 0,
-      trend: 'neutral' as 'up' | 'down' | 'neutral',
-      percentage: '0%'
-    },
-    outbound: {
-      today: 0,
-      yesterday: 0,
-      trend: 'neutral' as 'up' | 'down' | 'neutral',
-      percentage: '0%'
-    },
-    gridCapacity: {
-      used: 0,
-      total: 0,
-    },
-    pendingTotes: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Get today's date at midnight
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayISOString = today.toISOString();
-        
-        // Get yesterday's date at midnight
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        yesterday.setHours(0, 0, 0, 0);
-        const yesterdayISOString = yesterday.toISOString();
-        
-        // Get inbound totes for today
-        const { data: todayInbound, error: inboundError } = await supabase
-          .from('totes')
-          .select('count')
-          .eq('status', 'inbound')
-          .gte('created_at', todayISOString)
-          .single();
-        
-        if (inboundError && inboundError.code !== 'PGRST116') {
-          console.error('Error fetching inbound totes:', inboundError);
-        }
-        
-        // Get inbound totes for yesterday
-        const { data: yesterdayInbound, error: yesterdayInboundError } = await supabase
-          .from('totes')
-          .select('count')
-          .eq('status', 'inbound')
-          .gte('created_at', yesterdayISOString)
-          .lt('created_at', todayISOString)
-          .single();
-        
-        if (yesterdayInboundError && yesterdayInboundError.code !== 'PGRST116') {
-          console.error('Error fetching yesterday inbound totes:', yesterdayInboundError);
-        }
-        
-        // Get outbound totes for today
-        const { data: todayOutbound, error: outboundError } = await supabase
-          .from('totes')
-          .select('count')
-          .eq('status', 'outbound')
-          .gte('created_at', todayISOString)
-          .single();
-        
-        if (outboundError && outboundError.code !== 'PGRST116') {
-          console.error('Error fetching outbound totes:', outboundError);
-        }
-        
-        // Get outbound totes for yesterday
-        const { data: yesterdayOutbound, error: yesterdayOutboundError } = await supabase
-          .from('totes')
-          .select('count')
-          .eq('status', 'outbound')
-          .gte('created_at', yesterdayISOString)
-          .lt('created_at', todayISOString)
-          .single();
-        
-        if (yesterdayOutboundError && yesterdayOutboundError.code !== 'PGRST116') {
-          console.error('Error fetching yesterday outbound totes:', yesterdayOutboundError);
-        }
-        
-        // Get pending totes
-        const { data: pendingTotes, error: pendingError } = await supabase
-          .from('totes')
-          .select('count')
-          .eq('status', 'inbound')
-          .single();
-        
-        if (pendingError && pendingError.code !== 'PGRST116') {
-          console.error('Error fetching pending totes:', pendingError);
-        }
-        
-        // Get grid capacity
-        const { data: grids, error: gridsError } = await supabase
-          .from('grids')
-          .select('*');
-        
-        if (gridsError) {
-          console.error('Error fetching grids:', gridsError);
-        }
-        
-        // Calculate grid usage
-        const totalGrids = grids?.length || 0;
-        const usedGrids = grids?.filter(grid => grid.status === 'occupied').length || 0;
-        const gridUsagePercentage = totalGrids > 0 ? Math.round((usedGrids / totalGrids) * 100) : 0;
-        
-        // Calculate trends
-        const todayInboundCount = parseInt(todayInbound?.count || '0');
-        const yesterdayInboundCount = parseInt(yesterdayInbound?.count || '0');
-        const inboundTrend = todayInboundCount > yesterdayInboundCount ? 'up' : 
-                              todayInboundCount < yesterdayInboundCount ? 'down' : 'neutral';
-        
-        const todayOutboundCount = parseInt(todayOutbound?.count || '0');
-        const yesterdayOutboundCount = parseInt(yesterdayOutbound?.count || '0');
-        const outboundTrend = todayOutboundCount > yesterdayOutboundCount ? 'up' : 
-                               todayOutboundCount < yesterdayOutboundCount ? 'down' : 'neutral';
-        
-        // Calculate percentage changes
-        let inboundPercentage = '0%';
-        if (yesterdayInboundCount > 0) {
-          const inboundChange = ((todayInboundCount - yesterdayInboundCount) / yesterdayInboundCount) * 100;
-          inboundPercentage = `${inboundChange > 0 ? '+' : ''}${inboundChange.toFixed(1)}%`;
-        }
-        
-        let outboundPercentage = '0%';
-        if (yesterdayOutboundCount > 0) {
-          const outboundChange = ((todayOutboundCount - yesterdayOutboundCount) / yesterdayOutboundCount) * 100;
-          outboundPercentage = `${outboundChange > 0 ? '+' : ''}${outboundChange.toFixed(1)}%`;
-        }
-        
-        // Update stats state
-        setStats({
-          inbound: {
-            today: todayInboundCount,
-            yesterday: yesterdayInboundCount,
-            trend: inboundTrend,
-            percentage: inboundPercentage
-          },
-          outbound: {
-            today: todayOutboundCount,
-            yesterday: yesterdayOutboundCount,
-            trend: outboundTrend,
-            percentage: outboundPercentage
-          },
-          gridCapacity: {
-            used: usedGrids,
-            total: totalGrids,
-          },
-          pendingTotes: parseInt(pendingTotes?.count || '0')
-        });
-        
-      } catch (error) {
-        console.error('Error fetching warehouse stats:', error);
-        toast.error('Failed to load warehouse statistics');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchStats();
-    
-    // Set up real-time subscription for changes
-    const channel = supabase
-      .channel('table-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        fetchStats();
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatusCard
-        title="Inbound Today"
-        value={stats.inbound.today}
-        description="Total totes received"
-        icon={<ArrowDownRight className="h-4 w-4" />}
-        trend={stats.inbound.trend}
-        trendValue={stats.inbound.percentage}
-        isLoading={isLoading}
+        title="Inbound Processing"
+        value={`${statsData.inbound.scanned}/${statsData.inbound.total}`}
+        description="Totes processed"
+        icon={<Package className="h-5 w-5 text-blue-500" />}
+        footer={
+          <div className="flex flex-col space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Progress</span>
+              <span>{Math.round((statsData.inbound.scanned / statsData.inbound.total) * 100)}%</span>
+            </div>
+            <Progress value={(statsData.inbound.scanned / statsData.inbound.total) * 100} className="h-1" />
+          </div>
+        }
+      />
+
+      <StatusCard
+        title="Outbound Processing"
+        value={`${statsData.outbound.shipped}/${statsData.outbound.total}`}
+        description="Totes shipped"
+        icon={<ArrowRight className="h-5 w-5 text-green-500" />}
+        footer={
+          <div className="flex flex-col space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Progress</span>
+              <span>{Math.round((statsData.outbound.shipped / statsData.outbound.total) * 100)}%</span>
+            </div>
+            <Progress value={(statsData.outbound.shipped / statsData.outbound.total) * 100} className="h-1" />
+          </div>
+        }
+      />
+
+      <StatusCard
+        title="Grid Utilization"
+        value={`${statsData.grid.occupied}/${statsData.grid.total}`}
+        description="Grid spaces filled"
+        icon={<Grid3X3 className="h-5 w-5 text-purple-500" />}
+        footer={
+          <div className="flex flex-col space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Utilization</span>
+              <span>{statsData.grid.utilization}%</span>
+            </div>
+            <Progress value={statsData.grid.utilization} className="h-1" />
+          </div>
+        }
+      />
+
+      <StatusCard
+        title="Fulfillment Rate"
+        value={`${statsData.fulfillment.rate}%`}
+        description="Overall fulfillment"
+        icon={<CheckCircle className="h-5 w-5 text-green-500" />}
+        footer={
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center">
+              <Clock className="mr-1 h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">On-time: </span>
+              <span className="ml-auto font-medium">{statsData.fulfillment.onTime.toString()}%</span>
+            </div>
+            <div className="flex items-center">
+              <Activity className="mr-1 h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">Accuracy: </span>
+              <span className="ml-auto font-medium">{statsData.fulfillment.accuracy.toString()}%</span>
+            </div>
+          </div>
+        }
       />
       
-      <StatusCard
-        title="Outbound Today"
-        value={stats.outbound.today}
-        description="Total totes shipped"
-        icon={<ArrowUpRight className="h-4 w-4" />}
-        trend={stats.outbound.trend}
-        trendValue={stats.outbound.percentage}
-        isLoading={isLoading}
-      />
+      {/* Detailed status cards */}
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle>Inbound Status</CardTitle>
+          <CardDescription>Current inbound processing metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-medium">Totes Received</div>
+              <div className="text-2xl font-bold">{statsData.inbound.total}</div>
+              <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                <span className="rounded-md bg-blue-100 px-1 text-blue-800">Today</span>
+              </div>
+            </div>
+            <div className="flex flex-col space-y-3">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Scanned</span>
+                  <span className="font-medium">{statsData.inbound.scanned.toString()}</span>
+                </div>
+                <Progress value={(statsData.inbound.scanned / statsData.inbound.total) * 100} className="h-1" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Staged to Grid</span>
+                  <span className="font-medium">{statsData.inbound.staged.toString()}</span>
+                </div>
+                <Progress value={(statsData.inbound.staged / statsData.inbound.total) * 100} className="h-1" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Pending</span>
+                  <span className="font-medium">{statsData.inbound.pending.toString()}</span>
+                </div>
+                <Progress value={(statsData.inbound.pending / statsData.inbound.total) * 100} className="h-1" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="border-t px-6 py-3">
+          <div className="text-xs text-muted-foreground">Updated 5 minutes ago</div>
+        </CardFooter>
+      </Card>
       
-      <StatusCard
-        title="Grid Capacity"
-        value={`${stats.gridCapacity.used > 0 && stats.gridCapacity.total > 0 ? 
-          Math.round((stats.gridCapacity.used / stats.gridCapacity.total) * 100) : 0}%`}
-        description={`${stats.gridCapacity.used}/${stats.gridCapacity.total} grids in use`}
-        icon={<Grid className="h-4 w-4" />}
-        isLoading={isLoading}
-      />
-      
-      <StatusCard
-        title="Pending Totes"
-        value={stats.pendingTotes}
-        description="Waiting for processing"
-        icon={<Package className="h-4 w-4" />}
-        isLoading={isLoading}
-      />
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle>Outbound Status</CardTitle>
+          <CardDescription>Current outbound processing metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-medium">Totes to Ship</div>
+              <div className="text-2xl font-bold">{statsData.outbound.total}</div>
+              <div className="mt-2 flex items-center text-xs text-muted-foreground">
+                <span className="rounded-md bg-green-100 px-1 text-green-800">Today</span>
+              </div>
+            </div>
+            <div className="flex flex-col space-y-3">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Scanned</span>
+                  <span className="font-medium">{statsData.outbound.scanned.toString()}</span>
+                </div>
+                <Progress value={(statsData.outbound.scanned / statsData.outbound.total) * 100} className="h-1" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Packed</span>
+                  <span className="font-medium">{statsData.outbound.packed.toString()}</span>
+                </div>
+                <Progress value={(statsData.outbound.packed / statsData.outbound.total) * 100} className="h-1" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Shipped</span>
+                  <span className="font-medium">{statsData.outbound.shipped.toString()}</span>
+                </div>
+                <Progress value={(statsData.outbound.shipped / statsData.outbound.total) * 100} className="h-1" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="border-t px-6 py-3">
+          <div className="text-xs text-muted-foreground">Updated 5 minutes ago</div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

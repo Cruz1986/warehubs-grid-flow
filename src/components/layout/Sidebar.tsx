@@ -13,12 +13,14 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   const isMobile = useIsMobile();
+  const { isAdmin } = useAuth();
   
   // Don't render the sidebar on mobile
   if (isMobile) {
@@ -33,7 +35,7 @@ const Sidebar = () => {
   ];
 
   // Admin menu items only shown to admin users
-  const adminMenuItems = user?.isAdmin ? [
+  const adminMenuItems = isAdmin ? [
     { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
     { name: 'Grid Master', path: '/grid-master', icon: <Grid size={20} /> },
