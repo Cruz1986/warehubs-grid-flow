@@ -11,24 +11,29 @@ interface ToteScannerProps {
   placeholder?: string;
   buttonText?: string;
   autoFocus?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
 
 const ToteScanner = ({
   onScan,
   placeholder = "Scan or enter tote ID",
   buttonText = "Scan",
-  autoFocus = true
+  autoFocus = true,
+  inputRef
 }: ToteScannerProps) => {
   const [toteId, setToteId] = useState('');
   const [lastScannedTote, setLastScannedTote] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const defaultInputRef = useRef<HTMLInputElement>(null);
+  
+  // Use the provided inputRef or the default one
+  const finalInputRef = inputRef || defaultInputRef;
 
   useEffect(() => {
     // Auto-focus the input when the component mounts
-    if (autoFocus && inputRef.current) {
-      inputRef.current.focus();
+    if (autoFocus && finalInputRef.current) {
+      finalInputRef.current.focus();
     }
-  }, [autoFocus]);
+  }, [autoFocus, finalInputRef]);
 
   const handleScan = () => {
     if (!toteId.trim()) {
@@ -42,8 +47,8 @@ const ToteScanner = ({
     setToteId('');
     
     // Refocus the input for the next scan
-    if (inputRef.current) {
-      inputRef.current.focus();
+    if (finalInputRef.current) {
+      finalInputRef.current.focus();
     }
   };
 
@@ -64,7 +69,7 @@ const ToteScanner = ({
       <CardContent>
         <div className="flex space-x-2">
           <Input
-            ref={inputRef}
+            ref={finalInputRef}
             type="text"
             placeholder={placeholder}
             value={toteId}

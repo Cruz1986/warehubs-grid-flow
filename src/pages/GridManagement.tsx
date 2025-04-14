@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import ToteScanner from '../components/operations/ToteScanner';
 import ToteTable from '../components/operations/ToteTable';
@@ -22,10 +22,26 @@ const GridManagement = () => {
   const [scannedTote, setScannedTote] = useState('');
   const [gridId, setGridId] = useState('');
   const [stagedTotes, setStagedTotes] = useState<any[]>([]);
+  const gridInputRef = useRef<HTMLInputElement>(null);
+  const toteInputRef = useRef<HTMLInputElement>(null);
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  
+  // Focus on tote input initially
+  useEffect(() => {
+    if (toteInputRef.current) {
+      toteInputRef.current.focus();
+    }
+  }, []);
+  
+  // When tote is scanned, focus on grid input
+  useEffect(() => {
+    if (scannedTote && gridInputRef.current) {
+      gridInputRef.current.focus();
+    }
+  }, [scannedTote]);
   
   const handleToteScan = (toteId: string) => {
     // In a real app, this would check if the tote exists and is in "inbound" status
@@ -75,6 +91,11 @@ const GridManagement = () => {
     setScannedTote('');
     setGridId('');
     
+    // Focus back on tote scanner after completing the workflow
+    if (toteInputRef.current) {
+      toteInputRef.current.focus();
+    }
+    
     // In a real app, this would also update the tote status in Google Sheets
   };
   
@@ -92,6 +113,7 @@ const GridManagement = () => {
         <ToteScanner
           onScan={handleToteScan}
           placeholder="Scan tote to place in grid"
+          inputRef={toteInputRef}
         />
         
         <Card>
@@ -111,6 +133,7 @@ const GridManagement = () => {
                 onKeyDown={handleKeyDown}
                 className="flex-1"
                 disabled={!scannedTote}
+                ref={gridInputRef}
               />
               <Button 
                 onClick={handleGridScan}
