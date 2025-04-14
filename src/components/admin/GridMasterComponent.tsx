@@ -30,7 +30,7 @@ const GridMasterComponent = () => {
         throw error;
       }
       
-      // Map database records to our Facility type
+      // Ensure type is correctly mapped
       const typedFacilities = data.map(facility => ({
         id: facility.id,
         name: facility.name,
