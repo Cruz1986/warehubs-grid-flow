@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Grid2X2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import GridNumberField from '@/components/admin/grid-master/GridNumberField';
 
 // Grid Mapping interface
 interface GridMapping {
@@ -24,8 +25,10 @@ const GridManagement = () => {
   const [scannedTote, setScannedTote] = useState('');
   const [gridId, setGridId] = useState('');
   const [stagedTotes, setStagedTotes] = useState<any[]>([]);
-  const [validGrids, setValidGrids] = useState<Record<string, string>>({});
+  const [validGrids, setValidGrids] = useState<string[]>([]);
+  const [gridDestinations, setGridDestinations] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [gridError, setGridError] = useState('');
   const gridInputRef = useRef<HTMLInputElement>(null);
   const toteInputRef = useRef<HTMLInputElement>(null);
   
@@ -38,25 +41,30 @@ const GridManagement = () => {
     const fetchGridData = async () => {
       setIsLoading(true);
       try {
-        // For now, we're fetching all grid mappings - in a production app, 
-        // you would want to filter by the user's facility
+        // Fetch grid mappings from the grid_mappings table
         const { data, error } = await supabase
           .from('grid_mappings')
-          .select('*');
+          .select('grid_number, destination')
+          .order('grid_number', { ascending: true });
 
         if (error) {
           throw error;
         }
 
+        // Create a list of valid grid numbers
+        const grids: string[] = [];
         // Create a mapping of grid numbers to destinations
         const gridMap: Record<string, string> = {};
+        
         if (data) {
           data.forEach((mapping: any) => {
-            gridMap[mapping.gridNumber] = mapping.destination;
+            grids.push(mapping.grid_number);
+            gridMap[mapping.grid_number] = mapping.destination;
           });
         }
         
-        setValidGrids(gridMap);
+        setValidGrids(grids);
+        setGridDestinations(gridMap);
       } catch (error) {
         console.error('Error fetching grid data:', error);
         toast.error('Failed to load grid data');
@@ -86,7 +94,13 @@ const GridManagement = () => {
     // In a real app, this would check if the tote exists and is in "inbound" status
     // For this demo, we'll just set the scanned tote
     setScannedTote(toteId);
+    setGridError('');
     toast.success(`Tote ${toteId} scanned. Please scan a grid location.`);
+  };
+  
+  const handleGridChange = (value: string) => {
+    setGridId(value);
+    setGridError('');
   };
   
   const handleGridScan = () => {
@@ -96,41 +110,23 @@ const GridManagement = () => {
     }
     
     if (!gridId) {
-      toast.error("Please enter a grid ID");
+      setGridError("Please enter a grid ID");
       return;
     }
     
     // Check if grid exists in our valid grids
-    if (Object.keys(validGrids).length > 0) {
-      const destination = validGrids[gridId];
+    if (validGrids.length > 0) {
+      const destination = gridDestinations[gridId];
       if (!destination) {
-        toast.error(`Grid ${gridId} is not valid. Please scan a valid grid.`);
-        setGridId('');
+        setGridError(`Grid ${gridId} is not a valid grid number`);
         return;
       }
       
       // Grid is valid, proceed with staging
       addToStagedTotes(destination);
     } else {
-      // Fallback to the mock data if no valid grids are loaded
-      // This would be removed in a production version
-      const mockGridMappings = {
-        'G101': 'Facility B',
-        'G102': 'Facility C',
-        'G103': 'Facility D',
-        'G104': 'Facility A',
-        'G105': 'Facility B',
-      };
-      
-      const destination = mockGridMappings[gridId as keyof typeof mockGridMappings];
-      if (!destination) {
-        toast.error(`Grid ${gridId} is not valid. Please scan a valid grid.`);
-        setGridId('');
-        return;
-      }
-      
-      // Grid is valid, proceed with staging
-      addToStagedTotes(destination);
+      setGridError("No valid grids available. Please add grid mappings in the Grid Master section.");
+      return;
     }
   };
   
@@ -157,6 +153,7 @@ const GridManagement = () => {
     // Reset the form
     setScannedTote('');
     setGridId('');
+    setGridError('');
     
     // Focus back on tote scanner after completing the workflow
     if (toteInputRef.current) {
@@ -192,25 +189,25 @@ const GridManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="flex space-x-2">
-              <Input
-                type="text"
-                placeholder="Scan or enter grid ID"
-                value={gridId}
-                onChange={(e) => setGridId(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1"
-                disabled={!scannedTote}
-                ref={gridInputRef}
-              />
+              <div className="flex-1">
+                <GridNumberField
+                  gridNumber={gridId}
+                  onChange={handleGridChange}
+                  disabled={!scannedTote}
+                  validGrids={validGrids}
+                  error={gridError}
+                />
+              </div>
               <Button 
                 onClick={handleGridScan}
                 disabled={!scannedTote}
+                className="mt-8"
               >
                 Assign
               </Button>
             </div>
             
-            {scannedTote && !gridId && (
+            {scannedTote && !gridId && !gridError && (
               <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-md">
                 <p className="text-sm">
                   Tote <span className="font-bold">{scannedTote}</span> is ready to be assigned to a grid.

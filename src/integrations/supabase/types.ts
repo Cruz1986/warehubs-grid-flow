@@ -33,6 +33,36 @@ export type Database = {
         }
         Relationships: []
       }
+      grid_mappings: {
+        Row: {
+          created_at: string | null
+          destination: string
+          destination_type: string
+          grid_number: string
+          id: string
+          source: string
+          source_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          destination: string
+          destination_type: string
+          grid_number: string
+          id?: string
+          source: string
+          source_type: string
+        }
+        Update: {
+          created_at?: string | null
+          destination?: string
+          destination_type?: string
+          grid_number?: string
+          id?: string
+          source?: string
+          source_type?: string
+        }
+        Relationships: []
+      }
       grids: {
         Row: {
           created_at: string | null

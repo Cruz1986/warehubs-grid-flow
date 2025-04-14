@@ -29,11 +29,14 @@ const GridNumberField: React.FC<GridNumberFieldProps> = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter grid number"
         disabled={disabled}
-        className={!isValid ? "border-red-500" : ""}
+        className={!isValid || error ? "border-red-500" : ""}
       />
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {!isValid && !error && (
-        <p className="text-sm text-red-500">Grid number is not valid</p>
+      {error ? (
+        <p className="text-sm text-red-500">{error}</p>
+      ) : (
+        !isValid && (
+          <p className="text-sm text-red-500">Grid number is not valid</p>
+        )
       )}
     </div>
   );
