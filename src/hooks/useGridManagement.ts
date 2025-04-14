@@ -18,10 +18,6 @@ export const useGridManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [gridError, setGridError] = useState('');
   
-  // Get current user from localStorage
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
-  
   // Fetch valid grid mappings from Supabase
   useEffect(() => {
     const fetchGridData = async () => {
@@ -118,11 +114,11 @@ export const useGridManagement = () => {
     const newTote: Tote = {
       id: scannedTote,
       status: 'staged',
-      source: user?.facility || '',
+      source: 'Current Facility',
       destination,
       grid: gridId,
       timestamp,
-      user: user?.username || 'unknown',
+      user: 'system',
     };
     
     // Add to staged totes list

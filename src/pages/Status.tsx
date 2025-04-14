@@ -61,10 +61,10 @@ const Status = () => {
         if (inboundError) {
           console.error('Error fetching inbound totes:', inboundError);
         } else {
-          // Transform to Tote type
+          // Transform to Tote type with correctly typed status
           const formattedInbound = inboundData.map(tote => ({
             id: tote.tote_number,
-            status: tote.status,
+            status: 'inbound' as const,
             source: tote.facility_id || 'Unknown',
             destination: 'Current Facility',
             timestamp: new Date(tote.created_at).toLocaleString(),
@@ -85,10 +85,10 @@ const Status = () => {
         if (stagedError) {
           console.error('Error fetching staged totes:', stagedError);
         } else {
-          // Transform to Tote type
+          // Transform to Tote type with correctly typed status
           const formattedStaged = stagedData.filter(grid => grid.totes).map(grid => ({
             id: grid.totes?.tote_number || 'Unknown',
-            status: 'staged',
+            status: 'staged' as const,
             source: grid.totes?.facility_id || 'Unknown',
             destination: grid.destination || 'Unknown',
             timestamp: new Date(grid.created_at).toLocaleString(),
@@ -109,10 +109,10 @@ const Status = () => {
         if (outboundError) {
           console.error('Error fetching outbound totes:', outboundError);
         } else {
-          // Transform to Tote type
+          // Transform to Tote type with correctly typed status
           const formattedOutbound = outboundData.map(tote => ({
             id: tote.tote_number,
-            status: tote.status,
+            status: 'outbound' as const,
             source: 'Current Facility',
             destination: tote.facility_id || 'Unknown',
             timestamp: new Date(tote.created_at).toLocaleString(),
@@ -246,6 +246,14 @@ const Status = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Helper function to convert string to number
+  const safeParseInt = (value: unknown): string => {
+    if (typeof value === 'number') {
+      return value.toString();
+    }
+    return String(value || '0');
+  };
 
   return (
     <DashboardLayout>
