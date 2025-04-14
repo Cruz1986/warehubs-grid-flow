@@ -94,6 +94,15 @@ export const useGridManagement = () => {
       
       // Grid is valid, proceed with staging
       addToStagedTotes(destination);
+      
+      // Focus back on tote scanner input after successful grid assignment
+      setTimeout(() => {
+        // Find the tote input element
+        const toteInput = document.querySelector('input[placeholder="Scan tote to place in grid"]') as HTMLInputElement;
+        if (toteInput) {
+          toteInput.focus();
+        }
+      }, 100);
     } else {
       setGridError("No valid grids available. Please add grid mappings in the Grid Master section.");
       return;

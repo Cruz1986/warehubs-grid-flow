@@ -13,6 +13,7 @@ interface GridScannerProps {
   gridError: string;
   onGridChange: (value: string) => void;
   onGridScan: () => void;
+  toteInputRef?: React.RefObject<HTMLInputElement>;
 }
 
 const GridScanner: React.FC<GridScannerProps> = ({
@@ -22,7 +23,8 @@ const GridScanner: React.FC<GridScannerProps> = ({
   isLoading,
   gridError,
   onGridChange,
-  onGridScan
+  onGridScan,
+  toteInputRef
 }) => {
   const gridInputRef = useRef<HTMLInputElement>(null);
 
