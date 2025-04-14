@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Facility, FacilityType } from '../GridMasterComponent';
 import { toast } from 'sonner';
 import { Grid } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GridAssignmentFormProps {
   facilities: Facility[];
@@ -46,7 +47,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
     'Darkstore': facilitiesByType('Darkstore')
   };
 
-  const handleAssignGrid = () => {
+  const handleAssignGrid = async () => {
     if (!facilityType || !sourceFacility || !destinationFacility || !gridNumber) {
       toast.error('Please fill in all required fields');
       return;
@@ -60,16 +61,37 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       return;
     }
 
-    onAssignGrid({
-      source: selectedSource.name,
-      sourceType: selectedSource.type,
-      destination: selectedDestination.name,
-      destinationType: selectedDestination.type,
-      gridNumber
-    });
+    try {
+      // Insert grid mapping into Supabase
+      const { data, error } = await supabase
+        .from('grid_mappings')
+        .insert({
+          source: selectedSource.name,
+          source_type: selectedSource.type,
+          destination: selectedDestination.name,
+          destination_type: selectedDestination.type,
+          grid_number: gridNumber
+        })
+        .select();
 
-    // Reset grid number field after successful assignment
-    setGridNumber('');
+      if (error) throw error;
+
+      // Call the prop function to update local state
+      onAssignGrid({
+        source: selectedSource.name,
+        sourceType: selectedSource.type,
+        destination: selectedDestination.name,
+        destinationType: selectedDestination.type,
+        gridNumber
+      });
+
+      // Reset grid number field after successful assignment
+      setGridNumber('');
+      toast.success('Grid mapping added successfully');
+    } catch (err) {
+      console.error('Error adding grid mapping:', err);
+      toast.error('Failed to add grid mapping');
+    }
   };
 
   return (
