@@ -1,9 +1,8 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Grid2X2 } from 'lucide-react';
-import { toast } from 'sonner';
 import GridNumberField from '@/components/admin/grid-master/GridNumberField';
 
 interface GridScannerProps {
@@ -27,10 +26,15 @@ const GridScanner: React.FC<GridScannerProps> = ({
 }) => {
   const gridInputRef = useRef<HTMLInputElement>(null);
 
-  // When component renders or scannedTote changes, focus on grid input
-  React.useEffect(() => {
+  // When scannedTote changes and is not empty, focus on grid input
+  useEffect(() => {
     if (scannedTote && gridInputRef.current) {
-      gridInputRef.current.focus();
+      // Focus with a small delay to ensure the DOM is ready
+      setTimeout(() => {
+        if (gridInputRef.current) {
+          gridInputRef.current.focus();
+        }
+      }, 100);
     }
   }, [scannedTote]);
   
@@ -57,6 +61,8 @@ const GridScanner: React.FC<GridScannerProps> = ({
               disabled={!scannedTote}
               validGrids={validGrids}
               error={gridError}
+              inputRef={gridInputRef}
+              onKeyDown={handleKeyDown}
             />
           </div>
           <Button 

@@ -9,6 +9,8 @@ interface GridNumberFieldProps {
   disabled?: boolean;
   validGrids?: string[];
   error?: string;
+  inputRef?: React.RefObject<HTMLInputElement>;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
 const GridNumberField: React.FC<GridNumberFieldProps> = ({ 
@@ -16,7 +18,9 @@ const GridNumberField: React.FC<GridNumberFieldProps> = ({
   onChange, 
   disabled,
   validGrids,
-  error
+  error,
+  inputRef,
+  onKeyDown
 }) => {
   const isValid = !validGrids || validGrids.length === 0 || !gridNumber || validGrids.includes(gridNumber);
 
@@ -30,6 +34,8 @@ const GridNumberField: React.FC<GridNumberFieldProps> = ({
         placeholder="Enter grid number"
         disabled={disabled}
         className={!isValid || error ? "border-red-500" : ""}
+        ref={inputRef}
+        onKeyDown={onKeyDown}
       />
       {error ? (
         <p className="text-sm text-red-500">{error}</p>

@@ -2,26 +2,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Tote } from '@/components/operations/ToteTable';
 
 interface GridMappingData {
   grid_number: string;
   destination: string;
 }
 
-interface StagedTote {
-  id: string;
-  status: string;
-  source: string;
-  destination: string;
-  grid: string;
-  timestamp: string;
-  user: string;
-}
-
 export const useGridManagement = () => {
   const [scannedTote, setScannedTote] = useState('');
   const [gridId, setGridId] = useState('');
-  const [stagedTotes, setStagedTotes] = useState<StagedTote[]>([]);
+  const [stagedTotes, setStagedTotes] = useState<Tote[]>([]);
   const [validGrids, setValidGrids] = useState<string[]>([]);
   const [gridDestinations, setGridDestinations] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +106,7 @@ export const useGridManagement = () => {
     const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
     
     // Create new tote record with staged status
-    const newTote = {
+    const newTote: Tote = {
       id: scannedTote,
       status: 'staged',
       source: user?.facility || '',
