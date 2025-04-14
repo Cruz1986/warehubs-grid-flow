@@ -8,7 +8,8 @@ import {
   PackageCheck,
   Users,
   LayoutDashboard,
-  Activity
+  Activity,
+  Grid
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,6 +36,7 @@ const Sidebar = () => {
   const adminMenuItems = user?.isAdmin ? [
     { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
+    { name: 'Grid Master', path: '/grid-master', icon: <Grid size={20} /> },
   ] : [];
 
   return (
