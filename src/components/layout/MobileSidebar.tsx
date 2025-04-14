@@ -7,7 +7,7 @@ import {
   SheetTrigger 
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, PackageOpen, Grid2X2, PackageCheck, Users, LayoutDashboard, Activity } from 'lucide-react';
+import { Menu, PackageOpen, Grid2X2, PackageCheck, Users, LayoutDashboard, Activity, Grid } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const MobileSidebar = () => {
@@ -26,6 +26,7 @@ const MobileSidebar = () => {
   const adminMenuItems = user?.isAdmin ? [
     { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
+    { name: 'Grid Master', path: '/grid-master', icon: <Grid size={20} /> },
   ] : [];
 
   return (
