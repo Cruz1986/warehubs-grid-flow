@@ -52,31 +52,41 @@ const CreateAdminUser = () => {
         return;
       }
       
-      // Direct insert for first admin user (bypassing RLS since no admin exists yet)
-      const { data: insertData, error: insertError } = await supabase
-        .from('users_log')
-        .insert({
-          username,
-          password,
-          role: 'Admin',
-          facility: 'All',
-          status: 'active'
-        })
-        .select();
+      // Try RPC function first since it's the safer method
+      const { data: rpcData, error: rpcError } = await supabase.rpc(
+        'create_admin_user',
+        {
+          admin_username: username,
+          admin_password: password
+        }
+      );
+      
+      if (rpcError) {
+        console.error('RPC error:', rpcError);
         
-      if (insertError) {
-        // If direct insert fails, try RPC function as fallback
-        try {
-          // Use a type assertion for the RPC function name
-          const { error: rpcError } = await supabase.rpc('create_admin_user' as any, {
-            admin_username: username,
-            admin_password: password
-          });
+        // Fallback to direct insert if RPC fails
+        const { data: insertData, error: insertError } = await supabase
+          .from('users_log')
+          .insert({
+            username,
+            password,
+            role: 'Admin',
+            facility: 'All',
+            status: 'active'
+          })
+          .select();
           
-          if (rpcError) throw rpcError;
-        } catch (rpcError: any) {
-          console.error('RPC method failed:', rpcError);
-          throw insertError; // Throw original error if RPC also fails
+        if (insertError) {
+          throw insertError;
+        }
+      } else {
+        // Check RPC result
+        if (typeof rpcData === 'object' && rpcData !== null && 'success' in rpcData) {
+          if (!rpcData.success) {
+            const message = rpcData.message || 'Failed to create admin user';
+            toast.error(message);
+            return;
+          }
         }
       }
       

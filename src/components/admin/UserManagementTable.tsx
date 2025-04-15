@@ -68,17 +68,29 @@ const UserManagementTable = () => {
         toast.error('You must be logged in to view users');
         return;
       }
+
+      console.log('Fetching users with current user:', currentUser);
       
       const { data, error } = await supabase
         .from('users_log')
         .select('user_id, username, role, facility, last_login');
       
       if (error) {
+        console.error('Error details:', error);
         if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
           toast.error('You do not have permission to view users. Please log in as an admin.');
           return;
         }
         throw error;
+      }
+      
+      // Log the raw data for debugging
+      console.log('Raw users data from database:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('No users found in database');
+        setUsers([]);
+        return;
       }
       
       // Map the data to our User interface format
@@ -90,6 +102,7 @@ const UserManagementTable = () => {
         lastLogin: user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'
       }));
       
+      console.log('Mapped users:', mappedUsers);
       setUsers(mappedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);

@@ -186,6 +186,10 @@ export type Database = {
         Args: { user_uid: string }
         Returns: boolean
       }
+      create_admin_user: {
+        Args: { admin_username: string; admin_password: string }
+        Returns: Json
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
