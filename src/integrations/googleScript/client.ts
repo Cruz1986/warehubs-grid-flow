@@ -130,6 +130,110 @@ export const getPendingTotesCount = async () => {
 };
 
 /**
+ * Get totes by status
+ * @param status The status to filter by (e.g., 'inbound', 'outbound', 'staged')
+ * @returns Array of totes with the specified status
+ */
+export const getTotesByStatus = async (status: string) => {
+  try {
+    const response = await sendRequest('getTotesByStatus', { status });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching ${status} totes:`, error);
+    // Return mock data
+    return generateMockTotes(status, 5);
+  }
+};
+
+/**
+ * Get all facilities from Google Sheets
+ * @returns Array of facilities
+ */
+export const getFacilities = async () => {
+  try {
+    const response = await sendRequest('getFacilities');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching facilities:', error);
+    // Return mock data
+    return [
+      { id: '1', name: 'Facility A', type: 'Fulfillment Center', location: 'New York' },
+      { id: '2', name: 'Facility B', type: 'Sourcing Hub', location: 'Los Angeles' },
+      { id: '3', name: 'Facility C', type: 'Darkstore', location: 'Chicago' }
+    ];
+  }
+};
+
+/**
+ * Add a new facility to Google Sheets
+ * @param facility Facility data to add
+ * @returns The added facility with its ID
+ */
+export const addFacility = async (facility: { name: string, type: string, location: string }) => {
+  try {
+    const response = await sendRequest('addFacility', facility);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding facility:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add a grid mapping to Google Sheets
+ * @param mapping Grid mapping data to add
+ * @returns The added grid mapping with its ID
+ */
+export const addGridMapping = async (mapping: { 
+  source: string, 
+  sourceType: string, 
+  destination: string, 
+  destinationType: string, 
+  gridNumber: string 
+}) => {
+  try {
+    const response = await sendRequest('addGridMapping', mapping);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding grid mapping:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all grid mappings from Google Sheets
+ * @returns Array of grid mappings
+ */
+export const getGridMappings = async () => {
+  try {
+    const response = await sendRequest('getGridMappings');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching grid mappings:', error);
+    // Return mock data
+    return [
+      { id: '1', source: 'Facility A', sourceType: 'Fulfillment Center', destination: 'Facility B', destinationType: 'Sourcing Hub', gridNumber: 'A1' },
+      { id: '2', source: 'Facility B', sourceType: 'Sourcing Hub', destination: 'Facility C', destinationType: 'Darkstore', gridNumber: 'B2' }
+    ];
+  }
+};
+
+/**
+ * Delete a grid mapping from Google Sheets
+ * @param id ID of the grid mapping to delete
+ * @returns Success status
+ */
+export const deleteGridMapping = async (id: string) => {
+  try {
+    const response = await sendRequest('deleteGridMapping', { id });
+    return response.success;
+  } catch (error) {
+    console.error('Error deleting grid mapping:', error);
+    throw error;
+  }
+};
+
+/**
  * Mock response generator for development and fallback
  */
 const mockResponse = (action: string, data?: any) => {
@@ -166,7 +270,75 @@ const mockResponse = (action: string, data?: any) => {
     case 'getPendingTotes':
       return { data: { count: 6 } };
       
+    case 'getTotesByStatus':
+      return { data: generateMockTotes(data?.status, 5) };
+      
+    case 'getFacilities':
+      return { 
+        data: [
+          { id: '1', name: 'Facility A', type: 'Fulfillment Center', location: 'New York' },
+          { id: '2', name: 'Facility B', type: 'Sourcing Hub', location: 'Los Angeles' },
+          { id: '3', name: 'Facility C', type: 'Darkstore', location: 'Chicago' }
+        ]
+      };
+      
+    case 'getGridMappings':
+      return { 
+        data: [
+          { id: '1', source: 'Facility A', sourceType: 'Fulfillment Center', destination: 'Facility B', destinationType: 'Sourcing Hub', gridNumber: 'A1' },
+          { id: '2', source: 'Facility B', sourceType: 'Sourcing Hub', destination: 'Facility C', destinationType: 'Darkstore', gridNumber: 'B2' }
+        ]
+      };
+      
+    case 'addFacility':
+      return { 
+        success: true, 
+        data: { 
+          id: Date.now().toString(), 
+          ...data 
+        } 
+      };
+      
+    case 'addGridMapping':
+      return { 
+        success: true, 
+        data: { 
+          id: Date.now().toString(), 
+          ...data 
+        } 
+      };
+      
+    case 'deleteGridMapping':
+      return { success: true };
+      
     default:
       return { success: false, message: 'Action not implemented in mock' };
   }
 };
+
+/**
+ * Generate mock totes for development and testing
+ */
+const generateMockTotes = (status: string, count: number) => {
+  const totes = [];
+  const statuses = ['inbound', 'outbound', 'staged'];
+  const facilities = ['Facility A', 'Facility B', 'Facility C'];
+  
+  for (let i = 1; i <= count; i++) {
+    const now = new Date();
+    now.setHours(now.getHours() - i);
+    
+    totes.push({
+      id: `TOTE-${status.toUpperCase()}-${i}`,
+      status: status || statuses[Math.floor(Math.random() * statuses.length)],
+      source: facilities[Math.floor(Math.random() * facilities.length)],
+      destination: facilities[Math.floor(Math.random() * facilities.length)],
+      grid: status === 'staged' ? `Grid-${String.fromCharCode(64 + i)}${i}` : '',
+      timestamp: now.toISOString().replace('T', ' ').substring(0, 19),
+      user: 'Mock User'
+    });
+  }
+  
+  return totes;
+};
+

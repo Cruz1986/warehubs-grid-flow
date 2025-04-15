@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
+import { authenticate } from '@/integrations/googleScript/client';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -25,30 +26,16 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Mock authentication since we're having issues with Google Apps Script
-      const isAdmin = username.toLowerCase().includes('admin');
-      const isCorrectPassword = password === 'password' || username === 'admin';
+      const user = await authenticate(username, password);
       
-      if (isCorrectPassword) {
-        // Store user info in localStorage
-        localStorage.setItem('user', JSON.stringify({
-          username,
-          isAdmin,
-          role: isAdmin ? 'Admin' : 'User',
-          facility: isAdmin ? 'All' : 'Facility A',
-        }));
-        
-        // Successful login
-        toast.success(`Welcome back, ${username}!`);
-        
-        // Redirect to appropriate page based on role
-        if (isAdmin) {
-          navigate('/admin-dashboard');
-        } else {
-          navigate('/inbound');
-        }
+      // Successful login
+      toast.success(`Welcome back, ${user.username}!`);
+      
+      // Redirect to appropriate page based on role
+      if (user.role === 'Admin') {
+        navigate('/admin-dashboard');
       } else {
-        toast.error('Invalid credentials. Please try again.');
+        navigate('/inbound');
       }
     } catch (error) {
       console.error('Login error:', error);
