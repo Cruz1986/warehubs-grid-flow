@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
-import { AddUserDialog } from "./user-management/AddUserDialog";
-import { UserTableRow } from "./user-management/UserTableRow";
-import { ResetPasswordDialog } from "./user-management/ResetPasswordDialog";
+import AddUserDialog from "./user-management/AddUserDialog";
+import UserTableRow from "./user-management/UserTableRow";
+import ResetPasswordDialog from "./user-management/ResetPasswordDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -191,3 +191,5 @@ export const UserManagementTable = () => {
     </div>
   );
 };
+
+export default UserManagementTable;

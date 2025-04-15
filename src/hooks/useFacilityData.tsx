@@ -21,24 +21,28 @@ export const useFacilityData = () => {
       try {
         setIsLoading(true);
         
+        // Get counts from tote_inbound table
         const { data: inboundCount, error: inboundError } = await supabase
           .from('tote_inbound')
           .select('count')
           .eq('status', 'inbound')
           .single();
           
+        // Get counts from tote_outbound table
         const { data: outboundCount, error: outboundError } = await supabase
           .from('tote_outbound')
           .select('count')
           .eq('status', 'outbound')
           .single();
           
+        // Get counts from tote_staging table
         const { data: stagingCount, error: stagingError } = await supabase
           .from('tote_staging')
           .select('count')
           .eq('status', 'staged')
           .single();
           
+        // Get pending counts from tote_inbound table with pending status
         const { data: pendingCount, error: pendingError } = await supabase
           .from('tote_inbound')
           .select('count')
@@ -65,6 +69,7 @@ export const useFacilityData = () => {
     
     fetchActivityData();
     
+    // Set up realtime subscription for all relevant tables
     const activityChannel = supabase
       .channel('activity-changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {

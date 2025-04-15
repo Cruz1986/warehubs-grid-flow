@@ -4,15 +4,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
-import { AddGridDialog } from "./grid-master/AddGridDialog";
-import { AddFacilityDialog } from "./grid-master/AddFacilityDialog";
+import AddGridDialog from "./grid-master/AddGridDialog";
+import AddFacilityDialog from "./grid-master/AddFacilityDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+export type Facility = {
+  id: string;
+  name: string;
+  type: string;
+  location?: string;
+};
+
+export type FacilityType = "Fulfillment Center" | "Sourcing Hub" | "Darkstore";
 
 export const GridMasterComponent = () => {
   const [showAddFacilityDialog, setShowAddFacilityDialog] = useState(false);
   const [showAddGridDialog, setShowAddGridDialog] = useState(false);
-  const [facilities, setFacilities] = useState<any[]>([]);
+  const [facilities, setFacilities] = useState<Facility[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchFacilities = async () => {
@@ -131,3 +140,5 @@ export const GridMasterComponent = () => {
     </div>
   );
 };
+
+export default GridMasterComponent;

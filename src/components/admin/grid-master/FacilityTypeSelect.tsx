@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -7,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Facility, FacilityType } from '../GridMasterComponent';
 
 interface FacilityTypeSelectProps {
@@ -18,11 +18,11 @@ interface FacilityTypeSelectProps {
   placeholder: string;
   facilities: Facility[];
   facilityType?: string;
-  disabled?: boolean;
   excludeId?: string;
+  disabled?: boolean;
 }
 
-const FacilityTypeSelect: React.FC<FacilityTypeSelectProps> = ({ 
+const FacilityTypeSelect: React.FC<FacilityTypeSelectProps> = ({
   id,
   label,
   value,
@@ -30,13 +30,22 @@ const FacilityTypeSelect: React.FC<FacilityTypeSelectProps> = ({
   placeholder,
   facilities,
   facilityType,
+  excludeId,
   disabled = false,
-  excludeId
 }) => {
-  // Filter facilities by type if facilityType is provided
-  const filteredFacilities = facilityType 
-    ? facilities.filter(f => f.type === facilityType)
-    : facilities.filter(f => f.id !== excludeId); // Exclude the selected facility if excludeId is provided
+  // Filter facilities based on type if provided
+  const filteredFacilities = facilities.filter(facility => {
+    if (facilityType && facility.type !== facilityType) {
+      return false;
+    }
+    
+    // Exclude the facility with excludeId if provided
+    if (excludeId && facility.id === excludeId) {
+      return false;
+    }
+    
+    return true;
+  });
 
   return (
     <div>
@@ -44,17 +53,23 @@ const FacilityTypeSelect: React.FC<FacilityTypeSelectProps> = ({
       <Select
         value={value}
         onValueChange={onValueChange}
-        disabled={disabled || filteredFacilities.length === 0}
+        disabled={disabled}
       >
         <SelectTrigger id={id}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {filteredFacilities.map((facility) => (
-            <SelectItem key={facility.id} value={facility.id}>
-              {facility.name}{!facilityType && ` (${facility.type})`}
-            </SelectItem>
-          ))}
+          {filteredFacilities.length === 0 ? (
+            <div className="px-2 py-4 text-sm text-gray-500">
+              No facilities available
+            </div>
+          ) : (
+            filteredFacilities.map((facility) => (
+              <SelectItem key={facility.id} value={facility.id}>
+                {facility.name}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
     </div>

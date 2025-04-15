@@ -53,79 +53,97 @@ export const useWarehouseData = () => {
         yesterday.setHours(0, 0, 0, 0);
         const yesterdayISOString = yesterday.toISOString();
         
-        // Get inbound totes for today
+        // Get inbound totes for today from tote_inbound table
         const { data: todayInbound, error: inboundError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('count')
           .eq('status', 'inbound')
-          .gte('created_at', todayISOString)
+          .gte('timestamp_in', todayISOString)
           .single();
         
         if (inboundError && inboundError.code !== 'PGRST116') {
           console.error('Error fetching inbound totes:', inboundError);
         }
         
-        // Get inbound totes for yesterday
+        // Get inbound totes for yesterday from tote_inbound table
         const { data: yesterdayInbound, error: yesterdayInboundError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('count')
           .eq('status', 'inbound')
-          .gte('created_at', yesterdayISOString)
-          .lt('created_at', todayISOString)
+          .gte('timestamp_in', yesterdayISOString)
+          .lt('timestamp_in', todayISOString)
           .single();
         
         if (yesterdayInboundError && yesterdayInboundError.code !== 'PGRST116') {
           console.error('Error fetching yesterday inbound totes:', yesterdayInboundError);
         }
         
-        // Get outbound totes for today
+        // Get outbound totes for today from tote_outbound table
         const { data: todayOutbound, error: outboundError } = await supabase
-          .from('totes')
+          .from('tote_outbound')
           .select('count')
           .eq('status', 'outbound')
-          .gte('created_at', todayISOString)
+          .gte('timestamp_out', todayISOString)
           .single();
         
         if (outboundError && outboundError.code !== 'PGRST116') {
           console.error('Error fetching outbound totes:', outboundError);
         }
         
-        // Get outbound totes for yesterday
+        // Get outbound totes for yesterday from tote_outbound table
         const { data: yesterdayOutbound, error: yesterdayOutboundError } = await supabase
-          .from('totes')
+          .from('tote_outbound')
           .select('count')
           .eq('status', 'outbound')
-          .gte('created_at', yesterdayISOString)
-          .lt('created_at', todayISOString)
+          .gte('timestamp_out', yesterdayISOString)
+          .lt('timestamp_out', todayISOString)
           .single();
         
         if (yesterdayOutboundError && yesterdayOutboundError.code !== 'PGRST116') {
           console.error('Error fetching yesterday outbound totes:', yesterdayOutboundError);
         }
         
-        // Get pending totes
+        // Get pending totes from tote_inbound with status pending
         const { data: pendingTotes, error: pendingError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('count')
-          .eq('status', 'inbound')
+          .eq('status', 'pending')
           .single();
         
         if (pendingError && pendingError.code !== 'PGRST116') {
           console.error('Error fetching pending totes:', pendingError);
         }
         
-        // Get grid capacity
+        // Get grid capacity from grid_master table
         const { data: grids, error: gridsError } = await supabase
-          .from('grids')
+          .from('grid_master')
           .select('*');
         
         if (gridsError) {
           console.error('Error fetching grids:', gridsError);
         }
         
-        // Calculate grid usage
+        // Calculate grid usage - we're using the total number of grids in grid_master
         const totalGrids = grids?.length || 0;
-        const usedGrids = grids?.filter(grid => grid.status === 'occupied').length || 0;
+        // Since we don't have a status field in grid_master, we'll just estimate usage
+        // based on tote_staging records that have a grid_no assigned
+        const { data: usedGridsData, error: usedGridsError } = await supabase
+          .from('tote_staging')
+          .select('grid_no')
+          .eq('status', 'staged');
+          
+        if (usedGridsError) {
+          console.error('Error fetching used grids:', usedGridsError);
+        }
+        
+        // Count unique grid numbers in use
+        const uniqueGrids = new Set();
+        usedGridsData?.forEach(tote => {
+          if (tote.grid_no) {
+            uniqueGrids.add(tote.grid_no);
+          }
+        });
+        const usedGrids = uniqueGrids.size;
         
         // Update data state
         setData({
