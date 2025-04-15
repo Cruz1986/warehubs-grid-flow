@@ -137,8 +137,9 @@ export const GridMasterComponent = () => {
         onGridAdded={(mappingId, gridNumber) => {
           console.log(`Added grid ${gridNumber} to mapping ${mappingId}`);
           toast.success(`Grid number assigned successfully`);
+          // Refresh data if needed
         }}
-        facilities={facilities.map((f) => f.name)}
+        facilities={facilities}
       />
     </div>
   );

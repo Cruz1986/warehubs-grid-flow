@@ -21,16 +21,18 @@ interface MappingSelectorProps {
   mappings: GridMapping[];
   selectedMappingId: string;
   onSelectMapping: (mappingId: string) => void;
+  label?: string;
 }
 
 const MappingSelector: React.FC<MappingSelectorProps> = ({ 
   mappings = [], // Provide a default empty array to prevent map errors
   selectedMappingId, 
-  onSelectMapping 
+  onSelectMapping,
+  label = "Source-Destination Mapping"
 }) => {
   return (
     <div className="grid gap-2">
-      <Label htmlFor="mapping">Source-Destination Mapping</Label>
+      <Label htmlFor="mapping">{label}</Label>
       <Select
         value={selectedMappingId}
         onValueChange={onSelectMapping}
