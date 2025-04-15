@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
@@ -28,7 +27,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
       try {
         console.log(`Database connection check attempt ${connectionAttempts + 1}...`);
         const startTime = Date.now();
-        const { error, count } = await supabase.from('facilities').select('*', { count: 'exact', head: true });
+        const { error, count } = await supabase.from('facility_master').select('*', { count: 'exact', head: true });
         const endTime = Date.now();
         
         if (error) {

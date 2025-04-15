@@ -18,7 +18,7 @@ interface User {
   id: string;
   username: string;
   role: string;
-  facility: string;
+  facility?: string;
   lastLogin?: string;
 }
 
@@ -29,6 +29,7 @@ const UserManagementTable = () => {
     { id: '3', username: 'user2', role: 'User', facility: 'Facility B', lastLogin: '2023-04-10 11:20' },
   ]);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [facilities, setFacilities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,15 +39,15 @@ const UserManagementTable = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('Facility_Master')
-          .select('Name');
+          .from('facility_master')
+          .select('name');
         
         if (error) {
           throw error;
         }
         
         // Extract facility names from the data
-        const facilityNames = data.map(facility => facility.Name);
+        const facilityNames = data.map(facility => facility.name);
         setFacilities(facilityNames);
       } catch (error) {
         console.error('Error fetching facilities:', error);
@@ -59,27 +60,16 @@ const UserManagementTable = () => {
     fetchFacilities();
   }, []);
 
-  const handleAddUser = (newUserData: {
-    username: string;
-    password: string;
-    role: string;
-    facility: string;
-  }) => {
-    // Add user (in production, this would call your Google Script API)
-    const newId = (users.length + 1).toString();
-    setUsers([...users, { 
-      id: newId, 
-      username: newUserData.username, 
-      role: newUserData.role, 
-      facility: newUserData.facility 
-    }]);
-    
+  const handleAddUser = async () => {
+    // In a real application, this would call your API to add the user
     toast.success("User added successfully");
+    setIsAddUserOpen(false);
   };
 
-  const handleResetPassword = (password: string) => {
-    // In production, this would call your Google Script API to reset the password
+  const handleResetPassword = async () => {
+    // In a real application, this would call your API to reset the password
     toast.success(`Password reset for ${selectedUser?.username}`);
+    setIsResetPasswordOpen(false);
   };
 
   const handleEditUser = (user: User) => {
@@ -98,8 +88,10 @@ const UserManagementTable = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">User Management</h2>
         <AddUserDialog 
-          facilities={facilities}
+          isOpen={isAddUserOpen}
+          onOpenChange={setIsAddUserOpen}
           onAddUser={handleAddUser}
+          facilities={facilities}
           isLoading={isLoading}
         />
       </div>

@@ -15,15 +15,23 @@ export interface Facility {
   location?: string;
 }
 
+interface GridMapping {
+  id: string;
+  source_name: string;
+  destination_name: string;
+  grid_no: string;
+}
+
 const GridMasterComponent = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [gridMappings, setGridMappings] = useState<GridMapping[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchFacilities = async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('Facility_Master')
+        .from('facility_master')
         .select('*');
       
       if (error) {
@@ -32,10 +40,10 @@ const GridMasterComponent = () => {
       
       // Ensure type is correctly mapped
       const typedFacilities = data.map(facility => ({
-        id: facility.ID,
-        name: facility.Name,
-        type: facility.Type as FacilityType,
-        location: facility.Location
+        id: facility.id,
+        name: facility.name,
+        type: facility.type as FacilityType,
+        location: facility.location
       }));
       
       setFacilities(typedFacilities);
@@ -47,8 +55,26 @@ const GridMasterComponent = () => {
     }
   };
 
+  const fetchGridMappings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('grid_master')
+        .select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      setGridMappings(data);
+    } catch (error) {
+      console.error('Error fetching grid mappings:', error);
+      toast.error('Failed to load grid mappings');
+    }
+  };
+
   useEffect(() => {
     fetchFacilities();
+    fetchGridMappings();
   }, []);
 
   const handleFacilityAdded = (newFacility: Facility) => {
@@ -59,6 +85,16 @@ const GridMasterComponent = () => {
   const handleFacilityDeleted = (facilityId: string) => {
     setFacilities(facilities.filter(f => f.id !== facilityId));
     toast.success('Facility deleted successfully');
+  };
+
+  const handleGridAssigned = (newMapping: GridMapping) => {
+    setGridMappings([...gridMappings, newMapping]);
+    toast.success(`Grid ${newMapping.grid_no} assigned successfully`);
+  };
+
+  const handleGridDeleted = (mappingId: string) => {
+    setGridMappings(gridMappings.filter(m => m.id !== mappingId));
+    toast.success('Grid mapping deleted successfully');
   };
 
   return (
@@ -77,7 +113,13 @@ const GridMasterComponent = () => {
           />
         </TabsContent>
         <TabsContent value="grid-assignment" className="mt-6">
-          <GridAssignment facilities={facilities} isLoading={isLoading} />
+          <GridAssignment 
+            facilities={facilities} 
+            gridMappings={gridMappings}
+            onGridAssigned={handleGridAssigned}
+            onGridDeleted={handleGridDeleted}
+            isLoading={isLoading}
+          />
         </TabsContent>
       </Tabs>
     </div>

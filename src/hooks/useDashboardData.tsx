@@ -17,26 +17,26 @@ export const useDashboardData = () => {
         
         // Fetch inbound totes
         const { data: inboundData, error: inboundError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('*')
           .eq('status', 'inbound')
-          .order('created_at', { ascending: false })
+          .order('timestamp_in', { ascending: false })
           .limit(1);
         
         // Fetch staged totes
         const { data: stagedData, error: stagedError } = await supabase
-          .from('grids')
+          .from('tote_staging')
           .select('*')
-          .eq('status', 'occupied')
-          .order('created_at', { ascending: false })
+          .eq('status', 'staged')
+          .order('grid_timestamp', { ascending: false })
           .limit(1);
         
         // Fetch outbound totes
         const { data: outboundData, error: outboundError } = await supabase
-          .from('totes')
+          .from('tote_outbound')
           .select('*')
           .eq('status', 'outbound')
-          .order('created_at', { ascending: false })
+          .order('timestamp_out', { ascending: false })
           .limit(1);
         
         const activities: RecentActivity[] = [];
@@ -44,24 +44,24 @@ export const useDashboardData = () => {
         if (!inboundError && inboundData && inboundData.length) {
           activities.push({
             type: 'inbound',
-            description: `Tote ${inboundData[0].tote_number} received`,
-            timestamp: new Date(inboundData[0].created_at).toLocaleString(),
+            description: `Tote ${inboundData[0].tote_id} received`,
+            timestamp: new Date(inboundData[0].timestamp_in).toLocaleString(),
           });
         }
         
         if (!stagedError && stagedData && stagedData.length) {
           activities.push({
             type: 'staged',
-            description: `Grid ${stagedData[0].grid_number} occupied`,
-            timestamp: new Date(stagedData[0].created_at).toLocaleString(),
+            description: `Grid ${stagedData[0].grid_no} occupied`,
+            timestamp: new Date(stagedData[0].grid_timestamp).toLocaleString(),
           });
         }
         
         if (!outboundError && outboundData && outboundData.length) {
           activities.push({
             type: 'outbound',
-            description: `Tote ${outboundData[0].tote_number} shipped`,
-            timestamp: new Date(outboundData[0].created_at).toLocaleString(),
+            description: `Tote ${outboundData[0].tote_id} shipped`,
+            timestamp: new Date(outboundData[0].timestamp_out).toLocaleString(),
           });
         }
         

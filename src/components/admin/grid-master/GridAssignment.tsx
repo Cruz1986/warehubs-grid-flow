@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -7,100 +7,105 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Facility, FacilityType } from '../GridMasterComponent';
+import { Facility } from '../GridMasterComponent';
 import { toast } from 'sonner';
-import GridAssignmentForm from './GridAssignmentForm';
-import GridMappingsTable, { GridMapping } from './GridMappingsTable';
+import { Button } from "@/components/ui/button";
+import { Plus } from 'lucide-react';
+import GridMappingsTable from './GridMappingsTable';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface GridMapping {
+  id: string;
+  source_name: string;
+  destination_name: string;
+  grid_no: string;
+}
 
 interface GridAssignmentProps {
   facilities: Facility[];
+  gridMappings: GridMapping[];
+  onGridAssigned: (mapping: GridMapping) => void;
+  onGridDeleted: (mappingId: string) => void;
   isLoading: boolean;
 }
 
-const GridAssignment: React.FC<GridAssignmentProps> = ({ facilities, isLoading }) => {
-  const [gridMappings, setGridMappings] = useState<GridMapping[]>([]);
+const GridAssignment: React.FC<GridAssignmentProps> = ({ 
+  facilities, 
+  gridMappings,
+  onGridAssigned,
+  onGridDeleted,
+  isLoading 
+}) => {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newMapping, setNewMapping] = useState({
+    source_name: '',
+    destination_name: '',
+    grid_no: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingMappings, setIsLoadingMappings] = useState(true);
 
-  // Fetch existing grid mappings when component mounts
-  useEffect(() => {
-    const fetchGridMappings = async () => {
-      try {
-        setIsLoadingMappings(true);
-        const { data, error } = await supabase
-          .from('grid_mappings')
-          .select('*');
-        
-        if (error) {
-          console.error('Error fetching grid mappings:', error);
-          toast.error('Failed to load grid mappings');
-          return;
-        }
-        
-        if (data) {
-          const mappings: GridMapping[] = data.map(item => ({
-            id: item.id,
-            source: item.source,
-            sourceType: item.source_type,
-            destination: item.destination,
-            destinationType: item.destination_type,
-            gridNumber: item.grid_number
-          }));
-          setGridMappings(mappings);
-        }
-      } catch (err) {
-        console.error('Error in grid mappings fetch:', err);
-        toast.error('Failed to load grid mappings');
-      } finally {
-        setIsLoadingMappings(false);
-      }
-    };
-    
-    if (!isLoading) {
-      fetchGridMappings();
+  const handleAddMapping = async () => {
+    if (!newMapping.source_name || !newMapping.destination_name || !newMapping.grid_no) {
+      toast.error("Please fill all required fields");
+      return;
     }
-  }, [isLoading]);
 
-  const handleAssignGrid = async (mapping: {
-    source: string;
-    sourceType: FacilityType;
-    destination: string;
-    destinationType: FacilityType;
-    gridNumber: string;
-  }) => {
+    if (newMapping.source_name === newMapping.destination_name) {
+      toast.error("Source and destination cannot be the same");
+      return;
+    }
+
+    // Check if grid number is already in use
+    const duplicateGrid = gridMappings.find(m => m.grid_no === newMapping.grid_no);
+    if (duplicateGrid) {
+      toast.error(`Grid number ${newMapping.grid_no} is already in use`);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
-      // In a real application, we would save this to the database
-      // But we've already saved it in the GridAssignmentForm component
-      // We just need to add it to our local state
-      const newMapping: GridMapping = {
-        id: Date.now().toString(), // This ID will be replaced when we fetch the data again
-        ...mapping
-      };
-      
-      setGridMappings([...gridMappings, newMapping]);
-      
-      // Refresh grid mappings from database to get the actual ID
+      // Insert new grid mapping into the database
       const { data, error } = await supabase
-        .from('grid_mappings')
-        .select('*');
+        .from('grid_master')
+        .insert(newMapping)
+        .select('*')
+        .single();
       
-      if (!error && data) {
-        const mappings: GridMapping[] = data.map(item => ({
-          id: item.id,
-          source: item.source,
-          sourceType: item.source_type,
-          destination: item.destination,
-          destinationType: item.destination_type,
-          gridNumber: item.grid_number
-        }));
-        setGridMappings(mappings);
+      if (error) {
+        throw error;
       }
+      
+      // Call the parent component's callback
+      onGridAssigned(data);
+      
+      // Close the dialog and reset the form
+      setNewMapping({
+        source_name: '',
+        destination_name: '',
+        grid_no: ''
+      });
+      setIsAddDialogOpen(false);
     } catch (error) {
-      console.error('Error assigning grid:', error);
-      toast.error('Failed to assign grid');
+      console.error('Error adding grid mapping:', error);
+      toast.error('Failed to add grid mapping');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +115,7 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({ facilities, isLoading }
     if (window.confirm('Are you sure you want to delete this grid mapping?')) {
       try {
         const { error } = await supabase
-          .from('grid_mappings')
+          .from('grid_master')
           .delete()
           .eq('id', mappingId);
         
@@ -120,8 +125,7 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({ facilities, isLoading }
           return;
         }
         
-        setGridMappings(gridMappings.filter(m => m.id !== mappingId));
-        toast.success('Grid mapping deleted successfully');
+        onGridDeleted(mappingId);
       } catch (err) {
         console.error('Error deleting grid mapping:', err);
         toast.error('Failed to delete grid mapping');
@@ -131,11 +135,17 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({ facilities, isLoading }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Grid Assignment</CardTitle>
-        <CardDescription>
-          Assign grid numbers to source-destination facility pairs
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Grid Assignment</CardTitle>
+          <CardDescription>
+            Assign grid numbers to source-destination facility pairs
+          </CardDescription>
+        </div>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Assign Grid
+        </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -145,24 +155,88 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({ facilities, isLoading }
             You need at least two facilities to create a grid mapping. Please add facilities first.
           </div>
         ) : (
-          <>
-            <GridAssignmentForm 
-              facilities={facilities} 
-              onAssignGrid={handleAssignGrid}
-              isSubmitting={isSubmitting}
-            />
-            
-            {isLoadingMappings ? (
-              <div className="text-center py-6">Loading grid mappings...</div>
-            ) : (
-              <GridMappingsTable 
-                gridMappings={gridMappings} 
-                onDeleteMapping={handleDeleteMapping} 
-              />
-            )}
-          </>
+          <GridMappingsTable 
+            gridMappings={gridMappings} 
+            onDeleteMapping={handleDeleteMapping} 
+          />
         )}
       </CardContent>
+
+      {/* Add Grid Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Grid Number</DialogTitle>
+            <DialogDescription>
+              Create a grid number mapping between source and destination facilities
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="source-facility">Source Facility</Label>
+              <Select
+                value={newMapping.source_name}
+                onValueChange={(value) => setNewMapping({...newMapping, source_name: value})}
+              >
+                <SelectTrigger id="source-facility">
+                  <SelectValue placeholder="Select source facility" />
+                </SelectTrigger>
+                <SelectContent>
+                  {facilities.map((facility) => (
+                    <SelectItem key={facility.id} value={facility.name}>
+                      {facility.name} ({facility.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="destination-facility">Destination Facility</Label>
+              <Select
+                value={newMapping.destination_name}
+                onValueChange={(value) => setNewMapping({...newMapping, destination_name: value})}
+                disabled={!newMapping.source_name}
+              >
+                <SelectTrigger id="destination-facility">
+                  <SelectValue placeholder="Select destination facility" />
+                </SelectTrigger>
+                <SelectContent>
+                  {facilities
+                    .filter(f => f.name !== newMapping.source_name)
+                    .map((facility) => (
+                      <SelectItem key={facility.id} value={facility.name}>
+                        {facility.name} ({facility.type})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="grid-number">Grid Number</Label>
+              <Input
+                id="grid-number"
+                value={newMapping.grid_no}
+                onChange={(e) => setNewMapping({...newMapping, grid_no: e.target.value})}
+                placeholder="Enter grid number"
+                disabled={!newMapping.destination_name}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddMapping} 
+              disabled={isSubmitting || !newMapping.source_name || !newMapping.destination_name || !newMapping.grid_no}
+            >
+              {isSubmitting ? 'Assigning...' : 'Assign Grid'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
