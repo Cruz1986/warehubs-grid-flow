@@ -126,7 +126,7 @@ const UserManagementTable = () => {
           id: data[0].user_id,
           username: data[0].username,
           role: data[0].role,
-          facility: data[0].facility,
+          facility: data[0].facility || 'Unknown',
           lastLogin: 'Never'
         };
         

@@ -144,6 +144,7 @@ export type Database = {
       users_log: {
         Row: {
           created_at: string | null
+          facility: string | null
           failed_attempts: number | null
           last_login: string | null
           password: string
@@ -154,6 +155,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          facility?: string | null
           failed_attempts?: number | null
           last_login?: string | null
           password: string
@@ -164,6 +166,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          facility?: string | null
           failed_attempts?: number | null
           last_login?: string | null
           password?: string

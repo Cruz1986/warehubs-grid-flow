@@ -55,10 +55,10 @@ export const useWarehouseData = () => {
         
         // Get inbound totes for today
         const { data: todayInbound, error: inboundError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('count')
           .eq('status', 'inbound')
-          .gte('created_at', todayISOString)
+          .gte('timestamp_in', todayISOString)
           .single();
         
         if (inboundError && inboundError.code !== 'PGRST116') {
@@ -67,11 +67,11 @@ export const useWarehouseData = () => {
         
         // Get inbound totes for yesterday
         const { data: yesterdayInbound, error: yesterdayInboundError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('count')
           .eq('status', 'inbound')
-          .gte('created_at', yesterdayISOString)
-          .lt('created_at', todayISOString)
+          .gte('timestamp_in', yesterdayISOString)
+          .lt('timestamp_in', todayISOString)
           .single();
         
         if (yesterdayInboundError && yesterdayInboundError.code !== 'PGRST116') {
@@ -80,10 +80,10 @@ export const useWarehouseData = () => {
         
         // Get outbound totes for today
         const { data: todayOutbound, error: outboundError } = await supabase
-          .from('totes')
+          .from('tote_outbound')
           .select('count')
           .eq('status', 'outbound')
-          .gte('created_at', todayISOString)
+          .gte('timestamp_out', todayISOString)
           .single();
         
         if (outboundError && outboundError.code !== 'PGRST116') {
@@ -92,11 +92,11 @@ export const useWarehouseData = () => {
         
         // Get outbound totes for yesterday
         const { data: yesterdayOutbound, error: yesterdayOutboundError } = await supabase
-          .from('totes')
+          .from('tote_outbound')
           .select('count')
           .eq('status', 'outbound')
-          .gte('created_at', yesterdayISOString)
-          .lt('created_at', todayISOString)
+          .gte('timestamp_out', yesterdayISOString)
+          .lt('timestamp_out', todayISOString)
           .single();
         
         if (yesterdayOutboundError && yesterdayOutboundError.code !== 'PGRST116') {
@@ -105,9 +105,9 @@ export const useWarehouseData = () => {
         
         // Get pending totes
         const { data: pendingTotes, error: pendingError } = await supabase
-          .from('totes')
+          .from('tote_inbound')
           .select('count')
-          .eq('status', 'inbound')
+          .eq('status', 'pending')
           .single();
         
         if (pendingError && pendingError.code !== 'PGRST116') {
@@ -116,7 +116,7 @@ export const useWarehouseData = () => {
         
         // Get grid capacity
         const { data: grids, error: gridsError } = await supabase
-          .from('grids')
+          .from('grid_master')
           .select('*');
         
         if (gridsError) {
