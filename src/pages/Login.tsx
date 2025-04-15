@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from 'lucide-react';
-import { authenticate } from '@/integrations/googleScript/client';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -18,28 +18,109 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
-      toast.error('Please enter both username and password');
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
       return;
     }
     
     setIsLoading(true);
     
     try {
-      const user = await authenticate(username, password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
       
       // Successful login
-      toast.success(`Welcome back, ${user.username}!`);
+      const user = data.user;
+      
+      toast.success(`Welcome back, ${user.email}!`);
+      
+      // Get user role from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role, username, facility')
+        .eq('email', user.email)
+        .single();
+      
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        // Default to user role if we can't fetch the specific role
+        localStorage.setItem('user', JSON.stringify({
+          id: user.id,
+          email: user.email,
+          username: user.email?.split('@')[0] || 'user',
+          role: 'user',
+          facility: 'Unknown'
+        }));
+        
+        navigate('/inbound');
+        return;
+      }
+      
+      // Store user info in localStorage
+      localStorage.setItem('user', JSON.stringify({
+        id: user.id,
+        email: user.email,
+        username: userData.username || user.email?.split('@')[0] || 'user',
+        role: userData.role || 'user',
+        facility: userData.facility || 'Unknown'
+      }));
       
       // Redirect to appropriate page based on role
-      if (user.role === 'admin') {
+      if (userData.role === 'admin') {
         navigate('/admin-dashboard');
       } else {
         navigate('/inbound');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please check your credentials and try again.');
+      toast.error(error.message || 'Login failed. Please check your credentials and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!email || !password) {
+      toast.error('Please enter both email and password to sign up');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Create entry in users table
+      const { error: userError } = await supabase
+        .from('users')
+        .insert({
+          email: email,
+          username: email.split('@')[0],
+          role: 'user',
+          facility: 'Default Facility',
+          password: 'stored-in-auth' // We don't store actual passwords, auth handles that
+        });
+      
+      if (userError) {
+        console.error('Error creating user record:', userError);
+      }
+      
+      toast.success('Sign up successful! Please check your email for verification.');
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      toast.error(error.message || 'Sign up failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -55,12 +136,13 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input 
-                  id="username" 
-                  placeholder="Enter your username" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email" 
+                  type="email"
+                  placeholder="Enter your email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -86,12 +168,22 @@ const Login = () => {
                 )}
               </Button>
               
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full mt-2" 
+                onClick={handleSignUp}
+                disabled={isLoading}
+              >
+                Create Account
+              </Button>
+              
               <div className="mt-4 text-center text-sm">
                 <p className="text-gray-500">
                   Test Account:
                 </p>
                 <p>
-                  Username: <span className="font-bold">admin</span> | 
+                  Email: <span className="font-bold">admin@example.com</span> | 
                   Password: <span className="font-bold">admin123</span>
                 </p>
               </div>
