@@ -7,13 +7,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Grid } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import GridNumberField from './GridNumberField';
 import {
   Select,
   SelectContent,
@@ -22,12 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface Facility {
   id: string;
   name: string;
   type: string;
-  location?: string;
+  location?: string | null;
 }
 
 interface AddGridDialogProps {
@@ -101,8 +99,6 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({
         
         // Close the dialog
         onOpenChange(false);
-        
-        toast.success("Grid assigned successfully");
       }
     } catch (error) {
       console.error('Error assigning grid:', error);
@@ -114,17 +110,11 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Grid className="h-4 w-4 mr-2" />
-          Assign Grid
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Assign Grid to Source-Destination Mapping</DialogTitle>
+          <DialogTitle>Add Grid</DialogTitle>
           <DialogDescription>
-            Select a source and destination facility, then assign a grid number.
+            Assign a grid number to a source-destination pair
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -140,7 +130,7 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({
               <SelectContent>
                 {facilities.map((facility) => (
                   <SelectItem key={facility.id} value={facility.id}>
-                    {facility.name} ({facility.type})
+                    {facility.name} ({facility.type.replace('_', ' ')})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -162,25 +152,34 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({
                   .filter(f => f.id !== sourceFacility)
                   .map((facility) => (
                     <SelectItem key={facility.id} value={facility.id}>
-                      {facility.name} ({facility.type})
+                      {facility.name} ({facility.type.replace('_', ' ')})
                     </SelectItem>
                   ))}
               </SelectContent>
             </Select>
           </div>
           
-          <GridNumberField
-            gridNumber={gridNumber}
-            onChange={setGridNumber}
-            disabled={!destinationFacility}
-          />
+          <div className="grid gap-2">
+            <Label htmlFor="gridNumber">Grid Number</Label>
+            <Input
+              id="gridNumber"
+              placeholder="Enter grid number"
+              value={gridNumber}
+              onChange={(e) => setGridNumber(e.target.value)}
+              disabled={!destinationFacility}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleAddGrid} disabled={isSubmitting}>
-            {isSubmitting ? "Assigning..." : "Assign Grid"}
+          <Button 
+            onClick={handleAddGrid} 
+            disabled={isSubmitting}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isSubmitting ? "Adding..." : "Add Grid"}
           </Button>
         </DialogFooter>
       </DialogContent>

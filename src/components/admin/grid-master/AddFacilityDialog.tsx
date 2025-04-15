@@ -79,25 +79,24 @@ export const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
         
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name*
+            <div className="grid gap-2">
+              <Label htmlFor="name">
+                Facility Name*
               </Label>
               <Input
                 id="name"
                 value={facilityName}
                 onChange={(e) => setFacilityName(e.target.value)}
-                className="col-span-3"
                 required
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="type" className="text-right">
-                Type*
+            <div className="grid gap-2">
+              <Label htmlFor="type">
+                Facility Type*
               </Label>
               <Select value={facilityType} onValueChange={setFacilityType} required>
-                <SelectTrigger id="type" className="col-span-3">
+                <SelectTrigger id="type">
                   <SelectValue placeholder="Select facility type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -108,15 +107,14 @@ export const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
               </Select>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
+            <div className="grid gap-2">
+              <Label htmlFor="location">
                 Location
               </Label>
               <Input
                 id="location"
                 value={facilityLocation}
                 onChange={(e) => setFacilityLocation(e.target.value)}
-                className="col-span-3"
               />
             </div>
           </div>
@@ -125,7 +123,11 @@ export const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               {isSubmitting ? 'Adding...' : 'Add Facility'}
             </Button>
           </DialogFooter>

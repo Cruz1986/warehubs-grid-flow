@@ -1,19 +1,19 @@
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
-import AddGridDialog from "./grid-master/AddGridDialog";
 import { AddFacilityDialog } from "./grid-master/AddFacilityDialog";
+import AddGridDialog from "./grid-master/AddGridDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import FacilityList from "./grid-master/FacilityList";
 
 export type Facility = {
   id: string;
   name: string;
   type: string;
-  location?: string;
+  location?: string | null;
 };
 
 export type FacilityType = "Fulfilment_Center" | "Sourcing_Hub" | "Dark_Store";
@@ -56,12 +56,6 @@ export const GridMasterComponent = () => {
     fetchFacilities();
   }, []);
 
-  const facilityTypeColors: Record<string, string> = {
-    "Fulfilment_Center": "blue",
-    "Sourcing_Hub": "green",
-    "Dark_Store": "purple",
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -76,54 +70,34 @@ export const GridMasterComponent = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button size="sm" onClick={() => setShowAddFacilityDialog(true)}>
+          <Button 
+            size="sm" 
+            onClick={() => setShowAddFacilityDialog(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Facility
           </Button>
-          <Button size="sm" onClick={() => setShowAddGridDialog(true)}>
+          <Button 
+            size="sm" 
+            onClick={() => setShowAddGridDialog(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Grid
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {facilities.map((facility) => (
-          <Card key={facility.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex justify-between items-center text-lg">
-                <span>{facility.name}</span>
-                <Badge
-                  className={`bg-${
-                    facilityTypeColors[facility.type]
-                  }-100 text-${facilityTypeColors[facility.type]}-800`}
-                >
-                  {facility.type}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-500">
-                Location: {facility.location || "Not specified"}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {isLoading && (
-        <div className="text-center py-8">
-          <p className="text-sm text-gray-500">Loading facilities...</p>
-        </div>
-      )}
-
-      {!isLoading && facilities.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-sm text-gray-500">
-            No facilities found. Add your first facility to get started.
-          </p>
-        </div>
-      )}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
+          <FacilityList 
+            facilities={facilities} 
+            isLoading={isLoading} 
+            onFacilityAdded={fetchFacilities}
+          />
+        </CardContent>
+      </Card>
 
       <AddFacilityDialog
         open={showAddFacilityDialog}
@@ -134,9 +108,8 @@ export const GridMasterComponent = () => {
       <AddGridDialog
         isOpen={showAddGridDialog}
         onOpenChange={setShowAddGridDialog}
-        onGridAdded={(mappingId, gridNumber) => {
-          console.log(`Added grid ${gridNumber} to mapping ${mappingId}`);
-          toast.success(`Grid number assigned successfully`);
+        onGridAdded={() => {
+          toast.success(`Grid assigned successfully`);
           // Refresh data if needed
         }}
         facilities={facilities}
