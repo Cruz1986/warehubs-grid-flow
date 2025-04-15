@@ -134,7 +134,10 @@ export const GridMasterComponent = () => {
       <AddGridDialog
         isOpen={showAddGridDialog}
         onOpenChange={setShowAddGridDialog}
-        onGridAdded={() => {}}
+        onGridAdded={(mappingId, gridNumber) => {
+          console.log(`Added grid ${gridNumber} to mapping ${mappingId}`);
+          toast.success(`Grid number assigned successfully`);
+        }}
         facilities={facilities.map((f) => f.name)}
       />
     </div>

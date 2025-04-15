@@ -24,19 +24,32 @@ interface GridMapping {
 }
 
 interface AddGridDialogProps {
-  gridMappings: GridMapping[];
-  onAddGrid: (mappingId: string, gridNumber: string) => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onGridAdded: (mappingId: string, gridNumber: string) => void;
+  facilities: string[];
 }
 
 const AddGridDialog: React.FC<AddGridDialogProps> = ({ 
-  gridMappings, 
-  onAddGrid 
+  isOpen, 
+  onOpenChange,
+  onGridAdded,
+  facilities
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [newGrid, setNewGrid] = useState({
     mappingId: '',
     gridNumber: '',
   });
+  
+  // Create a mock mapping or use an empty array
+  // This is a temporary solution until we implement proper mappings
+  const gridMappings: GridMapping[] = facilities.map((facility, index) => ({
+    id: `mapping-${index}`,
+    source: 'Default Source',
+    destination: facility,
+    facility: facility,
+    gridNumbers: []
+  }));
 
   const handleAddGrid = () => {
     if (!newGrid.mappingId || !newGrid.gridNumber) {
@@ -52,18 +65,18 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({
     }
     
     // Add grid to mapping
-    onAddGrid(newGrid.mappingId, newGrid.gridNumber);
+    onGridAdded(newGrid.mappingId, newGrid.gridNumber);
     
     // Reset form and close dialog
     setNewGrid({
       mappingId: '',
       gridNumber: '',
     });
-    setIsOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Grid className="h-4 w-4 mr-2" />
@@ -91,7 +104,7 @@ const AddGridDialog: React.FC<AddGridDialogProps> = ({
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleAddGrid}>

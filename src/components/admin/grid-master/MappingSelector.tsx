@@ -24,7 +24,7 @@ interface MappingSelectorProps {
 }
 
 const MappingSelector: React.FC<MappingSelectorProps> = ({ 
-  mappings, 
+  mappings = [], // Provide a default empty array to prevent map errors
   selectedMappingId, 
   onSelectMapping 
 }) => {
@@ -39,11 +39,23 @@ const MappingSelector: React.FC<MappingSelectorProps> = ({
           <SelectValue placeholder="Select mapping" />
         </SelectTrigger>
         <SelectContent>
-          {mappings.map((mapping) => (
-            <SelectItem key={mapping.id} value={mapping.id}>
-              {mapping.source} → {mapping.destination} ({mapping.facility})
+          {Array.isArray(mappings) ? (
+            mappings.length > 0 ? (
+              mappings.map((mapping) => (
+                <SelectItem key={mapping.id} value={mapping.id}>
+                  {mapping.source} → {mapping.destination} ({mapping.facility})
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-mappings" disabled>
+                No mappings available
+              </SelectItem>
+            )
+          ) : (
+            <SelectItem value="error" disabled>
+              Error loading mappings
             </SelectItem>
-          ))}
+          )}
         </SelectContent>
       </Select>
     </div>
