@@ -1,69 +1,53 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React from 'react';
+import { Button } from "@/components/ui/button";
+import { LogOut, User } from "lucide-react";
+import { useUser } from '@/context/UserContext';
+import { toast } from "sonner";
 
-// Define the user interface
-interface User {
-  id: string;
-  username: string;
-  role: string;
-  facility: string;
-}
-
-// Create the context
-interface UserContextType {
-  user: User | null;
-  setUser: (user: User | null) => void;
-  logout: () => void;
-}
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-// Create a provider component
-export const UserProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+const Header: React.FC<{children?: React.ReactNode}> = ({ children }) => {
+  const { user, logout } = useUser();
   
-  // Load user from localStorage on initial render
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user from localStorage:', error);
-        localStorage.removeItem('user');
-      }
-    }
-  }, []);
-  
-  // Update localStorage when user changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [user]);
-  
-  const logout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    await logout();
   };
   
   return (
-    <UserContext.Provider value={{ user, setUser, logout }}>
-      {children}
-    </UserContext.Provider>
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <div className="flex flex-1 items-center gap-4">
+        {children}
+        <h1 className="font-bold">Warehouse Management System</h1>
+      </div>
+      <div className="flex items-center gap-4">
+        {user && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-gray-500" />
+              <span className="text-sm font-medium">{user.username}</span>
+              {user.role && (
+                <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+                  {user.role}
+                </span>
+              )}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
+        )}
+      </div>
+    </header>
   );
 };
 
-// Create a hook to use the user context
-export const useUser = () => {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};
+export { Header };
 
-export default UserProvider;
+// Export the UserProvider and useUser hook for backwards compatibility
+export { UserProvider, useUser } from '@/context/UserContext';
+export default Header;
