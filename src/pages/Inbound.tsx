@@ -22,6 +22,7 @@ const Inbound = () => {
   const [scannedTotes, setScannedTotes] = useState<any[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
@@ -59,8 +60,43 @@ const Inbound = () => {
 
     fetchFacilities();
   }, []);
+
+  // Load existing totes when the component mounts
+  useEffect(() => {
+    const fetchTotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('totes')
+          .select('*')
+          .eq('status', 'inbound')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          const formattedTotes = data.map(tote => ({
+            id: tote.tote_number,
+            status: 'inbound',
+            source: tote.facility_id || '',
+            destination: user?.facility || '',
+            timestamp: new Date(tote.created_at).toLocaleString(),
+            user: tote.scanned_by || user?.username || 'unknown',
+          }));
+          
+          setScannedTotes(formattedTotes);
+        }
+      } catch (error) {
+        console.error('Error fetching totes:', error);
+        toast.error('Failed to load existing totes');
+      }
+    };
+    
+    fetchTotes();
+  }, [user]);
   
-  const handleToteScan = (toteId: string) => {
+  const handleToteScan = async (toteId: string) => {
     if (!selectedFacility) {
       toast.error("Please select a source facility first");
       return;
@@ -72,25 +108,58 @@ const Inbound = () => {
       return;
     }
     
-    // Get current timestamp
-    const now = new Date();
-    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
-    
-    // Create new tote record
-    const newTote = {
-      id: toteId,
-      status: 'inbound',
-      source: selectedFacility,
-      destination: user?.facility || '',
-      timestamp,
-      user: user?.username || 'unknown',
-    };
-    
-    // Add to scanned totes list
-    setScannedTotes([newTote, ...scannedTotes]);
-    toast.success(`Tote ${toteId} has been received from ${selectedFacility}`);
-    
-    // In a real app, this would also save to Google Sheets
+    try {
+      setIsSaving(true);
+      
+      // Get facility ID from the selected facility name
+      const selectedFacilityObj = facilities.find(f => f.name === selectedFacility);
+      if (!selectedFacilityObj) {
+        toast.error('Invalid source facility selected');
+        return;
+      }
+      
+      // Create new tote record in Supabase
+      const { data, error } = await supabase
+        .from('totes')
+        .insert([
+          {
+            tote_number: toteId,
+            status: 'inbound',
+            facility_id: selectedFacilityObj.id,
+            scanned_by: user?.id || null,
+            scanned_at: new Date().toISOString()
+          }
+        ])
+        .select();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Get current timestamp
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString();
+      
+      // Add to scanned totes list (in UI)
+      const newTote = {
+        id: toteId,
+        status: 'inbound',
+        source: selectedFacility,
+        destination: user?.facility || '',
+        timestamp,
+        user: user?.username || 'unknown',
+      };
+      
+      setScannedTotes([newTote, ...scannedTotes]);
+      toast.success(`Tote ${toteId} has been received from ${selectedFacility} and saved to database`);
+      
+      console.log('Tote saved to database:', data);
+    } catch (error) {
+      console.error('Error saving tote:', error);
+      toast.error(`Failed to save tote: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Convert facilities to the format expected by the FacilitySelector
@@ -114,13 +183,14 @@ const Inbound = () => {
         </Card>
         
         <div className="md:col-span-2">
-          <ToteScanner onScan={handleToteScan} />
+          <ToteScanner onScan={handleToteScan} isLoading={isSaving} />
         </div>
       </div>
       
       <ToteTable
         totes={scannedTotes}
         title="Today's Inbound Totes"
+        isLoading={isLoading}
       />
     </DashboardLayout>
   );
