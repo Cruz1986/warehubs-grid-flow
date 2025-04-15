@@ -6,6 +6,7 @@ import ActivityCard from '../components/dashboard/ActivityCard';
 import GridCapacityVisual from '../components/dashboard/GridCapacityVisual';
 import ToteTabs from '../components/dashboard/ToteTabs';
 import SystemStatusIndicator from '../components/dashboard/SystemStatusIndicator';
+import DatabaseStatusCard from '../components/dashboard/DatabaseStatusCard';
 import { useStatusData } from '@/hooks/useStatusData';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,8 @@ const Status = () => {
             </p>
           </div>
         </div>
+        
+        <DatabaseStatusCard />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ActivityCard 
