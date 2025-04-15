@@ -35,7 +35,7 @@ const Inbound = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('Facility_Master')
+          .from('facility_master')
           .select('*');
         
         if (error) {
@@ -44,10 +44,10 @@ const Inbound = () => {
         
         // Ensure type is correctly mapped
         const typedFacilities = data.map(facility => ({
-          id: facility.ID,
-          name: facility.Name,
-          type: facility.Type as FacilityType,
-          location: facility.Location
+          id: facility.id,
+          name: facility.name,
+          type: facility.type as FacilityType,
+          location: facility.location
         }));
         
         setFacilities(typedFacilities);
@@ -67,10 +67,10 @@ const Inbound = () => {
     const fetchTotes = async () => {
       try {
         const { data, error } = await supabase
-          .from('Tote_Inbound')
+          .from('tote_inbound')
           .select('*')
-          .eq('Status', 'inbound')
-          .order('Timestamp_In', { ascending: false })
+          .eq('status', 'inbound')
+          .order('timestamp_in', { ascending: false })
           .limit(50);
           
         if (error) {
@@ -80,12 +80,12 @@ const Inbound = () => {
         
         if (data) {
           const formattedTotes = data.map(tote => ({
-            id: tote.Tote_ID,
+            id: tote.tote_id,
             status: 'inbound',
-            source: tote.Source || 'Unknown',
+            source: tote.source || 'Unknown',
             destination: user?.facility || '',
-            timestamp: tote.Timestamp_In,
-            user: tote.Operator_Name || 'unknown',
+            timestamp: tote.timestamp_in,
+            user: tote.operator_name || 'unknown',
           }));
           
           setScannedTotes(formattedTotes);
@@ -101,7 +101,7 @@ const Inbound = () => {
     const channel = supabase
       .channel('totes-inbound-changes')
       .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'Tote_Inbound' },
+          { event: 'INSERT', schema: 'public', table: 'tote_inbound' },
           (payload) => {
             fetchTotes();
           }
@@ -125,26 +125,19 @@ const Inbound = () => {
       return;
     }
     
-    // Find the facility object
-    const facilityObj = facilities.find(f => f.name === selectedFacility);
-    if (!facilityObj) {
-      toast.error(`Could not find facility: ${selectedFacility}`);
-      return;
-    }
-    
     setIsSaving(true);
     
     try {
       // Insert into Supabase
       const insertData = {
-        Tote_ID: toteId,
-        Status: 'inbound',
-        Source: selectedFacility,
-        Operator_Name: user?.username || 'unknown'
+        tote_id: toteId,
+        status: 'inbound',
+        source: selectedFacility,
+        operator_name: user?.username || 'unknown'
       };
       
       const { error } = await supabase
-        .from('Tote_Inbound')
+        .from('tote_inbound')
         .insert(insertData);
         
       if (error) {

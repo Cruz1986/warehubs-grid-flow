@@ -58,11 +58,11 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
       setIsSubmitting(true);
       
       const { data, error } = await supabase
-        .from('Facility_Master')
+        .from('facility_master')
         .insert({
-          Name: newFacility.name,
-          Type: newFacility.type,
-          Location: newFacility.location
+          name: newFacility.name,
+          type: newFacility.type,
+          location: newFacility.location
         })
         .select()
         .single();
@@ -70,10 +70,10 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
       if (error) throw error;
       
       const addedFacility: Facility = {
-        id: data.ID,
-        name: data.Name,
-        type: data.Type as FacilityType,
-        location: data.Location
+        id: data.id,
+        name: data.name,
+        type: data.type as FacilityType,
+        location: data.location
       };
       
       onFacilityAdded(addedFacility);

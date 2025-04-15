@@ -6,15 +6,15 @@ import ToteTable from '../components/operations/ToteTable';
 import FacilitySelector from '../components/operations/FacilitySelector';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { PackageCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { FacilityType } from '@/components/admin/GridMasterComponent';
 
 // Type definition for Facility
 interface Facility {
   id: string;
   name: string;
-  type: string;
+  type: FacilityType;
   location?: string;
 }
 
@@ -23,6 +23,7 @@ const Outbound = () => {
   const [outboundTotes, setOutboundTotes] = useState<any[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
@@ -34,14 +35,22 @@ const Outbound = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('facilities')
+          .from('facility_master')
           .select('*');
         
         if (error) {
           throw error;
         }
         
-        setFacilities(data);
+        // Ensure type is correctly mapped
+        const typedFacilities = data.map(facility => ({
+          id: facility.id,
+          name: facility.name,
+          type: facility.type as FacilityType,
+          location: facility.location
+        }));
+        
+        setFacilities(typedFacilities);
       } catch (error) {
         console.error('Error fetching facilities:', error);
         toast.error('Failed to load facilities');
@@ -53,8 +62,56 @@ const Outbound = () => {
     fetchFacilities();
   }, []);
 
-  // Extract facility names for the selector
-  const facilityNames = facilities.map(facility => facility.name);
+  // Fetch existing totes on load
+  useEffect(() => {
+    const fetchTotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tote_outbound')
+          .select('*')
+          .eq('status', 'outbound')
+          .order('timestamp_out', { ascending: false })
+          .limit(50);
+          
+        if (error) {
+          console.error('Error fetching totes:', error);
+          return;
+        }
+        
+        if (data) {
+          const formattedTotes = data.map(tote => ({
+            id: tote.tote_id,
+            status: 'outbound',
+            source: user?.facility || '',
+            destination: tote.destination,
+            timestamp: tote.timestamp_out,
+            user: tote.operator_name || 'unknown',
+          }));
+          
+          setOutboundTotes(formattedTotes);
+        }
+      } catch (error) {
+        console.error('Error fetching totes:', error);
+      }
+    };
+    
+    fetchTotes();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('totes-outbound-changes')
+      .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'tote_outbound' },
+          (payload) => {
+            fetchTotes();
+          }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.facility, user?.username]);
   
   const handleToteScan = async (toteId: string) => {
     if (!selectedDestination) {
@@ -68,94 +125,79 @@ const Outbound = () => {
       return;
     }
     
+    setIsSaving(true);
+    
     try {
       // Check if tote exists and is staged for the selected destination
-      const { data: toteData, error: toteError } = await supabase
-        .from('totes')
+      const { data: stagedTotes, error: stagedError } = await supabase
+        .from('tote_staging')
         .select('*')
-        .eq('tote_number', toteId)
-        .single();
+        .eq('tote_id', toteId)
+        .eq('status', 'staged')
+        .maybeSingle();
         
-      if (toteError) {
-        toast.error(`Tote ${toteId} not found in the system`);
+      if (stagedError) {
+        toast.error(`Error verifying tote status: ${stagedError.message}`);
+        setIsSaving(false);
         return;
       }
       
-      // Check if the tote is staged
-      if (toteData.status !== 'staged') {
-        toast.error(`Tote ${toteId} must be staged before outbound processing`);
+      if (!stagedTotes) {
+        toast.error(`Tote ${toteId} is not staged for outbound processing`);
+        setIsSaving(false);
         return;
       }
       
       // Check if tote is staged for the correct destination
-      const { data: gridData, error: gridError } = await supabase
-        .from('grids')
-        .select('*')
-        .eq('tote_id', toteData.id)
-        .maybeSingle();
-      
-      if (gridError) {
-        console.error('Error checking grid data:', gridError);
-        toast.error('Failed to verify tote staging information');
+      if (stagedTotes.destination !== selectedDestination) {
+        toast.error(`Tote ${toteId} is staged for ${stagedTotes.destination}, not ${selectedDestination}`);
+        setIsSaving(false);
         return;
       }
       
-      if (!gridData) {
-        toast.error(`Tote ${toteId} is not correctly staged in a grid`);
-        return;
-      }
-      
-      if (gridData.destination !== selectedDestination) {
-        toast.error(`Tote ${toteId} is staged for ${gridData.destination}, not ${selectedDestination}`);
-        return;
-      }
-      
-      // Get current timestamp
-      const now = new Date();
-      const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
-      
-      // Create new tote record
-      const newTote = {
-        id: toteId,
+      // Insert into outbound
+      const insertData = {
+        tote_id: toteId,
         status: 'outbound',
-        source: user?.facility || '',
         destination: selectedDestination,
-        timestamp,
-        user: user?.username || 'unknown',
+        operator_name: user?.username || 'unknown'
       };
       
-      // Add to outbound totes list
-      setOutboundTotes([newTote, ...outboundTotes]);
-      toast.success(`Tote ${toteId} has been shipped to ${selectedDestination}`);
-      
-      // Update the tote status in the database
-      const { error: updateError } = await supabase
-        .from('totes')
-        .update({ status: 'outbound' })
-        .eq('tote_number', toteId);
+      const { error: insertError } = await supabase
+        .from('tote_outbound')
+        .insert(insertData);
         
-      if (updateError) {
-        console.error('Error updating tote status:', updateError);
-        toast.error('Failed to update tote status in the database');
+      if (insertError) {
+        console.error('Error saving outbound tote:', insertError);
+        toast.error(`Failed to save outbound tote: ${insertError.message}`);
+        setIsSaving(false);
+        return;
       }
       
-    } catch (error) {
-      console.error('Error processing tote outbound:', error);
-      toast.error('Failed to process tote for outbound');
+      // Update staging status
+      const { error: updateError } = await supabase
+        .from('tote_staging')
+        .update({ status: 'shipped' })
+        .eq('tote_id', toteId);
+        
+      if (updateError) {
+        console.error('Error updating staging status:', updateError);
+        // Don't block the process since the outbound record was created
+        toast.warning('Tote marked as outbound but staging status update failed');
+      }
+      
+      // Success! The tote will be added to the list via the realtime subscription
+      toast.success(`Tote ${toteId} has been shipped to ${selectedDestination}`);
+    } catch (err) {
+      console.error('Exception processing outbound tote:', err);
+      toast.error('An unexpected error occurred while processing the tote');
+    } finally {
+      setIsSaving(false);
     }
   };
-  
-  // Mock data for pending totes - in a real app, this would be fetched
-  const pendingTotesByDestination = {
-    'Facility A': ['TOTE100001', 'TOTE100002'],
-    'Facility B': ['TOTE100003', 'TOTE100004', 'TOTE100005'],
-    'Facility C': ['TOTE100006'],
-    'Facility D': [],
-  };
-  
-  const pendingTotes = selectedDestination 
-    ? pendingTotesByDestination[selectedDestination as keyof typeof pendingTotesByDestination] || []
-    : [];
+
+  // Convert facilities to the format expected by the FacilitySelector
+  const facilityNames = facilities.map(facility => facility.name);
 
   return (
     <DashboardLayout>
@@ -178,33 +220,15 @@ const Outbound = () => {
           <ToteScanner 
             onScan={handleToteScan}
             placeholder="Scan tote for outbound"
+            isLoading={isSaving}
           />
         </div>
       </div>
       
-      {selectedDestination && pendingTotes.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center">
-              <PackageCheck className="mr-2 h-5 w-5 text-yellow-600" />
-              Pending Totes for {selectedDestination}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {pendingTotes.map(toteId => (
-                <div key={toteId} className="bg-yellow-50 border border-yellow-200 rounded-md px-3 py-1">
-                  {toteId}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
       <ToteTable
         totes={outboundTotes}
         title="Today's Outbound Totes"
+        isLoading={isLoading}
       />
     </DashboardLayout>
   );

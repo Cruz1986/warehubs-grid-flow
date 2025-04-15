@@ -41,9 +41,9 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
     if (window.confirm(`Are you sure you want to delete ${facility.name}?`)) {
       try {
         const { error } = await supabase
-          .from('Facility_Master')
+          .from('facility_master')
           .delete()
-          .eq('ID', facility.id);
+          .eq('id', facility.id);
         
         if (error) throw error;
         onFacilityDeleted(facility.id);
