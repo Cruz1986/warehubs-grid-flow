@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
 import AddGridDialog from "./grid-master/AddGridDialog";
-import AddFacilityDialog from "./grid-master/AddFacilityDialog";
+import { AddFacilityDialog } from "./grid-master/AddFacilityDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,7 +16,7 @@ export type Facility = {
   location?: string;
 };
 
-export type FacilityType = "Fulfillment Center" | "Sourcing Hub" | "Darkstore";
+export type FacilityType = "Fulfilment_Center" | "Sourcing_Hub" | "Dark_Store";
 
 export const GridMasterComponent = () => {
   const [showAddFacilityDialog, setShowAddFacilityDialog] = useState(false);
@@ -132,7 +132,7 @@ export const GridMasterComponent = () => {
       />
 
       <AddGridDialog
-        open={showAddGridDialog}
+        isOpen={showAddGridDialog}
         onOpenChange={setShowAddGridDialog}
         onGridAdded={() => {}}
         facilities={facilities.map((f) => f.name)}
