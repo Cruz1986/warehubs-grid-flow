@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,37 +51,36 @@ const CreateAdminUser = () => {
         return;
       }
       
-      // Create the admin user - first try with RLS disabled via RPC
-      try {
-        const { data, error } = await supabase.rpc('create_admin_user', {
-          admin_username: username,
-          admin_password: password
-        });
+      // Direct insert for first admin user (bypassing RLS since no admin exists yet)
+      const { data: insertData, error: insertError } = await supabase
+        .from('users_log')
+        .insert({
+          username,
+          password,
+          role: 'Admin',
+          facility: 'All',
+          status: 'active'
+        })
+        .select();
         
-        if (error) throw error;
-        
-        toast.success('Admin user created successfully! You can now login.');
-        navigate('/');
-        return;
-      } catch (rpcError: any) {
-        // If RPC function doesn't exist, try direct insert
-        console.log('RPC failed, trying direct insert as fallback:', rpcError.message);
-        const { data: insertData, error: insertError } = await supabase
-          .from('users_log')
-          .insert({
-            username,
-            password,
-            role: 'Admin',
-            facility: 'All',
-            status: 'active'
-          })
-          .select();
+      if (insertError) {
+        // If direct insert fails, try RPC function as fallback
+        try {
+          // The create_admin_user function is defined in supabase/migrations
+          const { error: rpcError } = await supabase.rpc('create_admin_user', {
+            admin_username: username,
+            admin_password: password
+          });
           
-        if (insertError) throw insertError;
-        
-        toast.success('Admin user created successfully! You can now login.');
-        navigate('/');
+          if (rpcError) throw rpcError;
+        } catch (rpcError: any) {
+          console.error('RPC method failed:', rpcError);
+          throw insertError; // Throw original error if RPC also fails
+        }
       }
+      
+      toast.success('Admin user created successfully! You can now login.');
+      navigate('/');
     } catch (error: any) {
       console.error('Error creating admin user:', error);
       toast.error(error.message || 'Failed to create admin user');

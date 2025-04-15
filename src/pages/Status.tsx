@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusCards from '../components/dashboard/StatusCards';
@@ -28,13 +27,11 @@ const Status = () => {
   const [lastDbOperation, setLastDbOperation] = useState<string | null>(null);
   const [isTestingDb, setIsTestingDb] = useState(false);
 
-  // Function to test database connection with a simple query
   const testDatabaseConnection = async () => {
     setIsTestingDb(true);
     try {
-      // Attempt to count facilities as a simple test query
       const { count, error } = await supabase
-        .from('Facility_Master')
+        .from('facility_master')
         .select('*', { count: 'exact', head: true });
       
       if (error) {

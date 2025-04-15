@@ -74,6 +74,10 @@ const UserManagementTable = () => {
         .select('user_id, username, role, facility, last_login');
       
       if (error) {
+        if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
+          toast.error('You do not have permission to view users. Please log in as an admin.');
+          return;
+        }
         throw error;
       }
       
@@ -113,7 +117,6 @@ const UserManagementTable = () => {
       
       console.log('Adding user with data:', userData);
       
-      // In a real application, this would call your API to add the user
       const { data, error } = await supabase
         .from('users_log')
         .insert({
@@ -126,6 +129,10 @@ const UserManagementTable = () => {
         .select();
       
       if (error) {
+        if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
+          toast.error('You do not have permission to add users. Only admins can add new users.');
+          return;
+        }
         console.error('Error adding user:', error);
         toast.error('Failed to add user: ' + error.message);
         return;
