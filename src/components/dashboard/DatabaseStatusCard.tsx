@@ -13,9 +13,6 @@ interface TableStatus {
   error?: string;
 }
 
-// Define the valid table names as a type
-type TableName = 'facilities' | 'grid_mappings' | 'grids' | 'totes' | 'users';
-
 const DatabaseStatusCard = () => {
   const [tableStatuses, setTableStatuses] = useState<TableStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,14 +20,12 @@ const DatabaseStatusCard = () => {
 
   const checkTables = async () => {
     setIsLoading(true);
-    // Define the tables array with the correct type
-    const tables: TableName[] = ['facilities', 'grid_mappings', 'grids', 'totes', 'users'];
+    const tables = ['facilities', 'grid_mappings', 'grids', 'totes', 'users'];
     const statuses: TableStatus[] = [];
 
     for (const table of tables) {
       try {
         console.log(`Checking table: ${table}`);
-        // Now TypeScript knows 'table' is one of the valid table names
         const { count, error } = await supabase
           .from(table)
           .select('*', { count: 'exact', head: true });
