@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -164,10 +165,10 @@ const Status = () => {
           console.error('Error fetching activity counts');
         } else {
           setFacilityData({
-            'Inbound': parseInt(inboundCount?.count || '0'),
-            'Staged': parseInt(gridCount?.count || '0'),
-            'Outbound': parseInt(outboundCount?.count || '0'),
-            'Pending': parseInt(pendingCount?.count || '0'),
+            'Inbound': Number(inboundCount?.count ?? 0),
+            'Staged': Number(gridCount?.count ?? 0),
+            'Outbound': Number(outboundCount?.count ?? 0),
+            'Pending': Number(pendingCount?.count ?? 0),
           });
         }
       } catch (error) {

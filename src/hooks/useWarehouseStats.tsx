@@ -136,13 +136,13 @@ export const useWarehouseStats = () => {
         const usedGrids = grids?.filter(grid => grid.status === 'occupied').length || 0;
         
         // Calculate trends
-        const todayInboundCount = parseInt(todayInbound?.count || '0');
-        const yesterdayInboundCount = parseInt(yesterdayInbound?.count || '0');
+        const todayInboundCount = Number(todayInbound?.count ?? 0);
+        const yesterdayInboundCount = Number(yesterdayInbound?.count ?? 0);
         const inboundTrend = todayInboundCount > yesterdayInboundCount ? 'up' : 
                               todayInboundCount < yesterdayInboundCount ? 'down' : 'neutral';
         
-        const todayOutboundCount = parseInt(todayOutbound?.count || '0');
-        const yesterdayOutboundCount = parseInt(yesterdayOutbound?.count || '0');
+        const todayOutboundCount = Number(todayOutbound?.count ?? 0);
+        const yesterdayOutboundCount = Number(yesterdayOutbound?.count ?? 0);
         const outboundTrend = todayOutboundCount > yesterdayOutboundCount ? 'up' : 
                                todayOutboundCount < yesterdayOutboundCount ? 'down' : 'neutral';
         
@@ -177,7 +177,7 @@ export const useWarehouseStats = () => {
             used: usedGrids,
             total: totalGrids,
           },
-          pendingTotes: parseInt(pendingTotes?.count || '0')
+          pendingTotes: Number(pendingTotes?.count ?? 0)
         });
         
       } catch (error) {
@@ -205,3 +205,4 @@ export const useWarehouseStats = () => {
 
   return { stats, isLoading };
 };
+
