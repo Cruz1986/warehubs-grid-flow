@@ -20,7 +20,7 @@ const DatabaseStatusCard = () => {
 
   const checkTables = async () => {
     setIsLoading(true);
-    const tables = ['facilities', 'grid_mappings', 'grids', 'totes', 'users'];
+    const tables = ['facilities', 'grid_mappings', 'grids', 'totes', 'users'] as const;
     const statuses: TableStatus[] = [];
 
     for (const table of tables) {
