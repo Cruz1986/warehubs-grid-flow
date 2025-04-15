@@ -109,8 +109,7 @@ const Login = () => {
           email: email,
           username: email.split('@')[0],
           role: 'user',
-          facility: 'Default Facility',
-          password: 'stored-in-auth' // We don't store actual passwords, auth handles that
+          facility: 'Default Facility'
         });
       
       if (userError) {
