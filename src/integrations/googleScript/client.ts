@@ -62,6 +62,9 @@ export const authenticate = async (username: string, password: string) => {
     const response = await sendRequest('login', { username, password });
     
     if (response.success && response.user) {
+      // Update last login time in the sheet
+      await sendRequest('updateLastLogin', { userId: response.user.id });
+      
       // Store user in localStorage for session persistence
       localStorage.setItem('user', JSON.stringify(response.user));
       return response.user;
@@ -71,17 +74,17 @@ export const authenticate = async (username: string, password: string) => {
   } catch (error) {
     console.error('Authentication error:', error);
     
-    // Fallback mock authentication for development
-    if (username && (password === 'password' || username === 'admin')) {
-      const isAdmin = username.toLowerCase().includes('admin');
-      const user = {
-        username,
-        isAdmin,
-        role: isAdmin ? 'Admin' : 'User',
-        facility: isAdmin ? 'All' : 'Facility A'
+    // Fallback mock authentication for development - matches the sheet structure
+    if (username === 'admin' && password === 'admin123') {
+      const mockUser = {
+        id: '20b7882f-4cf5-4cab-9a16-40c531290e46',
+        username: 'admin',
+        role: 'admin',
+        status: 'Active',
+        lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 19)
       };
-      localStorage.setItem('user', JSON.stringify(user));
-      return user;
+      localStorage.setItem('user', JSON.stringify(mockUser));
+      return mockUser;
     }
     
     throw error;
@@ -240,17 +243,17 @@ const mockResponse = (action: string, data?: any) => {
   switch (action) {
     case 'login':
       const { username, password } = data || {};
-      const isAdmin = username?.toLowerCase().includes('admin');
-      const isValidPassword = password === 'password' || username === 'admin';
       
-      if (username && isValidPassword) {
+      // Match mock data with the sheet structure
+      if (username === 'admin' && password === 'admin123') {
         return {
           success: true,
           user: {
-            username,
-            isAdmin,
-            role: isAdmin ? 'Admin' : 'User',
-            facility: isAdmin ? 'All' : 'Facility A'
+            id: '20b7882f-4cf5-4cab-9a16-40c531290e46',
+            username: 'admin',
+            role: 'admin',
+            status: 'Active',
+            lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 19)
           }
         };
       } else {

@@ -32,14 +32,14 @@ const Login = () => {
       toast.success(`Welcome back, ${user.username}!`);
       
       // Redirect to appropriate page based on role
-      if (user.role === 'Admin') {
+      if (user.role === 'admin') {
         navigate('/admin-dashboard');
       } else {
         navigate('/inbound');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
+      toast.error('Login failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +50,7 @@ const Login = () => {
       <div className="w-full max-w-md p-4">
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Login</CardTitle>
+            <CardTitle className="text-2xl text-center">Warehouse Management System</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -92,7 +92,7 @@ const Login = () => {
                 </p>
                 <p>
                   Username: <span className="font-bold">admin</span> | 
-                  Password: <span className="font-bold">password</span>
+                  Password: <span className="font-bold">admin123</span>
                 </p>
               </div>
             </form>
