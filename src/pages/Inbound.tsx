@@ -135,15 +135,30 @@ const Inbound = () => {
     setIsSaving(true);
     
     try {
-      // Insert into Supabase
+      // Insert into Supabase - but don't include scanned_by if it's not a valid UUID
+      const insertData: { 
+        tote_number: string; 
+        status: string; 
+        facility_id: string;
+        scanned_by?: string | null;
+      } = {
+        tote_number: toteId,
+        status: 'inbound',
+        facility_id: facilityObj.id
+      };
+      
+      // Only include scanned_by if user.id exists and looks like a UUID
+      // UUID format: 8-4-4-4-12 hex digits (e.g., 123e4567-e89b-12d3-a456-426614174000)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (user?.id && uuidRegex.test(user.id)) {
+        insertData.scanned_by = user.id;
+      } else {
+        console.log('User ID is not a valid UUID format. Skipping scanned_by field.');
+      }
+      
       const { error } = await supabase
         .from('totes')
-        .insert({
-          tote_number: toteId,
-          status: 'inbound',
-          facility_id: facilityObj.id,
-          scanned_by: user?.id || null
-        });
+        .insert(insertData);
         
       if (error) {
         console.error('Error saving tote:', error);
