@@ -1,9 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MobileSidebar from './MobileSidebar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,6 +17,27 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
   const navigate = useNavigate();
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check database connection
+    const checkConnection = async () => {
+      try {
+        const { error } = await supabase.from('facilities').select('count').limit(1);
+        if (error) {
+          console.error('Database connection check failed:', error);
+          setDbError(error.message || 'Failed to connect to database');
+        } else {
+          setDbError(null);
+        }
+      } catch (err) {
+        console.error('Database connection check error:', err);
+        setDbError('Error connecting to database');
+      }
+    };
+    
+    checkConnection();
+  }, []);
 
   useEffect(() => {
     // Redirect if no user is logged in
@@ -39,6 +63,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
         
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="container mx-auto">
+            {dbError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Database Connection Error</AlertTitle>
+                <AlertDescription>
+                  {dbError}. Live data updates may not work correctly.
+                </AlertDescription>
+              </Alert>
+            )}
             {children}
           </div>
         </main>

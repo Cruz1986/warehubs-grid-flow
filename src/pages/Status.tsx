@@ -5,6 +5,7 @@ import StatusCards from '../components/dashboard/StatusCards';
 import ActivityCard from '../components/dashboard/ActivityCard';
 import GridCapacityVisual from '../components/dashboard/GridCapacityVisual';
 import ToteTabs from '../components/dashboard/ToteTabs';
+import SystemStatusIndicator from '../components/dashboard/SystemStatusIndicator';
 import { useStatusData } from '@/hooks/useStatusData';
 
 const Status = () => {
@@ -21,29 +22,38 @@ const Status = () => {
 
   return (
     <DashboardLayout>
-      <h1 className="text-2xl font-bold mb-6">Status Dashboard</h1>
-      
-      <StatusCards />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <ActivityCard 
-          facilityData={facilityData} 
-          isLoading={isLoadingActivity} 
-        />
+      <div className="flex flex-col space-y-6">
+        <h1 className="text-2xl font-bold">Status Dashboard</h1>
         
-        <GridCapacityVisual 
-          gridStatuses={gridStatuses} 
-          isLoading={isLoadingGrids} 
-        />
-      </div>
-      
-      <div className="mt-6">
-        <ToteTabs 
-          inboundTotes={inboundTotes}
-          stagedTotes={stagedTotes}
-          outboundTotes={outboundTotes}
-          isLoading={isLoadingTotes}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-3">
+            <StatusCards />
+          </div>
+          <div className="md:col-span-1">
+            <SystemStatusIndicator />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ActivityCard 
+            facilityData={facilityData} 
+            isLoading={isLoadingActivity} 
+          />
+          
+          <GridCapacityVisual 
+            gridStatuses={gridStatuses} 
+            isLoading={isLoadingGrids} 
+          />
+        </div>
+        
+        <div>
+          <ToteTabs 
+            inboundTotes={inboundTotes}
+            stagedTotes={stagedTotes}
+            outboundTotes={outboundTotes}
+            isLoading={isLoadingTotes}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );
