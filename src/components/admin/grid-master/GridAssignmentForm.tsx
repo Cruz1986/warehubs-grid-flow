@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Facility, FacilityType } from '../GridMasterComponent';
+import { Facility } from '../GridMasterComponent';
 import { useGridAssignment } from '@/hooks/useGridAssignment';
 import FacilityTypeSelect from './FacilityTypeSelect';
 import GridNumberInput from './GridNumberInput';
@@ -17,9 +17,9 @@ interface GridAssignmentFormProps {
   facilities: Facility[];
   onAssignGrid: (mapping: {
     source: string;
-    sourceType: FacilityType;
+    sourceType: string;
     destination: string;
-    destinationType: FacilityType;
+    destinationType: string;
     gridNumber: string;
   }) => void;
   isSubmitting: boolean;
@@ -43,39 +43,6 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
     setGridNumber,
     handleAssignGrid
   } = useGridAssignment({ facilities, onAssignGrid });
-
-  // Find the actual facility names based on IDs
-  const getSourceName = () => {
-    const facility = facilities.find(f => f.id === sourceFacility);
-    return facility ? facility.name : '';
-  };
-
-  const getDestinationName = () => {
-    const facility = facilities.find(f => f.id === destinationFacility);
-    return facility ? facility.name : '';
-  };
-
-  // Get the facility type based on ID
-  const getSourceType = () => {
-    const facility = facilities.find(f => f.id === sourceFacility);
-    return facility ? facility.type as FacilityType : 'Fulfillment Center';
-  };
-
-  const getDestinationType = () => {
-    const facility = facilities.find(f => f.id === destinationFacility);
-    return facility ? facility.type as FacilityType : 'Darkstore';
-  };
-
-  // Override the handleAssignGrid to use actual names instead of IDs
-  const handleSubmitGrid = () => {
-    handleAssignGrid({
-      source: getSourceName(),
-      sourceType: getSourceType(),
-      destination: getDestinationName(),
-      destinationType: getDestinationType(),
-      gridNumber
-    });
-  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -107,7 +74,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
         placeholder="Select source"
         facilities={facilities}
         facilityType={facilityType}
-        disabled={!facilityType || typeToFacilities[facilityType as keyof typeof typeToFacilities]?.length === 0}
+        disabled={!facilityType || typeToFacilities[facilityType as keyof typeof typeToFacilities].length === 0}
       />
       
       <FacilityTypeSelect
@@ -124,7 +91,7 @@ const GridAssignmentForm: React.FC<GridAssignmentFormProps> = ({
       <GridNumberInput
         value={gridNumber}
         onChange={setGridNumber}
-        onAssign={handleSubmitGrid}
+        onAssign={handleAssignGrid}
         disabled={!destinationFacility || isSubmitting}
         isCheckingGrid={isCheckingGrid}
       />

@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from 'lucide-react';
 import { Facility, FacilityType } from '../GridMasterComponent';
-import { AddFacilityDialog } from './AddFacilityDialog';
+import AddFacilityDialog from './AddFacilityDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -41,9 +41,9 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
     if (window.confirm(`Are you sure you want to delete ${facility.name}?`)) {
       try {
         const { error } = await supabase
-          .from('facility_master')
+          .from('Facility_Master')
           .delete()
-          .eq('id', facility.id);
+          .eq('ID', facility.id);
         
         if (error) throw error;
         onFacilityDeleted(facility.id);
@@ -54,7 +54,7 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
     }
   };
 
-  const facilityTypeColorMap: Record<string, string> = {
+  const facilityTypeColorMap: Record<FacilityType, string> = {
     'Fulfilment_Center': 'bg-blue-100 text-blue-800',
     'Sourcing_Hub': 'bg-green-100 text-green-800',
     'Dark_Store': 'bg-purple-100 text-purple-800'
@@ -118,7 +118,7 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
       </CardContent>
       
       <AddFacilityDialog 
-        open={isAddDialogOpen}
+        isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onFacilityAdded={onFacilityAdded}
       />

@@ -21,18 +21,16 @@ interface MappingSelectorProps {
   mappings: GridMapping[];
   selectedMappingId: string;
   onSelectMapping: (mappingId: string) => void;
-  label?: string;
 }
 
 const MappingSelector: React.FC<MappingSelectorProps> = ({ 
-  mappings = [], // Provide a default empty array to prevent map errors
+  mappings, 
   selectedMappingId, 
-  onSelectMapping,
-  label = "Source-Destination Mapping"
+  onSelectMapping 
 }) => {
   return (
     <div className="grid gap-2">
-      <Label htmlFor="mapping">{label}</Label>
+      <Label htmlFor="mapping">Source-Destination Mapping</Label>
       <Select
         value={selectedMappingId}
         onValueChange={onSelectMapping}
@@ -41,23 +39,11 @@ const MappingSelector: React.FC<MappingSelectorProps> = ({
           <SelectValue placeholder="Select mapping" />
         </SelectTrigger>
         <SelectContent>
-          {Array.isArray(mappings) ? (
-            mappings.length > 0 ? (
-              mappings.map((mapping) => (
-                <SelectItem key={mapping.id} value={mapping.id}>
-                  {mapping.source} → {mapping.destination} ({mapping.facility})
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="no-mappings" disabled>
-                No mappings available
-              </SelectItem>
-            )
-          ) : (
-            <SelectItem value="error" disabled>
-              Error loading mappings
+          {mappings.map((mapping) => (
+            <SelectItem key={mapping.id} value={mapping.id}>
+              {mapping.source} → {mapping.destination} ({mapping.facility})
             </SelectItem>
-          )}
+          ))}
         </SelectContent>
       </Select>
     </div>

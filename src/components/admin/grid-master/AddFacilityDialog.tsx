@@ -1,138 +1,163 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
+import { Facility, FacilityType } from '../GridMasterComponent';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AddFacilityDialogProps {
-  open: boolean;
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onFacilityAdded: () => void;
+  onFacilityAdded: (facility: Facility) => void;
 }
 
-export const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
-  open,
+const facilityTypes: FacilityType[] = ['Fulfilment_Center', 'Sourcing_Hub', 'Dark_Store'];
+
+const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
+  isOpen,
   onOpenChange,
   onFacilityAdded
 }) => {
-  const [facilityName, setFacilityName] = useState('');
-  const [facilityType, setFacilityType] = useState('');
-  const [facilityLocation, setFacilityLocation] = useState('');
+  const [newFacility, setNewFacility] = useState({
+    name: '',
+    type: '' as FacilityType,
+    location: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    
-    if (!facilityName || !facilityType) {
-      toast.error('Please fill all required fields');
+  const handleSubmit = async () => {
+    if (!newFacility.name || !newFacility.type) {
+      toast.error('Please fill in all required fields');
       return;
     }
-    
-    setIsSubmitting(true);
-    
+
+    // Ensure location has a value since it's required in the database
+    if (!newFacility.location.trim()) {
+      toast.error('Location is required');
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
+      
       const { data, error } = await supabase
-        .from('facility_master')
+        .from('Facility_Master')
         .insert({
-          name: facilityName,
-          type: facilityType,
-          location: facilityLocation || null
+          Name: newFacility.name,
+          Type: newFacility.type,
+          Location: newFacility.location
         })
         .select()
         .single();
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      toast.success(`Facility "${data.name}" added successfully`);
-      onFacilityAdded();
+      const addedFacility: Facility = {
+        id: data.ID,
+        name: data.Name,
+        type: data.Type as FacilityType,
+        location: data.Location
+      };
+      
+      onFacilityAdded(addedFacility);
       resetForm();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding facility:', error);
-      toast.error(`Failed to add facility: ${error.message}`);
+      toast.error('Failed to add facility');
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const resetForm = () => {
-    setFacilityName('');
-    setFacilityType('');
-    setFacilityLocation('');
+    setNewFacility({
+      name: '',
+      type: '' as FacilityType,
+      location: ''
+    });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) resetForm();
+      onOpenChange(open);
+    }}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Facility</DialogTitle>
           <DialogDescription>
-            Enter the details for the new facility.
+            Create a new facility for your supply chain network.
           </DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">
-                Facility Name*
-              </Label>
-              <Input
-                id="name"
-                value={facilityName}
-                onChange={(e) => setFacilityName(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="type">
-                Facility Type*
-              </Label>
-              <Select value={facilityType} onValueChange={setFacilityType} required>
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Select facility type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Fulfilment_Center">Fulfillment Center</SelectItem>
-                  <SelectItem value="Sourcing_Hub">Sourcing Hub</SelectItem>
-                  <SelectItem value="Dark_Store">Dark Store</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="location">
-                Location
-              </Label>
-              <Input
-                id="location"
-                value={facilityLocation}
-                onChange={(e) => setFacilityLocation(e.target.value)}
-              />
-            </div>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Facility Name *</Label>
+            <Input
+              id="name"
+              value={newFacility.name}
+              onChange={(e) => setNewFacility({...newFacility, name: e.target.value})}
+              placeholder="Enter facility name"
+            />
           </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700"
+          <div className="grid gap-2">
+            <Label htmlFor="type">Facility Type *</Label>
+            <Select
+              value={newFacility.type}
+              onValueChange={(value) => setNewFacility({...newFacility, type: value as FacilityType})}
             >
-              {isSubmitting ? 'Adding...' : 'Add Facility'}
-            </Button>
-          </DialogFooter>
-        </form>
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select facility type" />
+              </SelectTrigger>
+              <SelectContent>
+                {facilityTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="location">Location *</Label>
+            <Input
+              id="location"
+              value={newFacility.location}
+              onChange={(e) => setNewFacility({...newFacility, location: e.target.value})}
+              placeholder="Enter location"
+              required
+            />
+            <p className="text-xs text-muted-foreground">This field is required</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? 'Adding...' : 'Add Facility'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default AddFacilityDialog;

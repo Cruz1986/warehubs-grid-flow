@@ -1,52 +1,47 @@
 
-import React, { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw } from "lucide-react";
-import { AddFacilityDialog } from "./grid-master/AddFacilityDialog";
-import AddGridDialog from "./grid-master/AddGridDialog";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import FacilityList from "./grid-master/FacilityList";
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FacilityMaster from './grid-master/FacilityMaster';
+import GridAssignment from './grid-master/GridAssignment';
+import { supabase } from '@/integrations/supabase/client';
 
-export type Facility = {
+export type FacilityType = 'Fulfilment_Center' | 'Sourcing_Hub' | 'Dark_Store';
+
+export interface Facility {
   id: string;
   name: string;
-  type: string;
-  location?: string | null;
-};
+  type: FacilityType;
+  location?: string;
+}
 
-export type FacilityType = "Fulfilment_Center" | "Sourcing_Hub" | "Dark_Store";
-
-export const GridMasterComponent = () => {
-  const [showAddFacilityDialog, setShowAddFacilityDialog] = useState(false);
-  const [showAddGridDialog, setShowAddGridDialog] = useState(false);
+const GridMasterComponent = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchFacilities = async () => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
-        .from('facility_master')
-        .select("*");
-
+        .from('Facility_Master')
+        .select('*');
+      
       if (error) {
         throw error;
       }
-
-      if (data) {
-        const formattedFacilities = data.map((facility) => ({
-          id: facility.id,
-          name: facility.name,
-          type: facility.type,
-          location: facility.location,
-        }));
-        setFacilities(formattedFacilities);
-      }
+      
+      // Ensure type is correctly mapped
+      const typedFacilities = data.map(facility => ({
+        id: facility.ID,
+        name: facility.Name,
+        type: facility.Type as FacilityType,
+        location: facility.Location
+      }));
+      
+      setFacilities(typedFacilities);
     } catch (error) {
-      console.error("Error fetching facilities:", error);
-      toast.error("Failed to load facilities");
+      console.error('Error fetching facilities:', error);
+      toast.error('Failed to load facilities');
     } finally {
       setIsLoading(false);
     }
@@ -56,64 +51,35 @@ export const GridMasterComponent = () => {
     fetchFacilities();
   }, []);
 
+  const handleFacilityAdded = (newFacility: Facility) => {
+    setFacilities([...facilities, newFacility]);
+    toast.success(`${newFacility.name} added successfully`);
+  };
+
+  const handleFacilityDeleted = (facilityId: string) => {
+    setFacilities(facilities.filter(f => f.id !== facilityId));
+    toast.success('Facility deleted successfully');
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Grid Master</h1>
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchFacilities}
-            disabled={isLoading}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={() => setShowAddFacilityDialog(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Facility
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={() => setShowAddGridDialog(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Grid
-          </Button>
-        </div>
-      </div>
-
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <FacilityList 
+      <Tabs defaultValue="facilities" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="facilities">Facility Master</TabsTrigger>
+          <TabsTrigger value="grid-assignment">Grid Assignment</TabsTrigger>
+        </TabsList>
+        <TabsContent value="facilities" className="mt-6">
+          <FacilityMaster 
             facilities={facilities} 
-            isLoading={isLoading} 
-            onFacilityAdded={fetchFacilities}
+            onFacilityAdded={handleFacilityAdded} 
+            onFacilityDeleted={handleFacilityDeleted}
+            isLoading={isLoading}
           />
-        </CardContent>
-      </Card>
-
-      <AddFacilityDialog
-        open={showAddFacilityDialog}
-        onOpenChange={setShowAddFacilityDialog}
-        onFacilityAdded={fetchFacilities}
-      />
-
-      <AddGridDialog
-        isOpen={showAddGridDialog}
-        onOpenChange={setShowAddGridDialog}
-        onGridAdded={() => {
-          toast.success(`Grid assigned successfully`);
-          // Refresh data if needed
-        }}
-        facilities={facilities}
-      />
+        </TabsContent>
+        <TabsContent value="grid-assignment" className="mt-6">
+          <GridAssignment facilities={facilities} isLoading={isLoading} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
