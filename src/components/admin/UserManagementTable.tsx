@@ -60,6 +60,15 @@ const UserManagementTable = () => {
     try {
       setIsLoading(true);
       
+      // Get current user for auth context
+      const userStr = localStorage.getItem('user');
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      
+      if (!currentUser) {
+        toast.error('You must be logged in to view users');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('users_log')
         .select('user_id, username, role, facility, last_login');
@@ -101,6 +110,8 @@ const UserManagementTable = () => {
         toast.error('You must be logged in to add users');
         return;
       }
+      
+      console.log('Adding user with data:', userData);
       
       // In a real application, this would call your API to add the user
       const { data, error } = await supabase

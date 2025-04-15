@@ -123,9 +123,20 @@ export const useWarehouseData = () => {
           console.error('Error fetching grids:', gridsError);
         }
         
-        // Calculate grid usage
+        // Calculate grid usage - track occupied grids via destination_name
         const totalGrids = grids?.length || 0;
-        const usedGrids = grids?.filter(grid => grid.status === 'occupied').length || 0;
+        // We don't have a 'status' field in grid_master, so we'll get staging data
+        const { data: stagingData, error: stagingError } = await supabase
+          .from('tote_staging')
+          .select('grid_no')
+          .eq('status', 'staged');
+          
+        if (stagingError) {
+          console.error('Error fetching staging data:', stagingError);
+        }
+        
+        // Count unique grid numbers that are occupied
+        const occupiedGrids = new Set(stagingData?.map(item => item.grid_no) || []).size;
         
         // Update data state
         setData({
@@ -138,7 +149,7 @@ export const useWarehouseData = () => {
             yesterday: Number(yesterdayOutbound?.count ?? 0),
           },
           gridCapacity: {
-            used: usedGrids,
+            used: occupiedGrids,
             total: totalGrids,
           },
           pendingTotes: Number(pendingTotes?.count ?? 0)

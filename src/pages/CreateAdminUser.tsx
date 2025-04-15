@@ -52,15 +52,21 @@ const CreateAdminUser = () => {
         return;
       }
       
-      // Create the admin user - first try with RLS disabled
-      const { data, error } = await supabase.rpc('create_admin_user', {
-        admin_username: username,
-        admin_password: password
-      });
-      
-      if (error) {
+      // Create the admin user - first try with RLS disabled via RPC
+      try {
+        const { data, error } = await supabase.rpc('create_admin_user', {
+          admin_username: username,
+          admin_password: password
+        });
+        
+        if (error) throw error;
+        
+        toast.success('Admin user created successfully! You can now login.');
+        navigate('/');
+        return;
+      } catch (rpcError: any) {
         // If RPC function doesn't exist, try direct insert
-        console.log('Trying direct insert as fallback');
+        console.log('RPC failed, trying direct insert as fallback:', rpcError.message);
         const { data: insertData, error: insertError } = await supabase
           .from('users_log')
           .insert({
@@ -73,10 +79,10 @@ const CreateAdminUser = () => {
           .select();
           
         if (insertError) throw insertError;
+        
+        toast.success('Admin user created successfully! You can now login.');
+        navigate('/');
       }
-      
-      toast.success('Admin user created successfully! You can now login.');
-      navigate('/');
     } catch (error: any) {
       console.error('Error creating admin user:', error);
       toast.error(error.message || 'Failed to create admin user');
