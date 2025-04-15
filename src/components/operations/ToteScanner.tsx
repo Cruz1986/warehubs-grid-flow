@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Barcode, CheckCircle2 } from 'lucide-react';
+import { Barcode, CheckCircle2, Loader2 } from 'lucide-react';
 
 interface ToteScannerProps {
   onScan: (toteId: string) => void;
@@ -12,6 +12,7 @@ interface ToteScannerProps {
   buttonText?: string;
   autoFocus?: boolean;
   inputRef?: React.RefObject<HTMLInputElement>;
+  isLoading?: boolean;
 }
 
 const ToteScanner = ({
@@ -19,7 +20,8 @@ const ToteScanner = ({
   placeholder = "Scan or enter tote ID",
   buttonText = "Scan",
   autoFocus = true,
-  inputRef
+  inputRef,
+  isLoading = false
 }: ToteScannerProps) => {
   const [toteId, setToteId] = useState('');
   const [lastScannedTote, setLastScannedTote] = useState('');
@@ -76,9 +78,17 @@ const ToteScanner = ({
             onChange={(e) => setToteId(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1"
+            disabled={isLoading}
           />
-          <Button onClick={handleScan}>
-            {buttonText}
+          <Button onClick={handleScan} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              buttonText
+            )}
           </Button>
         </div>
         

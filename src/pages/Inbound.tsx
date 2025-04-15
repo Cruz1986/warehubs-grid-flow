@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { FacilityType } from '@/components/admin/GridMasterComponent';
+import { Loader2 } from 'lucide-react';
 
 // Define the Facility interface to match what's used in the GridMasterComponent
 interface Facility {
@@ -22,6 +23,7 @@ const Inbound = () => {
   const [scannedTotes, setScannedTotes] = useState<any[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
@@ -59,8 +61,59 @@ const Inbound = () => {
 
     fetchFacilities();
   }, []);
+
+  // Fetch existing totes on load
+  useEffect(() => {
+    const fetchTotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('totes')
+          .select('*, facilities(name)')
+          .eq('status', 'inbound')
+          .order('created_at', { ascending: false })
+          .limit(50);
+          
+        if (error) {
+          console.error('Error fetching totes:', error);
+          return;
+        }
+        
+        if (data) {
+          const formattedTotes = data.map(tote => ({
+            id: tote.tote_number,
+            status: 'inbound',
+            source: tote.facilities?.name || tote.facility_id || 'Unknown',
+            destination: user?.facility || '',
+            timestamp: tote.created_at,
+            user: user?.username || 'unknown',
+          }));
+          
+          setScannedTotes(formattedTotes);
+        }
+      } catch (error) {
+        console.error('Error fetching totes:', error);
+      }
+    };
+    
+    fetchTotes();
+    
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('totes-changes')
+      .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'totes' },
+          (payload) => {
+            fetchTotes();
+          }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.facility, user?.username]);
   
-  const handleToteScan = (toteId: string) => {
+  const handleToteScan = async (toteId: string) => {
     if (!selectedFacility) {
       toast.error("Please select a source facility first");
       return;
@@ -72,25 +125,40 @@ const Inbound = () => {
       return;
     }
     
-    // Get current timestamp
-    const now = new Date();
-    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+    // Find the facility object
+    const facilityObj = facilities.find(f => f.name === selectedFacility);
+    if (!facilityObj) {
+      toast.error(`Could not find facility: ${selectedFacility}`);
+      return;
+    }
     
-    // Create new tote record
-    const newTote = {
-      id: toteId,
-      status: 'inbound',
-      source: selectedFacility,
-      destination: user?.facility || '',
-      timestamp,
-      user: user?.username || 'unknown',
-    };
+    setIsSaving(true);
     
-    // Add to scanned totes list
-    setScannedTotes([newTote, ...scannedTotes]);
-    toast.success(`Tote ${toteId} has been received from ${selectedFacility}`);
-    
-    // In a real app, this would also save to Google Sheets
+    try {
+      // Insert into Supabase
+      const { error } = await supabase
+        .from('totes')
+        .insert({
+          tote_number: toteId,
+          status: 'inbound',
+          facility_id: facilityObj.id,
+          scanned_by: user?.id || null
+        });
+        
+      if (error) {
+        console.error('Error saving tote:', error);
+        toast.error(`Failed to save tote: ${error.message}`);
+        return;
+      }
+      
+      // Success! The tote will be added to the list via the realtime subscription
+      toast.success(`Tote ${toteId} has been received from ${selectedFacility}`);
+    } catch (err) {
+      console.error('Exception saving tote:', err);
+      toast.error('An unexpected error occurred while saving the tote');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Convert facilities to the format expected by the FacilitySelector
@@ -114,13 +182,17 @@ const Inbound = () => {
         </Card>
         
         <div className="md:col-span-2">
-          <ToteScanner onScan={handleToteScan} />
+          <ToteScanner 
+            onScan={handleToteScan} 
+            isLoading={isSaving}
+          />
         </div>
       </div>
       
       <ToteTable
         totes={scannedTotes}
         title="Today's Inbound Totes"
+        isLoading={isLoading}
       />
     </DashboardLayout>
   );
