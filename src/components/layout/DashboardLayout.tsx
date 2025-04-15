@@ -21,7 +21,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
   const [dbLastChecked, setDbLastChecked] = useState<string | null>(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-  // Check database connection with retry logic
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -34,10 +33,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
           console.error('Database connection check failed:', error);
           setDbError(error.message || 'Failed to connect to database');
           
-          // If we haven't tried too many times, retry after a delay
           if (connectionAttempts < 3) {
             setConnectionAttempts(prev => prev + 1);
-            setTimeout(checkConnection, 3000); // Retry after 3 seconds
+            setTimeout(checkConnection, 3000);
           }
         } else {
           const responseTime = endTime - startTime;
@@ -49,34 +47,30 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
         console.error('Database connection check error:', err);
         setDbError('Error connecting to database');
         
-        // If we haven't tried too many times, retry after a delay
         if (connectionAttempts < 3) {
           setConnectionAttempts(prev => prev + 1);
-          setTimeout(checkConnection, 3000); // Retry after 3 seconds
+          setTimeout(checkConnection, 3000);
         }
       }
     };
     
     checkConnection();
     
-    // Set up an interval to check the connection periodically
     const interval = setInterval(() => {
-      setConnectionAttempts(0); // Reset attempts for periodic checks
+      setConnectionAttempts(0);
       checkConnection();
-    }, 60000); // Check every minute
+    }, 60000);
     
     return () => clearInterval(interval);
   }, [connectionAttempts]);
 
   useEffect(() => {
-    // Create a channel to listen for all database changes
     const channel = supabase
       .channel('any-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
         console.log('Database change detected:', payload);
         const { table, eventType, new: newRecord, old: oldRecord } = payload;
         
-        // Show toast notification for database changes
         toast.info(`${eventType} operation on ${table}`, {
           description: `Database updated at ${new Date().toLocaleTimeString()}`,
           icon: <Database className="h-4 w-4" />
@@ -90,14 +84,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
   }, []);
 
   useEffect(() => {
-    // Redirect if no user is logged in
     if (!user) {
       navigate('/');
       return;
     }
 
-    // Redirect if admin access is required but user is not an admin
-    if (requireAdmin && user.role !== 'admin') {
+    if (requireAdmin && user.role?.toLowerCase() !== 'admin') {
       navigate('/inbound');
     }
   }, [user, navigate, requireAdmin]);

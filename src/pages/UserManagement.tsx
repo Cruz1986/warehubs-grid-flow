@@ -8,7 +8,8 @@ const UserManagement = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  const isAdmin = user?.role === 'Admin';
+  // Fix: make role check case-insensitive
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
   
   return (
     <DashboardLayout requireAdmin={true}>

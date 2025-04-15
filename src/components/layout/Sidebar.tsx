@@ -32,8 +32,8 @@ const Sidebar = () => {
     { name: 'Status Dashboard', path: '/status', icon: <Activity size={20} /> },
   ];
 
-  // Admin menu items only shown to admin users
-  const adminMenuItems = user?.role === 'admin' ? [
+  // Fix: make role check case-insensitive
+  const adminMenuItems = user?.role?.toLowerCase() === 'admin' ? [
     { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
     { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
     { name: 'Grid Master', path: '/grid-master', icon: <Grid size={20} /> },

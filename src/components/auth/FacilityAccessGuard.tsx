@@ -15,9 +15,9 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   
-  // Check if user exists and has permission for this facility
+  // Fix: make role check case-insensitive
   const hasAccess = user && (
-    user.role === 'Admin' || 
+    user.role?.toLowerCase() === 'admin' || 
     user.facility === 'All' || 
     user.facility === allowedFacility
   );
