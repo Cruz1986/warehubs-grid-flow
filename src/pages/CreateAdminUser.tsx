@@ -26,62 +26,26 @@ const CreateAdminUser = () => {
     setIsCreating(true);
     
     try {
-      // Check if users_log table exists
-      const { count, error: checkError } = await supabase
-        .from('users_log')
-        .select('*', { count: 'exact', head: true });
+      // Use the RPC function rather than direct insert
+      const { data, error } = await supabase.rpc('create_admin_user', {
+        admin_username: username,
+        admin_password: password
+      });
       
-      if (checkError) {
-        toast.error('Error checking users table. Database might not be set up correctly.');
-        throw checkError;
+      if (error) {
+        throw error;
       }
       
-      // Check if there are any existing admin users
-      const { data: existingAdmins, error: adminCheckError } = await supabase
-        .from('users_log')
-        .select('user_id')
-        .eq('role', 'Admin');
-      
-      if (adminCheckError) {
-        throw adminCheckError;
-      }
-      
-      if (existingAdmins && existingAdmins.length > 0) {
-        toast.error('An admin user already exists. Please use the regular login.');
+      // Check the response from the function
+      if (data && data.success) {
+        toast.success('Admin user created successfully! You can now login.');
         navigate('/');
-        return;
-      }
-      
-      // Direct insert for first admin user (bypassing RLS since no admin exists yet)
-      const { data: insertData, error: insertError } = await supabase
-        .from('users_log')
-        .insert({
-          username,
-          password,
-          role: 'Admin',
-          facility: 'All',
-          status: 'active'
-        })
-        .select();
-        
-      if (insertError) {
-        // If direct insert fails, try RPC function as fallback
-        try {
-          // Use a type assertion for the RPC function name
-          const { error: rpcError } = await supabase.rpc('create_admin_user' as any, {
-            admin_username: username,
-            admin_password: password
-          });
-          
-          if (rpcError) throw rpcError;
-        } catch (rpcError: any) {
-          console.error('RPC method failed:', rpcError);
-          throw insertError; // Throw original error if RPC also fails
+      } else {
+        toast.error(data?.message || 'Failed to create admin user. An admin may already exist.');
+        if (data?.message?.includes('admin user already exists')) {
+          navigate('/');
         }
       }
-      
-      toast.success('Admin user created successfully! You can now login.');
-      navigate('/');
     } catch (error: any) {
       console.error('Error creating admin user:', error);
       toast.error(error.message || 'Failed to create admin user');
