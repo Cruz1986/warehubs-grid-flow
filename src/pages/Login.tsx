@@ -42,7 +42,7 @@ const Login = () => {
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('role, username, facility')
-        .eq('email', user.email)
+        .eq('username', email.split('@')[0])
         .single();
       
       if (userError) {
@@ -106,8 +106,8 @@ const Login = () => {
       const { error: userError } = await supabase
         .from('users')
         .insert({
-          email: email,
           username: email.split('@')[0],
+          password: 'auth-managed', // We don't store actual passwords
           role: 'user',
           facility: 'Default Facility'
         });
