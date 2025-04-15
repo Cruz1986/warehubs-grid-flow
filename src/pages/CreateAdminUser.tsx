@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,8 +67,8 @@ const CreateAdminUser = () => {
       if (insertError) {
         // If direct insert fails, try RPC function as fallback
         try {
-          // The create_admin_user function is defined in supabase/migrations
-          const { error: rpcError } = await supabase.rpc('create_admin_user', {
+          // Use a type assertion for the RPC function name
+          const { error: rpcError } = await supabase.rpc('create_admin_user' as any, {
             admin_username: username,
             admin_password: password
           });
