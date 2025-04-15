@@ -62,7 +62,7 @@ const UserManagementTable = () => {
       
       const { data, error } = await supabase
         .from('users_log')
-        .select('user_id, username, role, last_login');
+        .select('user_id, username, role, facility, last_login');
       
       if (error) {
         throw error;
@@ -73,35 +73,11 @@ const UserManagementTable = () => {
         id: user.user_id,
         username: user.username,
         role: user.role,
-        facility: 'Loading...', // We'll fetch facility info separately
+        facility: user.facility || 'Unknown',
         lastLogin: user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'
       }));
       
       setUsers(mappedUsers);
-      
-      // For each user, get their facility
-      for (const user of mappedUsers) {
-        try {
-          // Simple query to get user's facility - in a real app, you'd have a better data model
-          // This is just a placeholder implementation
-          const { data: userData } = await supabase
-            .from('users_log')
-            .select('username, role')
-            .eq('username', user.username)
-            .single();
-          
-          if (userData) {
-            // Update user with facility info
-            setUsers(prevUsers => 
-              prevUsers.map(u => 
-                u.id === user.id ? { ...u, facility: userData.facility || 'Unknown' } : u
-              )
-            );
-          }
-        } catch (facilityError) {
-          console.error(`Error fetching facility for user ${user.username}:`, facilityError);
-        }
-      }
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
@@ -117,21 +93,30 @@ const UserManagementTable = () => {
     facility: string;
   }) => {
     try {
+      // Get the current logged in user to use as the creator
+      const currentUserStr = localStorage.getItem('user');
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+      
+      if (!currentUser) {
+        toast.error('You must be logged in to add users');
+        return;
+      }
+      
       // In a real application, this would call your API to add the user
-      // with Supabase, you would insert into users_log table
       const { data, error } = await supabase
         .from('users_log')
         .insert({
           username: userData.username,
           password: userData.password,
           role: userData.role,
-          // Add facility to the database record - extending the schema
+          facility: userData.facility,
+          status: 'active'
         })
         .select();
       
       if (error) {
         console.error('Error adding user:', error);
-        toast.error('Failed to add user');
+        toast.error('Failed to add user: ' + error.message);
         return;
       }
 
@@ -141,30 +126,29 @@ const UserManagementTable = () => {
           id: data[0].user_id,
           username: data[0].username,
           role: data[0].role,
-          facility: userData.facility,
+          facility: data[0].facility,
           lastLogin: 'Never'
         };
         
         setUsers([...users, newUser]);
         toast.success("User added successfully");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding user:', error);
-      toast.error('Failed to add user');
+      toast.error('Failed to add user: ' + error.message);
     }
   };
 
-  const handleResetPassword = async () => {
+  const handleResetPassword = async (newPassword: string) => {
     try {
       if (!selectedUser) {
         toast.error('No user selected');
         return;
       }
       
-      // This is just a placeholder - in a real app, you'd update the password in the database
       const { error } = await supabase
         .from('users_log')
-        .update({ password: 'new-password-hash' }) // In reality, you'd hash the password
+        .update({ password: newPassword })
         .eq('user_id', selectedUser.id);
       
       if (error) {
