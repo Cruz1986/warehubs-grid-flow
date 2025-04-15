@@ -18,7 +18,7 @@ interface User {
   id: string;
   username: string;
   role: string;
-  facility?: string;
+  facility: string;
   lastLogin?: string;
 }
 
@@ -29,7 +29,6 @@ const UserManagementTable = () => {
     { id: '3', username: 'user2', role: 'User', facility: 'Facility B', lastLogin: '2023-04-10 11:20' },
   ]);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [facilities, setFacilities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,10 +59,48 @@ const UserManagementTable = () => {
     fetchFacilities();
   }, []);
 
-  const handleAddUser = async () => {
-    // In a real application, this would call your API to add the user
-    toast.success("User added successfully");
-    setIsAddUserOpen(false);
+  const handleAddUser = async (userData: {
+    username: string;
+    password: string;
+    role: string;
+    facility: string;
+  }) => {
+    try {
+      // In a real application, this would call your API to add the user
+      // with Supabase, you would insert into users_log table
+      const { data, error } = await supabase
+        .from('users_log')
+        .insert({
+          username: userData.username,
+          password: userData.password,
+          role: userData.role,
+          // Add facility to the database record
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error adding user:', error);
+        toast.error('Failed to add user');
+        return;
+      }
+
+      // Add the new user to the local state
+      if (data && data[0]) {
+        const newUser: User = {
+          id: data[0].user_id,
+          username: data[0].username,
+          role: data[0].role,
+          facility: userData.facility,
+          lastLogin: 'Never'
+        };
+        
+        setUsers([...users, newUser]);
+        toast.success("User added successfully");
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('Failed to add user');
+    }
   };
 
   const handleResetPassword = async () => {
@@ -88,10 +125,8 @@ const UserManagementTable = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">User Management</h2>
         <AddUserDialog 
-          isOpen={isAddUserOpen}
-          onOpenChange={setIsAddUserOpen}
-          onAddUser={handleAddUser}
           facilities={facilities}
+          onAddUser={handleAddUser}
           isLoading={isLoading}
         />
       </div>

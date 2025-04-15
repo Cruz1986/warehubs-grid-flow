@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,7 +34,7 @@ interface AddUserDialogProps {
 }
 
 const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, isLoading = false }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
   const [newUser, setNewUser] = React.useState({
     username: '',
     password: '',
@@ -58,11 +58,11 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
       role: 'User',
       facility: '',
     });
-    setIsOpen(false);
+    setOpen(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <UserPlus className="h-4 w-4 mr-2" />
@@ -144,7 +144,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
           <Button onClick={handleAddUser}>

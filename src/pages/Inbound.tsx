@@ -4,11 +4,12 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import ToteScanner from '../components/operations/ToteScanner';
 import ToteTable from '../components/operations/ToteTable';
 import FacilitySelector from '../components/operations/FacilitySelector';
+import CurrentFacilityDisplay from '../components/operations/CurrentFacilityDisplay';
+import FacilityAccessGuard from '../components/auth/FacilityAccessGuard';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { FacilityType } from '@/components/admin/GridMasterComponent';
-import { Loader2 } from 'lucide-react';
 
 // Define the Facility interface to match what's used in the GridMasterComponent
 interface Facility {
@@ -28,6 +29,7 @@ const Inbound = () => {
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  const currentFacility = user?.facility || 'Unknown';
   
   // Fetch facilities from Supabase
   useEffect(() => {
@@ -163,32 +165,36 @@ const Inbound = () => {
     <DashboardLayout>
       <h1 className="text-2xl font-bold mb-6">Inbound Processing</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <FacilitySelector
-              facilities={facilityNames}
-              selectedFacility={selectedFacility}
-              onChange={setSelectedFacility}
-              label="Source Facility"
-              isLoading={isLoading}
-            />
-          </CardContent>
-        </Card>
+      <FacilityAccessGuard allowedFacility={currentFacility}>
+        <CurrentFacilityDisplay facilityName={currentFacility} />
         
-        <div className="md:col-span-2">
-          <ToteScanner 
-            onScan={handleToteScan} 
-            isLoading={isSaving}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
+            <CardContent className="pt-6">
+              <FacilitySelector
+                facilities={facilityNames}
+                selectedFacility={selectedFacility}
+                onChange={setSelectedFacility}
+                label="Source Facility"
+                isLoading={isLoading}
+              />
+            </CardContent>
+          </Card>
+          
+          <div className="md:col-span-2">
+            <ToteScanner 
+              onScan={handleToteScan} 
+              isLoading={isSaving}
+            />
+          </div>
         </div>
-      </div>
-      
-      <ToteTable
-        totes={scannedTotes}
-        title="Today's Inbound Totes"
-        isLoading={isLoading}
-      />
+        
+        <ToteTable
+          totes={scannedTotes}
+          title="Today's Inbound Totes"
+          isLoading={isLoading}
+        />
+      </FacilityAccessGuard>
     </DashboardLayout>
   );
 };

@@ -141,7 +141,7 @@ export type Database = {
         }
         Relationships: []
       }
-      users: {
+      users_log: {
         Row: {
           created_at: string | null
           failed_attempts: number | null

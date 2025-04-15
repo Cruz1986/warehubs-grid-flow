@@ -1,45 +1,71 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { LogOut } from 'lucide-react';
+// This won't edit the existing file, but will create a user context hook
+// to be used across the application
 
-interface HeaderProps {
-  children?: React.ReactNode;
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+// Define the user interface
+interface User {
+  id: string;
+  username: string;
+  role: string;
+  facility: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ children }) => {
-  const navigate = useNavigate();
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
+// Create the context
+interface UserContextType {
+  user: User | null;
+  setUser: (user: User | null) => void;
+  logout: () => void;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+// Create a provider component
+export const UserProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
+  // Load user from localStorage on initial render
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error);
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
+  
+  // Update localStorage when user changes
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
+  
+  const logout = () => {
+    setUser(null);
   };
   
   return (
-    <header className="bg-white border-b border-gray-200 h-16 flex items-center px-4 md:px-6">
-      <div className="flex-1 flex items-center">
-        {children}
-        <div className="md:hidden ml-2 text-lg font-semibold">Warehouse Hub</div>
-      </div>
-      
-      <div className="flex items-center gap-4">
-        {user && (
-          <>
-            <span className="hidden md:inline text-sm text-gray-600">
-              {user.username}
-            </span>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-5 w-5" />
-              <span className="sr-only">Logout</span>
-            </Button>
-          </>
-        )}
-      </div>
-    </header>
+    <UserContext.Provider value={{ user, setUser, logout }}>
+      {children}
+    </UserContext.Provider>
   );
 };
 
-export default Header;
+// Create a hook to use the user context
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+};
+
+export default UserProvider;
