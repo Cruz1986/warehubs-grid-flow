@@ -38,15 +38,15 @@ const UserManagementTable = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('facilities')
-          .select('name');
+          .from('Facility_Master')
+          .select('Name');
         
         if (error) {
           throw error;
         }
         
         // Extract facility names from the data
-        const facilityNames = data.map(facility => facility.name);
+        const facilityNames = data.map(facility => facility.Name);
         setFacilities(facilityNames);
       } catch (error) {
         console.error('Error fetching facilities:', error);

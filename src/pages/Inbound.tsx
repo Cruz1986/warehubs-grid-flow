@@ -35,7 +35,7 @@ const Inbound = () => {
       try {
         setIsLoading(true);
         const { data, error } = await supabase
-          .from('facilities')
+          .from('Facility_Master')
           .select('*');
         
         if (error) {
@@ -44,10 +44,10 @@ const Inbound = () => {
         
         // Ensure type is correctly mapped
         const typedFacilities = data.map(facility => ({
-          id: facility.id,
-          name: facility.name,
-          type: facility.type as FacilityType,
-          location: facility.location
+          id: facility.ID,
+          name: facility.Name,
+          type: facility.Type as FacilityType,
+          location: facility.Location
         }));
         
         setFacilities(typedFacilities);
@@ -67,10 +67,10 @@ const Inbound = () => {
     const fetchTotes = async () => {
       try {
         const { data, error } = await supabase
-          .from('totes')
-          .select('*, facilities(name)')
-          .eq('status', 'inbound')
-          .order('created_at', { ascending: false })
+          .from('Tote_Inbound')
+          .select('*')
+          .eq('Status', 'inbound')
+          .order('Timestamp_In', { ascending: false })
           .limit(50);
           
         if (error) {
@@ -80,12 +80,12 @@ const Inbound = () => {
         
         if (data) {
           const formattedTotes = data.map(tote => ({
-            id: tote.tote_number,
+            id: tote.Tote_ID,
             status: 'inbound',
-            source: tote.facilities?.name || tote.facility_id || 'Unknown',
+            source: tote.Source || 'Unknown',
             destination: user?.facility || '',
-            timestamp: tote.created_at,
-            user: user?.username || 'unknown',
+            timestamp: tote.Timestamp_In,
+            user: tote.Operator_Name || 'unknown',
           }));
           
           setScannedTotes(formattedTotes);
@@ -99,9 +99,9 @@ const Inbound = () => {
     
     // Set up realtime subscription
     const channel = supabase
-      .channel('totes-changes')
+      .channel('totes-inbound-changes')
       .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'totes' },
+          { event: 'INSERT', schema: 'public', table: 'Tote_Inbound' },
           (payload) => {
             fetchTotes();
           }
@@ -135,29 +135,16 @@ const Inbound = () => {
     setIsSaving(true);
     
     try {
-      // Insert into Supabase - but don't include scanned_by if it's not a valid UUID
-      const insertData: { 
-        tote_number: string; 
-        status: string; 
-        facility_id: string;
-        scanned_by?: string | null;
-      } = {
-        tote_number: toteId,
-        status: 'inbound',
-        facility_id: facilityObj.id
+      // Insert into Supabase
+      const insertData = {
+        Tote_ID: toteId,
+        Status: 'inbound',
+        Source: selectedFacility,
+        Operator_Name: user?.username || 'unknown'
       };
       
-      // Only include scanned_by if user.id exists and looks like a UUID
-      // UUID format: 8-4-4-4-12 hex digits (e.g., 123e4567-e89b-12d3-a456-426614174000)
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (user?.id && uuidRegex.test(user.id)) {
-        insertData.scanned_by = user.id;
-      } else {
-        console.log('User ID is not a valid UUID format. Skipping scanned_by field.');
-      }
-      
       const { error } = await supabase
-        .from('totes')
+        .from('Tote_Inbound')
         .insert(insertData);
         
       if (error) {

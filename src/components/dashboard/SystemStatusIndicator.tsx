@@ -14,7 +14,7 @@ const SystemStatusIndicator = () => {
       try {
         // Simple query to test the connection
         const { data, error } = await supabase
-          .from('facilities')
+          .from('Facility_Master')
           .select('count')
           .limit(1)
           .single();

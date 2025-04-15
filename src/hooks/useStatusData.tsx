@@ -38,66 +38,66 @@ export const useStatusData = () => {
         setIsLoadingTotes(true);
         
         const { data: inboundData, error: inboundError } = await supabase
-          .from('totes')
-          .select('*, users(username)')
-          .eq('status', 'inbound')
-          .order('created_at', { ascending: false })
+          .from('Tote_Inbound')
+          .select('*, users(Username)')
+          .eq('Status', 'inbound')
+          .order('Timestamp_In', { ascending: false })
           .limit(10);
         
         if (inboundError) {
           console.error('Error fetching inbound totes:', inboundError);
         } else {
           const formattedInbound = inboundData.map(tote => ({
-            id: tote.tote_number,
+            id: tote.Tote_ID,
             status: 'inbound' as const,
-            source: tote.facility_id || 'Unknown',
+            source: tote.Source || 'Unknown',
             destination: 'Current Facility',
-            timestamp: new Date(tote.created_at).toLocaleString(),
-            user: tote.users?.username || 'Unknown',
+            timestamp: new Date(tote.Timestamp_In).toLocaleString(),
+            user: tote.Operator_Name || 'Unknown',
             grid: undefined,
           }));
           setInboundTotes(formattedInbound);
         }
         
         const { data: stagedData, error: stagedError } = await supabase
-          .from('grids')
-          .select('*, totes(*, users(username))')
-          .eq('status', 'occupied')
-          .order('created_at', { ascending: false })
+          .from('Tote_Staging')
+          .select('*')
+          .eq('Status', 'staged')
+          .order('GRID_Timestamp', { ascending: false })
           .limit(10);
         
         if (stagedError) {
           console.error('Error fetching staged totes:', stagedError);
         } else {
-          const formattedStaged = stagedData.filter(grid => grid.totes).map(grid => ({
-            id: grid.totes?.tote_number || 'Unknown',
+          const formattedStaged = stagedData.map(tote => ({
+            id: tote.Tote_ID || 'Unknown',
             status: 'staged' as const,
-            source: grid.totes?.facility_id || 'Unknown',
-            destination: grid.destination || 'Unknown',
-            timestamp: new Date(grid.created_at).toLocaleString(),
-            user: grid.totes?.users?.username || 'Unknown',
-            grid: grid.grid_number,
+            source: 'Current Facility',
+            destination: tote.Destination || 'Unknown',
+            timestamp: new Date(tote.GRID_Timestamp).toLocaleString(),
+            user: tote.Operator_Name || 'Unknown',
+            grid: tote.GRID_No,
           }));
           setStagedTotes(formattedStaged);
         }
         
         const { data: outboundData, error: outboundError } = await supabase
-          .from('totes')
-          .select('*, users(username)')
-          .eq('status', 'outbound')
-          .order('created_at', { ascending: false })
+          .from('Tote_Outbound')
+          .select('*')
+          .eq('Status', 'outbound')
+          .order('Timestamp_Out', { ascending: false })
           .limit(10);
         
         if (outboundError) {
           console.error('Error fetching outbound totes:', outboundError);
         } else {
           const formattedOutbound = outboundData.map(tote => ({
-            id: tote.tote_number,
+            id: tote.Tote_ID,
             status: 'outbound' as const,
             source: 'Current Facility',
-            destination: tote.facility_id || 'Unknown',
-            timestamp: new Date(tote.created_at).toLocaleString(),
-            user: tote.users?.username || 'Unknown',
+            destination: tote.Destination || 'Unknown',
+            timestamp: new Date(tote.Timestamp_Out).toLocaleString(),
+            user: tote.Operator_Name || 'Unknown',
             grid: undefined,
           }));
           setOutboundTotes(formattedOutbound);
@@ -111,18 +111,31 @@ export const useStatusData = () => {
     
     fetchTotes();
     
-    const channel = supabase
-      .channel('totes-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'totes' }, () => {
+    const inboundChannel = supabase
+      .channel('tote-inbound-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Tote_Inbound' }, () => {
         fetchTotes();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'grids' }, () => {
+      .subscribe();
+      
+    const stagingChannel = supabase
+      .channel('tote-staging-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Tote_Staging' }, () => {
+        fetchTotes();
+      })
+      .subscribe();
+      
+    const outboundChannel = supabase
+      .channel('tote-outbound-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Tote_Outbound' }, () => {
         fetchTotes();
       })
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(inboundChannel);
+      supabase.removeChannel(stagingChannel);
+      supabase.removeChannel(outboundChannel);
     };
   }, []);
 
@@ -133,35 +146,35 @@ export const useStatusData = () => {
         setIsLoadingActivity(true);
         
         const { data: inboundCount, error: inboundError } = await supabase
-          .from('totes')
+          .from('Tote_Inbound')
           .select('count')
-          .eq('status', 'inbound')
+          .eq('Status', 'inbound')
           .single();
           
         const { data: outboundCount, error: outboundError } = await supabase
-          .from('totes')
+          .from('Tote_Outbound')
           .select('count')
-          .eq('status', 'outbound')
+          .eq('Status', 'outbound')
           .single();
           
-        const { data: gridCount, error: gridError } = await supabase
-          .from('grids')
+        const { data: stagingCount, error: stagingError } = await supabase
+          .from('Tote_Staging')
           .select('count')
-          .eq('status', 'occupied')
+          .eq('Status', 'staged')
           .single();
           
         const { data: pendingCount, error: pendingError } = await supabase
-          .from('totes')
+          .from('Tote_Inbound')
           .select('count')
-          .eq('status', 'pending')
+          .eq('Status', 'pending')
           .single();
         
-        if (inboundError || outboundError || gridError || pendingError) {
+        if (inboundError || outboundError || stagingError || pendingError) {
           console.error('Error fetching activity counts');
         } else {
           setFacilityData({
             'Inbound': Number(inboundCount?.count ?? 0),
-            'Staged': Number(gridCount?.count ?? 0),
+            'Staged': Number(stagingCount?.count ?? 0),
             'Outbound': Number(outboundCount?.count ?? 0),
             'Pending': Number(pendingCount?.count ?? 0),
           });
@@ -175,7 +188,7 @@ export const useStatusData = () => {
     
     fetchActivityData();
     
-    const channel = supabase
+    const activityChannel = supabase
       .channel('activity-changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
         fetchActivityData();
@@ -183,7 +196,7 @@ export const useStatusData = () => {
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(activityChannel);
     };
   }, []);
 
@@ -194,14 +207,21 @@ export const useStatusData = () => {
         setIsLoadingGrids(true);
         
         const { data, error } = await supabase
-          .from('grids')
+          .from('Grid_Master')
           .select('*')
           .limit(25);
         
         if (error) {
           console.error('Error fetching grid data:', error);
         } else {
-          setGridStatuses(data || []);
+          const formattedGrids = data.map(grid => ({
+            id: grid.ID,
+            grid_number: grid.GRID_No,
+            status: 'available', // Default status
+            source: grid.Source_Name,
+            destination: grid.Destination_Name
+          }));
+          setGridStatuses(formattedGrids);
         }
       } catch (error) {
         console.error('Error fetching grid data:', error);
@@ -212,15 +232,15 @@ export const useStatusData = () => {
     
     fetchGridData();
     
-    const channel = supabase
+    const gridChannel = supabase
       .channel('grid-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'grids' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Grid_Master' }, () => {
         fetchGridData();
       })
       .subscribe();
       
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(gridChannel);
     };
   }, []);
 

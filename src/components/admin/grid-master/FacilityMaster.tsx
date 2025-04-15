@@ -41,9 +41,9 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
     if (window.confirm(`Are you sure you want to delete ${facility.name}?`)) {
       try {
         const { error } = await supabase
-          .from('facilities')
+          .from('Facility_Master')
           .delete()
-          .eq('id', facility.id);
+          .eq('ID', facility.id);
         
         if (error) throw error;
         onFacilityDeleted(facility.id);
@@ -54,10 +54,10 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
     }
   };
 
-  const facilityTypeColorMap = {
-    'Fulfillment Center': 'bg-blue-100 text-blue-800',
-    'Sourcing Hub': 'bg-green-100 text-green-800',
-    'Darkstore': 'bg-purple-100 text-purple-800'
+  const facilityTypeColorMap: Record<FacilityType, string> = {
+    'Fulfilment_Center': 'bg-blue-100 text-blue-800',
+    'Sourcing_Hub': 'bg-green-100 text-green-800',
+    'Dark_Store': 'bg-purple-100 text-purple-800'
   };
 
   return (

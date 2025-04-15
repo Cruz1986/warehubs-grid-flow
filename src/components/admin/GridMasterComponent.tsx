@@ -6,7 +6,7 @@ import FacilityMaster from './grid-master/FacilityMaster';
 import GridAssignment from './grid-master/GridAssignment';
 import { supabase } from '@/integrations/supabase/client';
 
-export type FacilityType = 'Fulfillment Center' | 'Sourcing Hub' | 'Darkstore';
+export type FacilityType = 'Fulfilment_Center' | 'Sourcing_Hub' | 'Dark_Store';
 
 export interface Facility {
   id: string;
@@ -23,7 +23,7 @@ const GridMasterComponent = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('facilities')
+        .from('Facility_Master')
         .select('*');
       
       if (error) {
@@ -32,10 +32,10 @@ const GridMasterComponent = () => {
       
       // Ensure type is correctly mapped
       const typedFacilities = data.map(facility => ({
-        id: facility.id,
-        name: facility.name,
-        type: facility.type as FacilityType,
-        location: facility.location
+        id: facility.ID,
+        name: facility.Name,
+        type: facility.Type as FacilityType,
+        location: facility.Location
       }));
       
       setFacilities(typedFacilities);

@@ -28,7 +28,7 @@ interface AddFacilityDialogProps {
   onFacilityAdded: (facility: Facility) => void;
 }
 
-const facilityTypes: FacilityType[] = ['Fulfillment Center', 'Sourcing Hub', 'Darkstore'];
+const facilityTypes: FacilityType[] = ['Fulfilment_Center', 'Sourcing_Hub', 'Dark_Store'];
 
 const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
   isOpen,
@@ -58,11 +58,11 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
       setIsSubmitting(true);
       
       const { data, error } = await supabase
-        .from('facilities')
+        .from('Facility_Master')
         .insert({
-          name: newFacility.name,
-          type: newFacility.type,
-          location: newFacility.location
+          Name: newFacility.name,
+          Type: newFacility.type,
+          Location: newFacility.location
         })
         .select()
         .single();
@@ -70,10 +70,10 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
       if (error) throw error;
       
       const addedFacility: Facility = {
-        id: data.id,
-        name: data.name,
-        type: data.type as FacilityType,
-        location: data.location
+        id: data.ID,
+        name: data.Name,
+        type: data.Type as FacilityType,
+        location: data.Location
       };
       
       onFacilityAdded(addedFacility);

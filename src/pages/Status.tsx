@@ -34,7 +34,7 @@ const Status = () => {
     try {
       // Attempt to count facilities as a simple test query
       const { count, error } = await supabase
-        .from('facilities')
+        .from('Facility_Master')
         .select('*', { count: 'exact', head: true });
       
       if (error) {
