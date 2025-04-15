@@ -23,7 +23,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
     }
 
     // Redirect if admin access is required but user is not an admin
-    if (requireAdmin && !user.isAdmin) {
+    if (requireAdmin && user.role !== 'admin') {
       navigate('/inbound');
     }
   }, [user, navigate, requireAdmin]);
