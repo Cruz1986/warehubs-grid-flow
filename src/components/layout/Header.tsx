@@ -1,8 +1,6 @@
 
-// This won't edit the existing file, but will create a user context hook
-// to be used across the application
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define the user interface
 interface User {
