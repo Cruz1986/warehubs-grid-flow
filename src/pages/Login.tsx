@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,84 +10,111 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [adminExists, setAdminExists] = useState(true);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if any admin user exists
+    const checkAdminExists = async () => {
+      try {
+        setIsCheckingAdmin(true);
+        
+        // First check if the table exists
+        const { count, error: tableError } = await supabase
+          .from('users_log')
+          .select('*', { count: 'exact', head: true });
+        
+        if (tableError) {
+          console.error('Error checking users_log table:', tableError);
+          setAdminExists(false);
+          return;
+        }
+        
+        // Check for admin users
+        const { data, error } = await supabase
+          .from('users_log')
+          .select('user_id')
+          .eq('role', 'Admin');
+        
+        if (error) throw error;
+        
+        setAdminExists(data && data.length > 0);
+      } catch (error) {
+        console.error('Error checking for admin users:', error);
+        // If we can't check, assume admin exists to be safe
+        setAdminExists(true);
+      } finally {
+        setIsCheckingAdmin(false);
+      }
+    };
+    
+    checkAdminExists();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      toast.error('Please enter both email and password');
+    if (!username || !password) {
+      toast.error('Please enter both username and password');
       return;
     }
     
     setIsLoading(true);
     
     try {
-      // Special case for test account
-      if (email === 'admin@example.com' && password === 'admin123') {
-        // Manually set user info for test account
-        localStorage.setItem('user', JSON.stringify({
-          id: 'test-admin-id',
-          email: 'admin@example.com',
-          username: 'admin',
-          role: 'admin',
-          facility: 'Test Facility'
-        }));
-        
-        toast.success('Welcome back, admin!');
-        navigate('/admin-dashboard');
-        return;
-      }
-      
-      // Regular login with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      
-      // Successful login
-      const user = data.user;
-      
-      toast.success(`Welcome back, ${user.email}!`);
-      
-      // Get user role from the users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role, username, facility')
-        .eq('username', email.split('@')[0])
+      // Check if the user exists in the users_log table
+      const { data, error } = await supabase
+        .from('users_log')
+        .select('user_id, username, role, status, password')
+        .eq('username', username)
         .single();
       
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        // Default to user role if we can't fetch the specific role
-        localStorage.setItem('user', JSON.stringify({
-          id: user.id,
-          email: user.email,
-          username: user.email?.split('@')[0] || 'user',
-          role: 'user',
-          facility: 'Unknown'
-        }));
-        
-        navigate('/inbound');
-        return;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('User not found. Please check your username.');
+        }
+        throw error;
       }
       
+      if (data.status !== 'active') {
+        throw new Error('Your account is inactive. Please contact an administrator.');
+      }
+      
+      // For this example, we'll use a simple password check
+      // In a real application, you would use bcrypt or similar for password verification
+      if (data.password !== password) {
+        throw new Error('Incorrect password.');
+      }
+      
+      // Prepare user data to store in localStorage
+      // For this simple implementation we'll handle user data in localStorage
+      // In a production app, you'd implement proper token-based auth
+      const userData = {
+        id: data.user_id,
+        username: data.username,
+        role: data.role,
+        facility: 'All', // We'll assume All for simplicity, but you would get this from your database
+      };
+      
       // Store user info in localStorage
-      localStorage.setItem('user', JSON.stringify({
-        id: user.id,
-        email: user.email,
-        username: userData.username || user.email?.split('@')[0] || 'user',
-        role: userData.role || 'user',
-        facility: userData.facility || 'Unknown'
-      }));
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      toast.success(`Welcome back, ${data.username}!`);
+      
+      // Update last login time
+      await supabase
+        .from('users_log')
+        .update({
+          last_login: new Date().toISOString(),
+        })
+        .eq('user_id', data.user_id);
       
       // Redirect to appropriate page based on role
-      if (userData.role === 'admin') {
+      if (data.role.toLowerCase() === 'admin') {
         navigate('/admin-dashboard');
       } else {
         navigate('/inbound');
@@ -95,48 +122,6 @@ const Login = () => {
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Login failed. Please check your credentials and try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async () => {
-    if (!email || !password) {
-      toast.error('Please enter both email and password to sign up');
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Create entry in users table
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          username: email.split('@')[0],
-          password: 'auth-managed', // We don't store actual passwords
-          role: 'user',
-          facility: 'Default Facility'
-        });
-      
-      if (userError) {
-        console.error('Error creating user record:', userError);
-      }
-      
-      toast.success('Sign up successful! Please check your email for verification.');
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      toast.error(error.message || 'Sign up failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -152,13 +137,12 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input 
-                  id="email" 
-                  type="email"
-                  placeholder="Enter your email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username" 
+                  placeholder="Enter your username" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
@@ -184,25 +168,20 @@ const Login = () => {
                 )}
               </Button>
               
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full mt-2" 
-                onClick={handleSignUp}
-                disabled={isLoading}
-              >
-                Create Account
-              </Button>
-              
-              <div className="mt-4 text-center text-sm">
-                <p className="text-gray-500">
-                  Test Account:
-                </p>
-                <p>
-                  Email: <span className="font-bold">admin@example.com</span> | 
-                  Password: <span className="font-bold">admin123</span>
-                </p>
-              </div>
+              {!isCheckingAdmin && !adminExists && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-center">
+                  <p className="text-sm text-blue-700 mb-2">
+                    No admin user found. Create the first admin user to get started:
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => navigate('/create-admin')}
+                  >
+                    Create Admin User
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

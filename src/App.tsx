@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,32 +13,36 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import Status from "./pages/Status";
 import GridMaster from "./pages/GridMaster";
+import CreateAdminUser from './pages/CreateAdminUser';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <UserProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/inbound" element={<Inbound />} />
-            <Route path="/grid-management" element={<GridManagement />} />
-            <Route path="/outbound" element={<Outbound />} />
-            <Route path="/status" element={<Status />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/grid-master" element={<GridMaster />} />
-            <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </UserProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <UserProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/create-admin" element={<CreateAdminUser />} />
+              <Route path="/inbound" element={<Inbound />} />
+              <Route path="/grid-management" element={<GridManagement />} />
+              <Route path="/outbound" element={<Outbound />} />
+              <Route path="/status" element={<Status />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/user-management" element={<UserManagement />} />
+              <Route path="/grid-master" element={<GridMaster />} />
+              <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </UserProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

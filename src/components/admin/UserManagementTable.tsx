@@ -23,11 +23,7 @@ interface User {
 }
 
 const UserManagementTable = () => {
-  const [users, setUsers] = useState<User[]>([
-    { id: '1', username: 'admin', role: 'Admin', facility: 'All', lastLogin: '2023-04-12 09:45' },
-    { id: '2', username: 'user1', role: 'User', facility: 'Facility A', lastLogin: '2023-04-13 14:30' },
-    { id: '3', username: 'user2', role: 'User', facility: 'Facility B', lastLogin: '2023-04-10 11:20' },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [facilities, setFacilities] = useState<string[]>([]);
@@ -57,7 +53,62 @@ const UserManagementTable = () => {
     };
 
     fetchFacilities();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('users_log')
+        .select('user_id, username, role, last_login');
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Map the data to our User interface format
+      const mappedUsers = data.map((user) => ({
+        id: user.user_id,
+        username: user.username,
+        role: user.role,
+        facility: 'Loading...', // We'll fetch facility info separately
+        lastLogin: user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'
+      }));
+      
+      setUsers(mappedUsers);
+      
+      // For each user, get their facility
+      for (const user of mappedUsers) {
+        try {
+          // Simple query to get user's facility - in a real app, you'd have a better data model
+          // This is just a placeholder implementation
+          const { data: userData } = await supabase
+            .from('users_log')
+            .select('username, role')
+            .eq('username', user.username)
+            .single();
+          
+          if (userData) {
+            // Update user with facility info
+            setUsers(prevUsers => 
+              prevUsers.map(u => 
+                u.id === user.id ? { ...u, facility: userData.facility || 'Unknown' } : u
+              )
+            );
+          }
+        } catch (facilityError) {
+          console.error(`Error fetching facility for user ${user.username}:`, facilityError);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddUser = async (userData: {
     username: string;
@@ -74,7 +125,7 @@ const UserManagementTable = () => {
           username: userData.username,
           password: userData.password,
           role: userData.role,
-          // Add facility to the database record
+          // Add facility to the database record - extending the schema
         })
         .select();
       
@@ -104,9 +155,28 @@ const UserManagementTable = () => {
   };
 
   const handleResetPassword = async () => {
-    // In a real application, this would call your API to reset the password
-    toast.success(`Password reset for ${selectedUser?.username}`);
-    setIsResetPasswordOpen(false);
+    try {
+      if (!selectedUser) {
+        toast.error('No user selected');
+        return;
+      }
+      
+      // This is just a placeholder - in a real app, you'd update the password in the database
+      const { error } = await supabase
+        .from('users_log')
+        .update({ password: 'new-password-hash' }) // In reality, you'd hash the password
+        .eq('user_id', selectedUser.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`Password reset for ${selectedUser.username}`);
+      setIsResetPasswordOpen(false);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error('Failed to reset password');
+    }
   };
 
   const handleEditUser = (user: User) => {
@@ -114,10 +184,23 @@ const UserManagementTable = () => {
     setIsResetPasswordOpen(true);
   };
 
-  const handleDeleteUser = (user: User) => {
-    // In production, this would call your Google Script API to delete the user
-    setUsers(users.filter(u => u.id !== user.id));
-    toast.success(`User ${user.username} deleted`);
+  const handleDeleteUser = async (user: User) => {
+    try {
+      const { error } = await supabase
+        .from('users_log')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setUsers(users.filter(u => u.id !== user.id));
+      toast.success(`User ${user.username} deleted`);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
+    }
   };
 
   return (
@@ -143,14 +226,28 @@ const UserManagementTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <UserTableRow 
-                key={user.id}
-                user={user}
-                onEditUser={handleEditUser}
-                onDeleteUser={handleDeleteUser}
-              />
-            ))}
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  Loading users...
+                </TableCell>
+              </TableRow>
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  No users found. Add your first user using the "Add User" button.
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => (
+                <UserTableRow 
+                  key={user.id}
+                  user={user}
+                  onEditUser={handleEditUser}
+                  onDeleteUser={handleDeleteUser}
+                />
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

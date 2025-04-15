@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatabaseIcon, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
@@ -21,12 +20,12 @@ const DatabaseStatusCard = () => {
   const checkTables = async () => {
     setIsLoading(true);
     const tables = [
-      'users', 
-      'Facility_Master', 
-      'Grid_Master', 
-      'Tote_Inbound', 
-      'Tote_Staging', 
-      'Tote_Outbound'
+      'users_log', 
+      'facility_master', 
+      'grid_master', 
+      'tote_inbound', 
+      'tote_staging', 
+      'tote_outbound'
     ] as const;
     const statuses: TableStatus[] = [];
 
