@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusCards from '../components/dashboard/StatusCards';
 import ActivityCard from '../components/dashboard/ActivityCard';
@@ -34,7 +34,7 @@ const Status = () => {
     try {
       // Attempt to count facilities as a simple test query
       const { count, error } = await supabase
-        .from('Facility_Master')
+        .from('facility_master')
         .select('*', { count: 'exact', head: true });
       
       if (error) {

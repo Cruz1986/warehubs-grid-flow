@@ -22,11 +22,11 @@ const DatabaseStatusCard = () => {
     setIsLoading(true);
     const tables = [
       'users', 
-      'Facility_Master', 
-      'Grid_Master', 
-      'Tote_Inbound', 
-      'Tote_Staging', 
-      'Tote_Outbound'
+      'facility_master', 
+      'grid_master', 
+      'tote_inbound', 
+      'tote_staging', 
+      'tote_outbound'
     ] as const;
     const statuses: TableStatus[] = [];
 

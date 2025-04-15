@@ -1,141 +1,193 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableBody,
 } from "@/components/ui/table";
-import { toast } from 'sonner';
-import AddUserDialog from './user-management/AddUserDialog';
-import ResetPasswordDialog from './user-management/ResetPasswordDialog';
-import UserTableRow from './user-management/UserTableRow';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from "@/components/ui/button";
+import { Plus, RefreshCw } from "lucide-react";
+import { AddUserDialog } from "./user-management/AddUserDialog";
+import { UserTableRow } from "./user-management/UserTableRow";
+import { ResetPasswordDialog } from "./user-management/ResetPasswordDialog";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface User {
   id: string;
   username: string;
   role: string;
-  facility: string;
-  lastLogin?: string;
+  status: string;
+  lastLogin: string | null;
+  facilityName?: string;
 }
 
-const UserManagementTable = () => {
-  const [users, setUsers] = useState<User[]>([
-    { id: '1', username: 'admin', role: 'Admin', facility: 'All', lastLogin: '2023-04-12 09:45' },
-    { id: '2', username: 'user1', role: 'User', facility: 'Facility A', lastLogin: '2023-04-13 14:30' },
-    { id: '3', username: 'user2', role: 'User', facility: 'Facility B', lastLogin: '2023-04-10 11:20' },
-  ]);
-  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+export const UserManagementTable = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  useEffect(() => {
-    const fetchFacilities = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('Facility_Master')
-          .select('Name');
-        
-        if (error) {
-          throw error;
-        }
-        
-        // Extract facility names from the data
-        const facilityNames = data.map(facility => facility.Name);
-        setFacilities(facilityNames);
-      } catch (error) {
-        console.error('Error fetching facilities:', error);
-        toast.error('Failed to load facilities');
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    fetchFacilities();
+  const fetchFacilities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('facility_master')
+        .select("name");
+
+      if (error) {
+        console.error("Error loading facilities:", error);
+        return [];
+      }
+
+      if (data) {
+        return data.map((facility) => facility.name);
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Exception loading facilities:", error);
+      return [];
+    }
+  };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const formattedUsers = data.map((user) => ({
+          id: user.user_id,
+          username: user.username,
+          role: user.role,
+          status: user.status,
+          lastLogin: user.last_login,
+        }));
+        setUsers(formattedUsers);
+      }
+
+      const facilityList = await fetchFacilities();
+      setFacilities(facilityList);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+
+    const channel = supabase
+      .channel("user-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        fetchUsers
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleAddUser = (newUserData: {
-    username: string;
-    password: string;
-    role: string;
-    facility: string;
-  }) => {
-    // Add user (in production, this would call your Google Script API)
-    const newId = (users.length + 1).toString();
-    setUsers([...users, { 
-      id: newId, 
-      username: newUserData.username, 
-      role: newUserData.role, 
-      facility: newUserData.facility 
-    }]);
-    
-    toast.success("User added successfully");
-  };
-
-  const handleResetPassword = (password: string) => {
-    // In production, this would call your Google Script API to reset the password
-    toast.success(`Password reset for ${selectedUser?.username}`);
-  };
-
-  const handleEditUser = (user: User) => {
+  const handleResetPassword = (user: User) => {
     setSelectedUser(user);
-    setIsResetPasswordOpen(true);
-  };
-
-  const handleDeleteUser = (user: User) => {
-    // In production, this would call your Google Script API to delete the user
-    setUsers(users.filter(u => u.id !== user.id));
-    toast.success(`User ${user.username} deleted`);
+    setShowResetPasswordDialog(true);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">User Management</h2>
-        <AddUserDialog 
-          facilities={facilities}
-          onAddUser={handleAddUser}
-          isLoading={isLoading}
-        />
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">User Management</h1>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchUsers}
+            disabled={loading}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => setShowAddUserDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
-      
-      <div className="overflow-x-auto">
+
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Username</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Facility</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Last Login</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <UserTableRow 
-                key={user.id}
-                user={user}
-                onEditUser={handleEditUser}
-                onDeleteUser={handleDeleteUser}
-              />
-            ))}
+            {loading ? (
+              <TableRow>
+                <TableHead
+                  colSpan={5}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Loading users...
+                </TableHead>
+              </TableRow>
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableHead
+                  colSpan={5}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No users found. Add your first user to get started.
+                </TableHead>
+              </TableRow>
+            ) : (
+              users.map((user) => (
+                <UserTableRow
+                  key={user.id}
+                  user={user}
+                  onResetPassword={() => handleResetPassword(user)}
+                  onUserUpdated={fetchUsers}
+                />
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-      
-      <ResetPasswordDialog
-        isOpen={isResetPasswordOpen}
-        onOpenChange={setIsResetPasswordOpen}
-        selectedUser={selectedUser}
-        onResetPassword={handleResetPassword}
+
+      <AddUserDialog
+        open={showAddUserDialog}
+        onOpenChange={setShowAddUserDialog}
+        onUserAdded={fetchUsers}
+        facilities={facilities}
       />
+
+      {selectedUser && (
+        <ResetPasswordDialog
+          open={showResetPasswordDialog}
+          onOpenChange={setShowResetPasswordDialog}
+          user={selectedUser}
+          onPasswordReset={fetchUsers}
+        />
+      )}
     </div>
   );
 };
-
-export default UserManagementTable;
