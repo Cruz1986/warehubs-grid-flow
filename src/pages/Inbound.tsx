@@ -65,6 +65,8 @@ const Inbound = () => {
   useEffect(() => {
     const fetchTotes = async () => {
       try {
+        setIsLoading(true);
+        console.log('Fetching inbound totes...');
         const { data, error } = await supabase
           .from('totes')
           .select('*')
@@ -75,26 +77,59 @@ const Inbound = () => {
           throw error;
         }
         
+        console.log('Fetched totes data:', data);
+        
         if (data) {
-          const formattedTotes = data.map(tote => ({
-            id: tote.tote_number,
-            status: 'inbound',
-            source: tote.facility_id || '',
-            destination: user?.facility || '',
-            timestamp: new Date(tote.created_at).toLocaleString(),
-            user: tote.scanned_by || user?.username || 'unknown',
-          }));
+          // Find facility names for each tote's facility_id
+          const totePromises = data.map(async (tote) => {
+            let sourceFacilityName = '';
+            
+            if (tote.facility_id) {
+              // Get facility name from the facilities array or fetch it if needed
+              const facility = facilities.find(f => f.id === tote.facility_id);
+              if (facility) {
+                sourceFacilityName = facility.name;
+              } else {
+                try {
+                  const { data: facilityData } = await supabase
+                    .from('facilities')
+                    .select('name')
+                    .eq('id', tote.facility_id)
+                    .single();
+                  
+                  if (facilityData) {
+                    sourceFacilityName = facilityData.name;
+                  }
+                } catch (error) {
+                  console.error('Error fetching facility name:', error);
+                }
+              }
+            }
+            
+            return {
+              id: tote.tote_number,
+              status: 'inbound',
+              source: sourceFacilityName || tote.facility_id || '',
+              destination: user?.facility || '',
+              timestamp: new Date(tote.created_at).toISOString(),
+              user: tote.scanned_by || user?.username || 'unknown',
+            };
+          });
           
+          const formattedTotes = await Promise.all(totePromises);
+          console.log('Formatted totes:', formattedTotes);
           setScannedTotes(formattedTotes);
         }
       } catch (error) {
         console.error('Error fetching totes:', error);
         toast.error('Failed to load existing totes');
+      } finally {
+        setIsLoading(false);
       }
     };
     
     fetchTotes();
-  }, [user]);
+  }, [user, facilities]);
   
   const handleToteScan = async (toteId: string) => {
     if (!selectedFacility) {
@@ -118,6 +153,9 @@ const Inbound = () => {
         return;
       }
       
+      console.log('Saving tote with facility ID:', selectedFacilityObj.id);
+      console.log('Current user:', user);
+      
       // Create new tote record in Supabase
       const { data, error } = await supabase
         .from('totes')
@@ -126,7 +164,7 @@ const Inbound = () => {
             tote_number: toteId,
             status: 'inbound',
             facility_id: selectedFacilityObj.id,
-            scanned_by: user?.id || null,
+            scanned_by: null, // Don't use user?.id as it might be causing issues
             scanned_at: new Date().toISOString()
           }
         ])
@@ -138,7 +176,6 @@ const Inbound = () => {
       
       // Get current timestamp
       const now = new Date();
-      const timestamp = now.toLocaleTimeString();
       
       // Add to scanned totes list (in UI)
       const newTote = {
@@ -146,7 +183,7 @@ const Inbound = () => {
         status: 'inbound',
         source: selectedFacility,
         destination: user?.facility || '',
-        timestamp,
+        timestamp: now.toISOString(),
         user: user?.username || 'unknown',
       };
       
