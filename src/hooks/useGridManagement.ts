@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 import { Tote } from '@/components/operations/ToteTable';
 
 interface GridMappingData {
-  grid_number: string;
-  destination: string;
+  grid_no: string;
+  destination_name: string;
 }
 
 export const useGridManagement = () => {
@@ -27,11 +27,11 @@ export const useGridManagement = () => {
     const fetchGridData = async () => {
       setIsLoading(true);
       try {
-        // Fetch grid mappings from the grid_mappings table
+        // Fetch grid mappings from the grid_master table
         const { data, error } = await supabase
-          .from('grid_mappings')
-          .select('grid_number, destination')
-          .order('grid_number', { ascending: true });
+          .from('grid_master')
+          .select('grid_no, destination_name')
+          .order('grid_no', { ascending: true });
 
         if (error) {
           throw error;
@@ -44,8 +44,8 @@ export const useGridManagement = () => {
         
         if (data) {
           data.forEach((mapping: GridMappingData) => {
-            grids.push(mapping.grid_number);
-            gridMap[mapping.grid_number] = mapping.destination;
+            grids.push(mapping.grid_no);
+            gridMap[mapping.grid_no] = mapping.destination_name;
           });
         }
         

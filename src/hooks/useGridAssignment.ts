@@ -17,12 +17,17 @@ interface UseGridAssignmentProps {
   onAssignGrid: (mapping: GridMapping) => void;
 }
 
+interface ExistingGrid {
+  source_name: string; 
+  grid_no: string;
+}
+
 export const useGridAssignment = ({ facilities, onAssignGrid }: UseGridAssignmentProps) => {
   const [facilityType, setFacilityType] = useState<string>('');
   const [sourceFacility, setSourceFacility] = useState<string>('');
   const [destinationFacility, setDestinationFacility] = useState<string>('');
   const [gridNumber, setGridNumber] = useState<string>('');
-  const [existingGrids, setExistingGrids] = useState<{source: string, grid_number: string}[]>([]);
+  const [existingGrids, setExistingGrids] = useState<ExistingGrid[]>([]);
   const [isCheckingGrid, setIsCheckingGrid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,8 +47,8 @@ export const useGridAssignment = ({ facilities, onAssignGrid }: UseGridAssignmen
     const fetchExistingGrids = async () => {
       try {
         const { data, error } = await supabase
-          .from('grid_mappings')
-          .select('source, grid_number');
+          .from('grid_master')
+          .select('source_name, grid_no');
         
         if (error) {
           console.error('Error fetching existing grids:', error);
@@ -81,7 +86,7 @@ export const useGridAssignment = ({ facilities, onAssignGrid }: UseGridAssignmen
     try {
       // Check if the grid already exists for this source facility
       const isDuplicate = existingGrids.some(
-        mapping => mapping.grid_number === gridNumber && mapping.source === selectedSource.name
+        mapping => mapping.grid_no === gridNumber && mapping.source_name === selectedSource.name
       );
       
       if (isDuplicate) {
@@ -93,13 +98,11 @@ export const useGridAssignment = ({ facilities, onAssignGrid }: UseGridAssignmen
       
       // Insert grid mapping into Supabase
       const { data, error } = await supabase
-        .from('grid_mappings')
+        .from('grid_master')
         .insert({
-          source: selectedSource.name,
-          source_type: selectedSource.type,
-          destination: selectedDestination.name,
-          destination_type: selectedDestination.type,
-          grid_number: gridNumber
+          source_name: selectedSource.name,
+          destination_name: selectedDestination.name,
+          grid_no: gridNumber
         })
         .select();
 
@@ -115,7 +118,7 @@ export const useGridAssignment = ({ facilities, onAssignGrid }: UseGridAssignmen
       }
 
       // Update the local list of existing grids
-      setExistingGrids([...existingGrids, {source: selectedSource.name, grid_number: gridNumber}]);
+      setExistingGrids([...existingGrids, {source_name: selectedSource.name, grid_no: gridNumber}]);
 
       // Call the prop function to update local state
       onAssignGrid({
