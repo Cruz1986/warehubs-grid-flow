@@ -9,163 +9,167 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      facilities: {
+      facility_master: {
         Row: {
           created_at: string | null
           id: string
-          location: string
+          location: string | null
           name: string
           type: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          location: string
+          location?: string | null
           name: string
-          type?: string
+          type: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          location?: string
+          location?: string | null
           name?: string
           type?: string
         }
         Relationships: []
       }
-      grid_mappings: {
+      grid_master: {
         Row: {
           created_at: string | null
-          destination: string
-          destination_type: string
-          grid_number: string
+          destination_name: string
+          grid_no: string
           id: string
-          source: string
-          source_type: string
+          source_name: string
         }
         Insert: {
           created_at?: string | null
-          destination: string
-          destination_type: string
-          grid_number: string
+          destination_name: string
+          grid_no: string
           id?: string
-          source: string
-          source_type: string
+          source_name: string
         }
         Update: {
           created_at?: string | null
-          destination?: string
-          destination_type?: string
-          grid_number?: string
+          destination_name?: string
+          grid_no?: string
           id?: string
-          source?: string
-          source_type?: string
+          source_name?: string
         }
         Relationships: []
       }
-      grids: {
+      tote_inbound: {
         Row: {
-          created_at: string | null
-          destination: string
-          grid_number: string
           id: string
+          operator_name: string
+          source: string
           status: string
-          tote_id: string | null
+          timestamp_in: string | null
+          tote_id: string
         }
         Insert: {
-          created_at?: string | null
-          destination: string
-          grid_number: string
           id?: string
+          operator_name: string
+          source: string
           status?: string
-          tote_id?: string | null
+          timestamp_in?: string | null
+          tote_id: string
         }
         Update: {
-          created_at?: string | null
-          destination?: string
-          grid_number?: string
           id?: string
+          operator_name?: string
+          source?: string
           status?: string
-          tote_id?: string | null
+          timestamp_in?: string | null
+          tote_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "grids_tote_id_fkey"
-            columns: ["tote_id"]
-            isOneToOne: false
-            referencedRelation: "totes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      totes: {
+      tote_outbound: {
         Row: {
-          created_at: string | null
-          facility_id: string | null
+          destination: string
           id: string
-          scanned_at: string | null
-          scanned_by: string | null
+          operator_name: string
           status: string
-          tote_number: string
+          timestamp_out: string | null
+          tote_id: string
         }
         Insert: {
-          created_at?: string | null
-          facility_id?: string | null
+          destination: string
           id?: string
-          scanned_at?: string | null
-          scanned_by?: string | null
+          operator_name: string
           status?: string
-          tote_number: string
+          timestamp_out?: string | null
+          tote_id: string
         }
         Update: {
-          created_at?: string | null
-          facility_id?: string | null
+          destination?: string
           id?: string
-          scanned_at?: string | null
-          scanned_by?: string | null
+          operator_name?: string
           status?: string
-          tote_number?: string
+          timestamp_out?: string | null
+          tote_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "totes_facility_id_fkey"
-            columns: ["facility_id"]
-            isOneToOne: false
-            referencedRelation: "facilities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "totes_scanned_by_fkey"
-            columns: ["scanned_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      tote_staging: {
+        Row: {
+          destination: string
+          grid_no: string
+          grid_timestamp: string | null
+          id: string
+          operator_name: string
+          status: string
+          tote_id: string
+        }
+        Insert: {
+          destination: string
+          grid_no: string
+          grid_timestamp?: string | null
+          id?: string
+          operator_name: string
+          status?: string
+          tote_id: string
+        }
+        Update: {
+          destination?: string
+          grid_no?: string
+          grid_timestamp?: string | null
+          id?: string
+          operator_name?: string
+          status?: string
+          tote_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
           created_at: string | null
-          facility: string
-          id: string
+          failed_attempts: number | null
+          last_login: string | null
           password: string
           role: string
+          status: string
+          user_id: string
           username: string
         }
         Insert: {
           created_at?: string | null
-          facility: string
-          id?: string
+          failed_attempts?: number | null
+          last_login?: string | null
           password: string
           role?: string
+          status?: string
+          user_id?: string
           username: string
         }
         Update: {
           created_at?: string | null
-          facility?: string
-          id?: string
+          failed_attempts?: number | null
+          last_login?: string | null
           password?: string
           role?: string
+          status?: string
+          user_id?: string
           username?: string
         }
         Relationships: []
