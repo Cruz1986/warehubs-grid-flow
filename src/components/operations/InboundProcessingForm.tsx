@@ -27,8 +27,10 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
   const [recentScans, setRecentScans] = useState<Tote[]>([]);
   const toteInputRef = useRef<HTMLInputElement>(null);
   
-  // Get current username from localStorage
-  const username = localStorage.getItem('username') || 'unknown';
+  // Get current user info from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  const username = user?.username || 'unknown';
   
   // Focus on the tote input when scanning is active
   useEffect(() => {
@@ -88,7 +90,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         tote_id: toteId,
         status: 'inbound',
         source: selectedFacility,
-        current_facility: userFacility, // Add current facility
+        current_facility: userFacility,
         operator_name: username
       };
       
@@ -110,7 +112,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         destination: userFacility,
         timestamp: new Date().toISOString(),
         user: username,
-        currentFacility: userFacility // Add current facility to the tote object
+        currentFacility: userFacility
       };
       
       setRecentScans([newTote, ...recentScans]);

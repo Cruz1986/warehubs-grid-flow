@@ -25,6 +25,13 @@ const Inbound = () => {
   const user = userString ? JSON.parse(userString) : null;
   const currentFacility = user?.facility || 'Unknown';
   
+  // Ensure username is stored for the components that need it
+  useEffect(() => {
+    if (user?.username) {
+      localStorage.setItem('username', user.username);
+    }
+  }, [user]);
+  
   // Fetch facilities from Supabase
   useEffect(() => {
     const fetchFacilities = async () => {
