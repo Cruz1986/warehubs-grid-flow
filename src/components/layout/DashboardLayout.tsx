@@ -83,16 +83,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
     };
   }, []);
 
-  useEffect(() => {
-    if (!user) {
+useEffect(() => {
+  const checkAuthStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
       navigate('/');
       return;
     }
-
-    if (requireAdmin && user.role?.toLowerCase() !== 'admin') {
+    
+    if (requireAdmin && user?.role?.toLowerCase() !== 'admin') {
       navigate('/inbound');
     }
-  }, [user, navigate, requireAdmin]);
+  };
+  
+  checkAuthStatus();
+}, [user, navigate, requireAdmin]);
 
   return (
     <div className="flex h-screen bg-white">
