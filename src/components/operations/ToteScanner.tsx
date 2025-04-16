@@ -13,6 +13,7 @@ interface ToteScannerProps {
   autoFocus?: boolean;
   inputRef?: React.RefObject<HTMLInputElement>;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 const ToteScanner = ({
@@ -21,7 +22,8 @@ const ToteScanner = ({
   buttonText = "Scan",
   autoFocus = true,
   inputRef,
-  isLoading = false
+  isLoading = false,
+  disabled = false
 }: ToteScannerProps) => {
   const [toteId, setToteId] = useState('');
   const [lastScannedTote, setLastScannedTote] = useState('');
@@ -32,10 +34,10 @@ const ToteScanner = ({
 
   useEffect(() => {
     // Auto-focus the input when the component mounts
-    if (autoFocus && finalInputRef.current) {
+    if (autoFocus && finalInputRef.current && !disabled) {
       finalInputRef.current.focus();
     }
-  }, [autoFocus, finalInputRef]);
+  }, [autoFocus, finalInputRef, disabled]);
 
   const handleScan = () => {
     if (!toteId.trim()) {
@@ -78,9 +80,9 @@ const ToteScanner = ({
             onChange={(e) => setToteId(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1"
-            disabled={isLoading}
+            disabled={isLoading || disabled}
           />
-          <Button onClick={handleScan} disabled={isLoading}>
+          <Button onClick={handleScan} disabled={isLoading || disabled}>
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -2,7 +2,6 @@
 import React from 'react';
 import InboundCard from './InboundCard';
 import OutboundCard from './OutboundCard';
-import GridCapacityCard from './GridCapacityCard';
 import PendingTotesCard from './PendingTotesCard';
 import { useWarehouseStats } from '@/hooks/useWarehouseStats';
 
@@ -10,7 +9,7 @@ const StatusCards = () => {
   const { stats, isLoading } = useWarehouseStats();
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <InboundCard
         todayCount={stats.inbound.today}
         trend={stats.inbound.trend}
@@ -22,12 +21,6 @@ const StatusCards = () => {
         todayCount={stats.outbound.today}
         trend={stats.outbound.trend}
         percentage={stats.outbound.percentage}
-        isLoading={isLoading}
-      />
-      
-      <GridCapacityCard
-        used={stats.gridCapacity.used}
-        total={stats.gridCapacity.total}
         isLoading={isLoading}
       />
       

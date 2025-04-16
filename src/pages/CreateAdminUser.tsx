@@ -80,10 +80,11 @@ const CreateAdminUser = () => {
           throw insertError;
         }
       } else {
-        // Check RPC result
-        if (typeof rpcData === 'object' && rpcData !== null && 'success' in rpcData) {
-          if (!rpcData.success) {
-            const message = rpcData.message || 'Failed to create admin user';
+        // Check RPC result - Fix type error by checking properties safely
+        if (rpcData && typeof rpcData === 'object' && 'success' in rpcData) {
+          const result = rpcData as { success: boolean, message?: string };
+          if (!result.success) {
+            const message = result.message || 'Failed to create admin user';
             toast.error(message);
             return;
           }

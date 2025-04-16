@@ -100,30 +100,56 @@ export const useGridManagement = () => {
     }
   };
   
-  const addToStagedTotes = (destination: string) => {
-    // Get current timestamp
-    const now = new Date();
-    const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+  const addToStagedTotes = async (destination: string) => {
+    setIsLoading(true);
     
-    // Create new tote record with staged status
-    const newTote: Tote = {
-      id: scannedTote,
-      status: 'staged',
-      source: user?.facility || '',
-      destination,
-      grid: gridId,
-      timestamp,
-      user: user?.username || 'unknown',
-    };
-    
-    // Add to staged totes list
-    setStagedTotes([newTote, ...stagedTotes]);
-    toast.success(`Tote ${scannedTote} has been staged at grid ${gridId} for ${destination}`);
-    
-    // Reset the form
-    setScannedTote('');
-    setGridId('');
-    setGridError('');
+    try {
+      // Get current timestamp
+      const now = new Date();
+      
+      // Insert to Supabase
+      const { data, error } = await supabase
+        .from('tote_staging')
+        .insert({
+          tote_id: scannedTote,
+          status: 'staged',
+          grid_no: gridId,
+          destination: destination,
+          operator_name: user?.username || 'unknown'
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error adding tote to grid:', error);
+        toast.error(`Failed to add tote to grid: ${error.message}`);
+        return;
+      }
+      
+      // Create new tote record with staged status
+      const newTote: Tote = {
+        id: scannedTote,
+        status: 'staged',
+        source: user?.facility || '',
+        destination,
+        grid: gridId,
+        timestamp: now.toISOString(),
+        user: user?.username || 'unknown',
+      };
+      
+      // Add to staged totes list
+      setStagedTotes([newTote, ...stagedTotes]);
+      toast.success(`Tote ${scannedTote} has been staged at grid ${gridId} for ${destination}`);
+      
+      // Reset the tote scan to continue the workflow
+      setScannedTote('');
+      setGridId('');
+      setGridError('');
+    } catch (error: any) {
+      console.error('Error staging tote:', error);
+      toast.error(`Error staging tote: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {

@@ -1,14 +1,14 @@
 
 import React from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Building } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FacilitySelectorProps {
   facilities: string[];
@@ -16,45 +16,44 @@ interface FacilitySelectorProps {
   onChange: (facility: string) => void;
   label?: string;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
-const FacilitySelector = ({
-  facilities,
+const FacilitySelector: React.FC<FacilitySelectorProps> = ({ 
+  facilities, 
   selectedFacility,
+
   onChange,
-  label = "Select Facility",
-  isLoading = false
-}: FacilitySelectorProps) => {
+  label = "Facility",
+  isLoading = false,
+  disabled = false
+}) => {
   return (
     <div className="space-y-2">
-      <Label htmlFor="facility-select" className="flex items-center">
-        <Building className="h-4 w-4 mr-1" />
-        {label}
-      </Label>
-      <Select
-        value={selectedFacility}
-        onValueChange={onChange}
-        disabled={isLoading}
-      >
-        <SelectTrigger id="facility-select" className="w-full">
-          <SelectValue placeholder={isLoading ? "Loading facilities..." : "Select a facility"} />
-        </SelectTrigger>
-        <SelectContent>
-          {facilities.length === 0 && !isLoading ? (
-            <SelectItem value="no-facilities" disabled>
-              No facilities available
-            </SelectItem>
-          ) : (
-            facilities.map((facility) => (
-              <SelectItem key={facility} value={facility}>
-                {facility}
-              </SelectItem>
-            ))
-          )}
-        </SelectContent>
-      </Select>
-      {isLoading && (
-        <p className="text-sm text-muted-foreground">Loading facilities...</p>
+      <Label htmlFor="facility-select">{label}</Label>
+      {isLoading ? (
+        <Skeleton className="h-10 w-full" />
+      ) : (
+        <Select 
+          value={selectedFacility} 
+          onValueChange={onChange}
+          disabled={disabled}
+        >
+          <SelectTrigger id="facility-select">
+            <SelectValue placeholder="Select a facility" />
+          </SelectTrigger>
+          <SelectContent>
+            {facilities.length === 0 ? (
+              <SelectItem value="none" disabled>No facilities available</SelectItem>
+            ) : (
+              facilities.map((facility) => (
+                <SelectItem key={facility} value={facility}>
+                  {facility}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
       )}
     </div>
   );

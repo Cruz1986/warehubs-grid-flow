@@ -23,9 +23,19 @@ interface ToteTableProps {
   totes: Tote[];
   title?: string;
   isLoading?: boolean;
+  hideDestination?: boolean;
+  hideGrid?: boolean;
+  hideSource?: boolean;
 }
 
-const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }) => {
+const ToteTable: React.FC<ToteTableProps> = ({ 
+  totes, 
+  title, 
+  isLoading = false,
+  hideDestination = false,
+  hideGrid = false,
+  hideSource = false
+}) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'inbound':
@@ -61,9 +71,9 @@ const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }
               <TableRow>
                 <TableHead className="w-[100px]">Status</TableHead>
                 <TableHead>Tote ID</TableHead>
-                <TableHead className="hidden md:table-cell">Source</TableHead>
-                <TableHead className="hidden md:table-cell">Destination</TableHead>
-                <TableHead className="hidden md:table-cell">Grid</TableHead>
+                {!hideSource && <TableHead className="hidden md:table-cell">Source</TableHead>}
+                {!hideDestination && <TableHead className="hidden md:table-cell">Destination</TableHead>}
+                {!hideGrid && <TableHead className="hidden md:table-cell">Grid</TableHead>}
                 <TableHead className="hidden md:table-cell">Time</TableHead>
               </TableRow>
             </TableHeader>
@@ -73,9 +83,9 @@ const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }
                   <TableRow key={`loading-${i}`}>
                     <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+                    {!hideSource && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
+                    {!hideDestination && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
+                    {!hideGrid && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>}
                     <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                   </TableRow>
                 ))
@@ -97,16 +107,17 @@ const ToteTable: React.FC<ToteTableProps> = ({ totes, title, isLoading = false }
                     <TableCell className="font-medium">
                       {tote.id}
                       <div className="md:hidden mt-1 text-xs text-gray-500">
-                        <div>{tote.source} → {tote.destination}</div>
-                        {tote.grid && <div>Grid: {tote.grid}</div>}
+                        {!hideSource && <div>From: {tote.source}</div>}
+                        {!hideDestination && <div>To: {tote.destination}</div>}
+                        {!hideGrid && tote.grid && <div>Grid: {tote.grid}</div>}
                         <div>{new Date(tote.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{tote.source}</TableCell>
-                    <TableCell className="hidden md:table-cell">{tote.destination}</TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    {!hideSource && <TableCell className="hidden md:table-cell">{tote.source}</TableCell>}
+                    {!hideDestination && <TableCell className="hidden md:table-cell">{tote.destination}</TableCell>}
+                    {!hideGrid && <TableCell className="hidden md:table-cell">
                       {tote.grid || '-'}
-                    </TableCell>
+                    </TableCell>}
                     <TableCell className="hidden md:table-cell">
                       {new Date(tote.timestamp).toLocaleTimeString([], { 
                         hour: '2-digit', 
