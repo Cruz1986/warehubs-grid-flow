@@ -1,7 +1,4 @@
-
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,8 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface User {
   id: string;
@@ -25,7 +23,7 @@ interface ResetPasswordDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   selectedUser: User | null;
-  onResetPassword: (password: string) => void;
+  onResetPassword: (newPassword: string) => void;
 }
 
 const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
@@ -34,75 +32,109 @@ const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
   selectedUser,
   onResetPassword,
 }) => {
-  const [resetPassword, setResetPassword] = React.useState({
-    password: '',
-    confirmPassword: '',
-  });
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
-    if (!isOpen) {
-      setResetPassword({
-        password: '',
-        confirmPassword: '',
-      });
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setNewPassword('');
+      setConfirmPassword('');
+      setError('');
+      setLoading(false);
     }
   }, [isOpen]);
 
-  const handleResetPassword = () => {
-    // Validate passwords
-    if (resetPassword.password !== resetPassword.confirmPassword) {
-      toast.error("Passwords do not match");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // Validate password
+    if (!newPassword) {
+      setError('New password is required');
       return;
     }
-    
-    if (!resetPassword.password) {
-      toast.error("Password cannot be empty");
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
-    
-    onResetPassword(resetPassword.password);
-    onOpenChange(false);
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await onResetPassword(newPassword);
+      // The parent component will close the dialog if successful
+    } catch (err) {
+      console.error('Error in ResetPasswordDialog:', err);
+      setError('Failed to reset password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Reset Password</DialogTitle>
           <DialogDescription>
-            Set a new password for {selectedUser?.username}
+            {selectedUser 
+              ? `Reset password for user: ${selectedUser.username}`
+              : 'Reset user password'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="newPassword">New Password</Label>
-            <Input
-              id="newPassword"
-              type="password"
-              value={resetPassword.password}
-              onChange={(e) => setResetPassword({...resetPassword, password: e.target.value})}
-              placeholder="Enter new password"
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-password" className="text-right">
+                New Password
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  className={error && !newPassword ? "border-red-500" : ""}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="confirm-password" className="text-right">
+                Confirm
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className={error && newPassword !== confirmPassword ? "border-red-500" : ""}
+                />
+              </div>
+            </div>
+            {error && (
+              <div className="col-span-4 text-red-500 text-sm">{error}</div>
+            )}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={resetPassword.confirmPassword}
-              onChange={(e) => setResetPassword({...resetPassword, confirmPassword: e.target.value})}
-              placeholder="Confirm new password"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleResetPassword}>
-            Reset Password
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
