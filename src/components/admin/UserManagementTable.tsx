@@ -93,11 +93,6 @@ const UserManagementTable = () => {
     try {
       setIsLoading(true);
       
-      if (!currentUser) {
-        console.log('No current user available for fetching users');
-        return;
-      }
-
       console.log('Fetching users with current user:', currentUser);
       
       const { data, error } = await supabase
@@ -149,12 +144,19 @@ const UserManagementTable = () => {
     facility: string;
   }) => {
     try {
-      if (!currentUser) {
+      // TEMPORARY FIX: Get the user data directly from localStorage again
+      // This ensures we have the freshest user data
+      const userStr = localStorage.getItem('user');
+      const currentUserData = userStr ? JSON.parse(userStr) : null;
+      
+      if (!currentUserData) {
+        console.error('No user found in localStorage when trying to add user');
         toast.error('You must be logged in to add users');
         return;
       }
       
       console.log('Adding user with data:', {...userData, password: '[REDACTED]'});
+      console.log('Current user for operation:', currentUserData);
       
       // Generate a new UUID for the user_id
       const newUserId = crypto.randomUUID();
@@ -168,7 +170,7 @@ const UserManagementTable = () => {
           role: userData.role,
           facility: userData.facility,
           status: 'active',
-          created_by: currentUser.username,
+          created_by: currentUserData.username || 'system',
           created_at: new Date().toISOString()
         })
         .select();
@@ -210,11 +212,20 @@ const UserManagementTable = () => {
         return;
       }
       
+      // TEMPORARY FIX: Get the user data directly from localStorage again
+      const userStr = localStorage.getItem('user');
+      const currentUserData = userStr ? JSON.parse(userStr) : null;
+      
+      if (!currentUserData) {
+        toast.error('You must be logged in to reset passwords');
+        return;
+      }
+      
       const { error } = await supabase
         .from('users_log')
         .update({ 
           password: newPassword,
-          modified_by: currentUser?.username,
+          modified_by: currentUserData.username || 'system',
           modified_at: new Date().toISOString()
         })
         .eq('user_id', selectedUser.id);
@@ -242,6 +253,15 @@ const UserManagementTable = () => {
 
   const handleDeleteUser = async (user: User) => {
     try {
+      // TEMPORARY FIX: Get the user data directly from localStorage again
+      const userStr = localStorage.getItem('user');
+      const currentUserData = userStr ? JSON.parse(userStr) : null;
+      
+      if (!currentUserData) {
+        toast.error('You must be logged in to delete users');
+        return;
+      }
+      
       const { error } = await supabase
         .from('users_log')
         .delete()
