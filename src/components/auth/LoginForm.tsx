@@ -1,4 +1,5 @@
-]import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,67 +10,44 @@ const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Check if navigation is available (helps with debugging)
   const navigate = useNavigate();
-  
-  useEffect(() => {
-    // Clear any existing session on component mount
-    localStorage.removeItem('user');
-    console.log("LoginForm mounted, navigation available:", !!navigate);
-  }, [navigate]);
-  
-  const handleLogin = async (e) => {
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
-    
+
     try {
-      console.log("Login attempt with:", { username, password: "***" });
-      
-      if (!username || !password) {
-        setError("Please enter both username and password");
-        toast.error("Please enter both username and password");
-        return;
-      }
-      
-      // For testing - any username with admin in it becomes an admin user
-      const isAdmin = username.toLowerCase().includes('admin');
-      
-      // Store user info
-      const userData = {
-        username,
-        isAdmin,
-        facility: isAdmin ? 'All' : 'Facility A',
-        loginTime: new Date().toISOString()
-      };
-      
-      console.log("User authenticated:", userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      toast.success("Login successful!");
-      console.log("Redirecting to:", isAdmin ? '/admin-dashboard' : '/inbound');
-      
-      // Add a slight delay to ensure toast is visible before redirect
-      setTimeout(() => {
-        if (navigate) {
-          navigate(isAdmin ? '/admin-dashboard' : '/inbound');
+      // This is a mock authentication - in production, this would connect to your Google Apps Script
+      if (username && password) {
+        // Mock user verification - replace with actual API call to Google Script
+        const isAdmin = username.toLowerCase().includes('admin');
+        
+        // Store user info in localStorage (in production, use a better state management solution)
+        localStorage.setItem('user', JSON.stringify({
+          username,
+          isAdmin,
+          facility: isAdmin ? 'All' : 'Facility A', // Mock facility assignment
+        }));
+        
+        toast.success("Login successful!");
+        
+        // Redirect based on user role
+        if (isAdmin) {
+          navigate('/admin-dashboard');
         } else {
-          console.error("Navigation not available. Is this component within a Router?");
-          setError("Navigation error - please check console");
+          navigate('/inbound');
         }
-      }, 500);
-      
+      } else {
+        toast.error("Please enter both username and password");
+      }
     } catch (error) {
       console.error("Login error:", error);
-      setError(`Login failed: ${error.message || "Unknown error"}`);
       toast.error("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
@@ -100,9 +78,6 @@ const LoginForm = () => {
               required
             />
           </div>
-          {error && (
-            <div className="text-red-500 text-sm">{error}</div>
-          )}
           <Button 
             type="submit" 
             className="w-full" 
