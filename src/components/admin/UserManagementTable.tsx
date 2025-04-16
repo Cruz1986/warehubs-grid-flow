@@ -170,8 +170,6 @@ const UserManagementTable = () => {
           role: userData.role,
           facility: userData.facility,
           status: 'active',
-          created_by: currentUserData.username || 'system',
-          created_at: new Date().toISOString()
         })
         .select();
       
