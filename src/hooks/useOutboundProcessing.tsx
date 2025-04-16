@@ -118,14 +118,25 @@ export const useOutboundProcessing = (userFacility: string) => {
         toast.warning('Tote marked as outbound but staging status update failed');
       }
       
-      // Get the source from the staging record
-      const source = stagedTotes.staging_facility || userFacility;
+      // Get inbound record to find the original source
+      const { data: inboundTote, error: inboundError } = await supabase
+        .from('tote_inbound')
+        .select('source')
+        .eq('tote_id', toteId)
+        .maybeSingle();
+
+      if (inboundError) {
+        console.error('Error fetching inbound record:', inboundError);
+      }
+      
+      // Use the original source from inbound if available, otherwise fallback
+      const originalSource = inboundTote?.source || stagedTotes.staging_facility || 'Unknown';
       
       // Add to local state
       const newTote: Tote = {
         id: toteId,
         status: 'outbound',
-        source: source,
+        source: originalSource,
         destination: selectedDestination,
         timestamp: new Date().toISOString(),
         user: username,
