@@ -31,6 +31,8 @@ export const useWarehouseStats = () => {
     const inboundTrend = calculateTrend(data.inbound.today, data.inbound.yesterday);
     const outboundTrend = calculateTrend(data.outbound.today, data.outbound.yesterday);
     
+    console.log('Pending totes in useWarehouseStats:', data.pendingTotes);
+    
     return {
       inbound: {
         today: data.inbound.today,

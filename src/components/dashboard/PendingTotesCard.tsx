@@ -40,7 +40,7 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
         
         // Count the number of staged totes
         setCount(stagedTotes?.length || 0);
-        console.log('Staged totes count:', stagedTotes?.length || 0);
+        console.log('Staged totes count in PendingTotesCard:', stagedTotes?.length || 0);
       } catch (error) {
         console.error('Error fetching staged totes:', error);
       } finally {

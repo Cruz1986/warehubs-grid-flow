@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import InboundCard from './InboundCard';
 import OutboundCard from './OutboundCard';
 import PendingTotesCard from './PendingTotesCard';
@@ -9,7 +9,10 @@ const StatusCards = () => {
   const { stats, isLoading } = useWarehouseStats();
 
   // Log the stats to help with debugging
-  console.log('StatusCards stats:', stats);
+  useEffect(() => {
+    console.log('StatusCards stats:', stats);
+    console.log('Pending totes count in StatusCards:', stats.pendingTotes);
+  }, [stats]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

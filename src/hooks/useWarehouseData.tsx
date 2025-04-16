@@ -103,7 +103,7 @@ export const useWarehouseData = () => {
           console.error('Error fetching yesterday outbound totes:', yesterdayOutboundError);
         }
         
-        // Get staged totes (pending)
+        // Get staged totes (pending) - Directly fetch them
         const { data: stagedTotes, error: stagedError } = await supabase
           .from('tote_staging')
           .select('*')
@@ -114,7 +114,7 @@ export const useWarehouseData = () => {
         }
         
         const stagedTotesCount = stagedTotes?.length || 0;
-        console.log('Staged totes count:', stagedTotesCount);
+        console.log('Staged totes count in useWarehouseData:', stagedTotesCount);
         
         // Get grid capacity
         const { data: grids, error: gridsError } = await supabase
@@ -140,7 +140,7 @@ export const useWarehouseData = () => {
         // Count unique grid numbers that are occupied
         const occupiedGrids = new Set(stagingData?.map(item => item.grid_no) || []).size;
         
-        // Update data state
+        // Update data state with explicit pending totes count
         setData({
           inbound: {
             today: Number(todayInbound?.count ?? 0),
