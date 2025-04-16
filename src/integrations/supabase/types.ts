@@ -59,6 +59,7 @@ export type Database = {
       }
       tote_inbound: {
         Row: {
+          current_facility: string | null
           id: string
           operator_name: string
           source: string
@@ -67,6 +68,7 @@ export type Database = {
           tote_id: string
         }
         Insert: {
+          current_facility?: string | null
           id?: string
           operator_name: string
           source: string
@@ -75,6 +77,7 @@ export type Database = {
           tote_id: string
         }
         Update: {
+          current_facility?: string | null
           id?: string
           operator_name?: string
           source?: string
@@ -86,6 +89,8 @@ export type Database = {
       }
       tote_outbound: {
         Row: {
+          completed_by: string | null
+          completed_time: string | null
           destination: string
           id: string
           operator_name: string
@@ -94,6 +99,8 @@ export type Database = {
           tote_id: string
         }
         Insert: {
+          completed_by?: string | null
+          completed_time?: string | null
           destination: string
           id?: string
           operator_name: string
@@ -102,6 +109,8 @@ export type Database = {
           tote_id: string
         }
         Update: {
+          completed_by?: string | null
+          completed_time?: string | null
           destination?: string
           id?: string
           operator_name?: string
@@ -118,6 +127,9 @@ export type Database = {
           grid_timestamp: string | null
           id: string
           operator_name: string
+          staging_facility: string | null
+          staging_time: string | null
+          staging_user: string | null
           status: string
           tote_id: string
         }
@@ -127,6 +139,9 @@ export type Database = {
           grid_timestamp?: string | null
           id?: string
           operator_name: string
+          staging_facility?: string | null
+          staging_time?: string | null
+          staging_user?: string | null
           status?: string
           tote_id: string
         }
@@ -136,6 +151,9 @@ export type Database = {
           grid_timestamp?: string | null
           id?: string
           operator_name?: string
+          staging_facility?: string | null
+          staging_time?: string | null
+          staging_user?: string | null
           status?: string
           tote_id?: string
         }

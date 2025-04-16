@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
@@ -10,13 +9,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export interface Tote {
   id: string;
-  status: 'inbound' | 'staged' | 'outbound';
+  status: 'inbound' | 'staged' | 'outbound' | 'completed';
   source: string;
   destination: string;
   timestamp: string;
   user: string;
   grid?: string;
-  currentFacility?: string; // New field
+  currentFacility?: string; 
+  stagingTime?: string;
+  completedTime?: string;
 }
 
 interface ToteTableProps {
@@ -44,6 +45,8 @@ const ToteTable: React.FC<ToteTableProps> = ({
         return <PackageOpen className="h-4 w-4 text-blue-600" />;
       case 'outbound':
         return <PackageCheck className="h-4 w-4 text-green-600" />;
+      case 'completed':
+        return <Package className="h-4 w-4 text-green-600" />;
       default:
         return <Package className="h-4 w-4 text-yellow-600" />;
     }

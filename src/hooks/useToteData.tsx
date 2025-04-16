@@ -43,7 +43,7 @@ export const useToteData = () => {
           .from('tote_staging')
           .select('*')
           .eq('status', 'staged')
-          .order('staging_time', { ascending: false })
+          .order('grid_timestamp', { ascending: false })
           .limit(10);
         
         if (stagedError) {
@@ -54,10 +54,11 @@ export const useToteData = () => {
             status: 'staged' as const,
             source: tote.staging_facility || 'Current Facility',
             destination: tote.destination || 'Unknown',
-            timestamp: new Date(tote.staging_time).toLocaleString(),
+            timestamp: new Date(tote.grid_timestamp).toLocaleString(),
             user: tote.staging_user || 'Unknown',
             grid: tote.grid_no,
-            currentFacility: tote.staging_facility || 'Unknown'
+            currentFacility: tote.staging_facility || 'Unknown',
+            stagingTime: tote.staging_time ? new Date(tote.staging_time).toLocaleString() : undefined
           }));
           setStagedTotes(formattedStaged);
         }
@@ -75,13 +76,14 @@ export const useToteData = () => {
         } else {
           const formattedOutbound = outboundData.map(tote => ({
             id: tote.tote_id,
-            status: 'outbound' as const,
+            status: 'completed' as const,
             source: 'Current Facility',
             destination: tote.destination || 'Unknown',
             timestamp: new Date(tote.completed_time).toLocaleString(),
             user: tote.completed_by || 'Unknown',
             grid: undefined,
-            currentFacility: tote.destination || 'Unknown'
+            currentFacility: tote.destination || 'Unknown',
+            completedTime: tote.completed_time ? new Date(tote.completed_time).toLocaleString() : undefined
           }));
           setOutboundTotes(formattedOutbound);
         }
