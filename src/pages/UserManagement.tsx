@@ -12,7 +12,7 @@ const UserManagement = () => {
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   
   return (
-    <DashboardLayout requireAdmin={false}>
+    <DashboardLayout requireAdmin={true}>
       <h1 className="text-2xl font-bold mb-6">User Management</h1>
       <p className="text-gray-600 mb-4">
         Create and manage users for the warehouse management system. 
