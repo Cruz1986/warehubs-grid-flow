@@ -27,6 +27,9 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
   const [recentScans, setRecentScans] = useState<Tote[]>([]);
   const toteInputRef = useRef<HTMLInputElement>(null);
   
+  // Get current username from localStorage
+  const username = localStorage.getItem('username') || 'unknown';
+  
   // Focus on the tote input when scanning is active
   useEffect(() => {
     if (isScanningActive && toteInputRef.current) {
@@ -85,7 +88,8 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         tote_id: toteId,
         status: 'inbound',
         source: selectedFacility,
-        operator_name: localStorage.getItem('username') || 'unknown'
+        current_facility: userFacility, // Add current facility
+        operator_name: username
       };
       
       const { error } = await supabase
@@ -105,7 +109,8 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         source: selectedFacility,
         destination: userFacility,
         timestamp: new Date().toISOString(),
-        user: localStorage.getItem('username') || 'unknown',
+        user: username,
+        currentFacility: userFacility // Add current facility to the tote object
       };
       
       setRecentScans([newTote, ...recentScans]);
@@ -115,7 +120,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       if (toteInputRef.current) {
         toteInputRef.current.focus();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Exception saving tote:', err);
       toast.error('An unexpected error occurred while saving the tote');
     } finally {
