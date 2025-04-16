@@ -37,20 +37,30 @@ const UserManagementTable = () => {
       try {
         const userStr = localStorage.getItem('user');
         if (!userStr) {
+          console.log('No user found in localStorage');
           setHasPermission(false);
           return null;
         }
         
         const user = JSON.parse(userStr);
+        console.log('Current user from localStorage:', user);
         setCurrentUser(user);
         
-        // Check if user has admin role
-        const isAdmin = user.isAdmin === true || user.role === 'admin';
+        // Check if user has admin role - case insensitive or exact match with "Admin"
+        const isAdmin = 
+          user.isAdmin === true || 
+          (user.role && user.role.toLowerCase() === 'admin') ||
+          (user.role && user.role === 'Admin');
+        
+        console.log('Is admin check result:', isAdmin);
         
         if (!isAdmin) {
           console.log('User does not have admin role:', user);
           setHasPermission(false);
           toast.error('You must be an admin to manage users');
+        } else {
+          setHasPermission(true);
+          console.log('User has admin privileges, proceeding...');
         }
         
         return user;
@@ -156,7 +166,11 @@ const UserManagementTable = () => {
       }
       
       // Double-check admin privileges before adding user
-      const isAdmin = currentUser.isAdmin === true || currentUser.role === 'admin';
+      const isAdmin = 
+        currentUser.isAdmin === true || 
+        (currentUser.role && currentUser.role.toLowerCase() === 'admin') ||
+        (currentUser.role && currentUser.role === 'Admin');
+        
       if (!isAdmin) {
         toast.error('Only administrators can add new users');
         return;
@@ -218,7 +232,11 @@ const UserManagementTable = () => {
       }
       
       // Double-check admin privileges
-      const isAdmin = currentUser?.isAdmin === true || currentUser?.role === 'admin';
+      const isAdmin = 
+        currentUser?.isAdmin === true || 
+        (currentUser?.role && currentUser.role.toLowerCase() === 'admin') ||
+        (currentUser?.role && currentUser.role === 'Admin');
+        
       if (!isAdmin) {
         toast.error('Only administrators can reset passwords');
         return;
@@ -253,7 +271,11 @@ const UserManagementTable = () => {
   const handleDeleteUser = async (user: User) => {
     try {
       // Double-check admin privileges
-      const isAdmin = currentUser?.isAdmin === true || currentUser?.role === 'admin';
+      const isAdmin = 
+        currentUser?.isAdmin === true || 
+        (currentUser?.role && currentUser.role.toLowerCase() === 'admin') ||
+        (currentUser?.role && currentUser.role === 'Admin');
+        
       if (!isAdmin) {
         toast.error('Only administrators can delete users');
         return;
