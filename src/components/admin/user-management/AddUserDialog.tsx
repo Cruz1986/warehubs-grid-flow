@@ -179,7 +179,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="user">Manager</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.role && (
