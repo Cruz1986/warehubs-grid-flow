@@ -31,6 +31,8 @@ interface ToteTableProps {
   hideGrid?: boolean;
   hideSource?: boolean;
   hideCurrentFacility?: boolean;
+  // New prop to specifically hide destination for inbound totes
+  alwaysHideDestinationForInbound?: boolean;
 }
 
 const ToteTable: React.FC<ToteTableProps> = ({ 
@@ -41,7 +43,8 @@ const ToteTable: React.FC<ToteTableProps> = ({
   hideDestination = false,
   hideGrid = false,
   hideSource = false,
-  hideCurrentFacility = false
+  hideCurrentFacility = false,
+  alwaysHideDestinationForInbound = false
 }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -63,7 +66,6 @@ const ToteTable: React.FC<ToteTableProps> = ({
         return 'Invalid Date';
       }
       
-      // Format date as: Apr 16, 2025 10:30 AM
       return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -95,7 +97,10 @@ const ToteTable: React.FC<ToteTableProps> = ({
                 <TableHead className="w-[100px]">Status</TableHead>
                 <TableHead>Tote ID</TableHead>
                 {!hideSource && <TableHead className="hidden md:table-cell">Source</TableHead>}
-                {!hideDestination && <TableHead className="hidden md:table-cell">Destination</TableHead>}
+                {/* Conditionally render destination column */}
+                {!(hideDestination || (alwaysHideDestinationForInbound && totes.length > 0 && totes[0].status === 'inbound')) && (
+                  <TableHead className="hidden md:table-cell">Destination</TableHead>
+                )}
                 {!hideCurrentFacility && <TableHead className="hidden md:table-cell">Current Facility</TableHead>}
                 {!hideGrid && <TableHead className="hidden md:table-cell">Grid</TableHead>}
                 <TableHead className="hidden md:table-cell">Time</TableHead>
@@ -109,7 +114,10 @@ const ToteTable: React.FC<ToteTableProps> = ({
                     <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     {!hideSource && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
-                    {!hideDestination && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
+                    {/* Conditionally render destination skeleton */}
+                    {!(hideDestination || (alwaysHideDestinationForInbound && totes.length > 0 && totes[0].status === 'inbound')) && (
+                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    )}
                     {!hideCurrentFacility && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
                     {!hideGrid && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>}
                     <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
@@ -133,7 +141,10 @@ const ToteTable: React.FC<ToteTableProps> = ({
                     </TableCell>
                     <TableCell className="font-medium">{tote.id}</TableCell>
                     {!hideSource && <TableCell className="hidden md:table-cell">{tote.source}</TableCell>}
-                    {!hideDestination && <TableCell className="hidden md:table-cell">{tote.destination}</TableCell>}
+                    {/* Conditionally render destination cell */}
+                    {!(hideDestination || (alwaysHideDestinationForInbound && tote.status === 'inbound')) && (
+                      <TableCell className="hidden md:table-cell">{tote.destination}</TableCell>
+                    )}
                     {!hideCurrentFacility && <TableCell className="hidden md:table-cell">{tote.currentFacility || '-'}</TableCell>}
                     {!hideGrid && <TableCell className="hidden md:table-cell">{tote.grid || '-'}</TableCell>}
                     <TableCell className="hidden md:table-cell">

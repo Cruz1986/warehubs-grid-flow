@@ -48,6 +48,8 @@ const ToteTabs: React.FC<ToteTabsProps> = ({
           isLoading={isLoading} 
           error={error}
           hideGrid={true}
+          // Add this prop to always hide destination for inbound totes
+          alwaysHideDestinationForInbound={true}
         />
       </TabsContent>
       <TabsContent value="staged">
