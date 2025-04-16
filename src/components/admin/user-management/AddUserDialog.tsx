@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -39,9 +39,12 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
   const [facility, setFacility] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // TEMPORARY FIX: Always show the dialog without permission check
-  // In a production environment, you would check permissions here
-  const hasAdminPermission = true;
+  // Set initial facility value if facilities are loaded
+  useEffect(() => {
+    if (facilities.length > 0 && !facility) {
+      setFacility(facilities[0]);
+    }
+  }, [facilities, facility]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -73,6 +76,16 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
     
     if (!validateForm()) return;
     
+    // Check if user is logged in before submitting
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      setErrors({
+        ...errors,
+        general: 'You must be logged in to add users'
+      });
+      return;
+    }
+    
     onAddUser({
       username: username.trim(),
       password: password.trim(),
@@ -89,11 +102,10 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
     setUsername('');
     setPassword('');
     setRole('operator');
-    setFacility('');
+    setFacility(facilities.length > 0 ? facilities[0] : '');
     setErrors({});
   };
 
-  // Always render the dialog with this temporary fix
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open);
@@ -114,6 +126,13 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            {errors.general && (
+              <div className="col-span-4">
+                <Alert variant="destructive">
+                  <AlertDescription>{errors.general}</AlertDescription>
+                </Alert>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="username" className="text-right">
                 Username
@@ -179,11 +198,17 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                     <SelectValue placeholder="Select a facility" />
                   </SelectTrigger>
                   <SelectContent>
-                    {facilities.map((facilityName) => (
-                      <SelectItem key={facilityName} value={facilityName}>
-                        {facilityName}
+                    {facilities.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No facilities available
                       </SelectItem>
-                    ))}
+                    ) : (
+                      facilities.map((facilityName) => (
+                        <SelectItem key={facilityName} value={facilityName}>
+                          {facilityName}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.facility && (
