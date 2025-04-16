@@ -55,8 +55,8 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
     
     if (!password.trim()) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (password.length < 4) {
+      newErrors.password = 'Password must be at least 4 characters';
     }
     
     if (!role) {
@@ -179,8 +179,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="operator">Operator</SelectItem>
+                    <SelectItem value="user">Manager</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.role && (
