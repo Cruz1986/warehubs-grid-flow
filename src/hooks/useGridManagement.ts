@@ -106,6 +106,17 @@ export const useGridManagement = () => {
     setIsLoading(true);
     
     try {
+      // First, check if the tote exists in inbound
+      const { data: inboundData, error: inboundError } = await supabase
+        .from('tote_inbound')
+        .select('source')
+        .eq('tote_id', scannedTote)
+        .eq('status', 'inbound')
+        .single();
+      
+      // Get the original source from inbound record, or use current facility as fallback
+      const originalSource = inboundData?.source || currentFacility;
+      
       // Get current timestamp
       const now = new Date();
       
@@ -133,7 +144,7 @@ export const useGridManagement = () => {
       const newTote: Tote = {
         id: scannedTote,
         status: 'staged',
-        source: currentFacility,
+        source: originalSource, // Use original source from inbound record
         destination,
         grid: gridId,
         timestamp: now.toISOString(),
