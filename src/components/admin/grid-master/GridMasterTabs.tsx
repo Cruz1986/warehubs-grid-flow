@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import FacilityMaster from './grid-master/FacilityMaster';
-import GridAssignment from './grid-master/GridAssignment';
+import FacilityMaster from '../grid-master/FacilityMaster';
+import GridAssignment from '../grid-master/GridAssignment';
 import { Facility } from '../GridMasterComponent';
 
 interface GridMapping {
