@@ -103,16 +103,18 @@ export const useWarehouseData = () => {
           console.error('Error fetching yesterday outbound totes:', yesterdayOutboundError);
         }
         
-        // Get pending totes
-        const { data: pendingTotes, error: pendingError } = await supabase
-          .from('tote_inbound')
-          .select('count')
-          .eq('status', 'pending')
-          .single();
+        // Get staged totes (pending)
+        const { data: stagedTotes, error: stagedError } = await supabase
+          .from('tote_staging')
+          .select('*')
+          .eq('status', 'staged');
         
-        if (pendingError && pendingError.code !== 'PGRST116') {
-          console.error('Error fetching pending totes:', pendingError);
+        if (stagedError) {
+          console.error('Error fetching staged totes:', stagedError);
         }
+        
+        const stagedTotesCount = stagedTotes?.length || 0;
+        console.log('Staged totes count:', stagedTotesCount);
         
         // Get grid capacity
         const { data: grids, error: gridsError } = await supabase
@@ -152,7 +154,7 @@ export const useWarehouseData = () => {
             used: occupiedGrids,
             total: totalGrids,
           },
-          pendingTotes: Number(pendingTotes?.count ?? 0)
+          pendingTotes: stagedTotesCount
         });
         
       } catch (error) {

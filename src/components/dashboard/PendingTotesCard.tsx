@@ -26,18 +26,20 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
       try {
         setIsLoading(true);
         
-        // Get count of staged totes
-        const { count: stagedCount, error } = await supabase
+        // Get all staged totes
+        const { data: stagedTotes, error } = await supabase
           .from('tote_staging')
-          .select('*', { count: 'exact', head: true })
+          .select('*')
           .eq('status', 'staged');
         
         if (error) {
-          console.error('Error fetching staged totes count:', error);
+          console.error('Error fetching staged totes:', error);
           return;
         }
         
-        setCount(stagedCount || 0);
+        // Count the number of staged totes
+        setCount(stagedTotes?.length || 0);
+        console.log('Staged totes count:', stagedTotes?.length || 0);
       } catch (error) {
         console.error('Error fetching staged totes:', error);
       } finally {

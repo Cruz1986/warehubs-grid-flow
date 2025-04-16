@@ -8,6 +8,9 @@ import { useWarehouseStats } from '@/hooks/useWarehouseStats';
 const StatusCards = () => {
   const { stats, isLoading } = useWarehouseStats();
 
+  // Log the stats to help with debugging
+  console.log('StatusCards stats:', stats);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <InboundCard

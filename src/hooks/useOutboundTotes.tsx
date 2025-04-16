@@ -34,12 +34,12 @@ export const useOutboundTotes = () => {
         const formattedOutbound = outboundData.map(tote => ({
           id: tote.tote_id,
           status: 'completed' as const,
-          source: tote.current_facility || 'Current Facility',
+          source: tote.source || 'Current Facility',
           destination: tote.destination || 'Unknown',
           timestamp: new Date(tote.timestamp_out || Date.now()).toISOString(),
           user: tote.operator_name || 'Unknown',
           grid: undefined,
-          currentFacility: tote.current_facility || 'Unknown',
+          currentFacility: tote.source || 'Unknown',
           completedTime: tote.completed_time ? new Date(tote.completed_time).toISOString() : undefined
         }));
         
