@@ -17,6 +17,8 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
   const [isLoading, setIsLoading] = useState(initialLoading);
 
   useEffect(() => {
+    console.log('PendingTotesCard received count:', initialCount);
+    
     // Update the count when the prop changes
     if (initialCount !== undefined) {
       setCount(initialCount);

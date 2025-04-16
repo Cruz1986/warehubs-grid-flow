@@ -103,7 +103,7 @@ export const useWarehouseData = () => {
           console.error('Error fetching yesterday outbound totes:', yesterdayOutboundError);
         }
         
-        // Get staged totes (pending) - Directly fetch them
+        // Get staged totes (pending) - USING DIRECT COUNT INSTEAD OF COUNT FIELD
         const { data: stagedTotes, error: stagedError } = await supabase
           .from('tote_staging')
           .select('*')
@@ -154,7 +154,7 @@ export const useWarehouseData = () => {
             used: occupiedGrids,
             total: totalGrids,
           },
-          pendingTotes: stagedTotesCount
+          pendingTotes: stagedTotesCount // Ensure this is set correctly
         });
         
       } catch (error) {
