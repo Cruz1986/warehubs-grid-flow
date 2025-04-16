@@ -14,6 +14,7 @@ export const useToteData = () => {
       try {
         setIsLoadingTotes(true);
         
+        // Fetch Inbound Totes with new fields
         const { data: inboundData, error: inboundError } = await supabase
           .from('tote_inbound')
           .select('*')
@@ -28,19 +29,21 @@ export const useToteData = () => {
             id: tote.tote_id,
             status: 'inbound' as const,
             source: tote.source || 'Unknown',
-            destination: 'Current Facility',
+            destination: tote.current_facility || 'Current Facility',
             timestamp: new Date(tote.timestamp_in).toLocaleString(),
             user: tote.operator_name || 'Unknown',
             grid: undefined,
+            currentFacility: tote.current_facility || 'Unknown'
           }));
           setInboundTotes(formattedInbound);
         }
         
+        // Fetch Staged Totes with new fields
         const { data: stagedData, error: stagedError } = await supabase
           .from('tote_staging')
           .select('*')
           .eq('status', 'staged')
-          .order('grid_timestamp', { ascending: false })
+          .order('staging_time', { ascending: false })
           .limit(10);
         
         if (stagedError) {
@@ -49,20 +52,22 @@ export const useToteData = () => {
           const formattedStaged = stagedData.map(tote => ({
             id: tote.tote_id || 'Unknown',
             status: 'staged' as const,
-            source: 'Current Facility',
+            source: tote.staging_facility || 'Current Facility',
             destination: tote.destination || 'Unknown',
-            timestamp: new Date(tote.grid_timestamp).toLocaleString(),
-            user: tote.operator_name || 'Unknown',
+            timestamp: new Date(tote.staging_time).toLocaleString(),
+            user: tote.staging_user || 'Unknown',
             grid: tote.grid_no,
+            currentFacility: tote.staging_facility || 'Unknown'
           }));
           setStagedTotes(formattedStaged);
         }
         
+        // Fetch Outbound Totes with new completion fields
         const { data: outboundData, error: outboundError } = await supabase
           .from('tote_outbound')
           .select('*')
-          .eq('status', 'outbound')
-          .order('timestamp_out', { ascending: false })
+          .eq('status', 'completed')
+          .order('completed_time', { ascending: false })
           .limit(10);
         
         if (outboundError) {
@@ -73,9 +78,10 @@ export const useToteData = () => {
             status: 'outbound' as const,
             source: 'Current Facility',
             destination: tote.destination || 'Unknown',
-            timestamp: new Date(tote.timestamp_out).toLocaleString(),
-            user: tote.operator_name || 'Unknown',
+            timestamp: new Date(tote.completed_time).toLocaleString(),
+            user: tote.completed_by || 'Unknown',
             grid: undefined,
+            currentFacility: tote.destination || 'Unknown'
           }));
           setOutboundTotes(formattedOutbound);
         }
@@ -88,31 +94,26 @@ export const useToteData = () => {
     
     fetchTotes();
     
-    const inboundChannel = supabase
-      .channel('tote-inbound-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tote_inbound' }, () => {
-        fetchTotes();
-      })
-      .subscribe();
+    // Realtime subscriptions for each table
+    const channels = [
+      supabase
+        .channel('tote-inbound-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tote_inbound' }, fetchTotes)
+        .subscribe(),
       
-    const stagingChannel = supabase
-      .channel('tote-staging-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tote_staging' }, () => {
-        fetchTotes();
-      })
-      .subscribe();
+      supabase
+        .channel('tote-staging-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tote_staging' }, fetchTotes)
+        .subscribe(),
       
-    const outboundChannel = supabase
-      .channel('tote-outbound-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tote_outbound' }, () => {
-        fetchTotes();
-      })
-      .subscribe();
-      
+      supabase
+        .channel('tote-outbound-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tote_outbound' }, fetchTotes)
+        .subscribe()
+    ];
+    
     return () => {
-      supabase.removeChannel(inboundChannel);
-      supabase.removeChannel(stagingChannel);
-      supabase.removeChannel(outboundChannel);
+      channels.forEach(channel => supabase.removeChannel(channel));
     };
   }, []);
 

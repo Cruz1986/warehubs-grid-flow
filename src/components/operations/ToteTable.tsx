@@ -2,11 +2,10 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
-  PackageOpen, // inbound
-  PackageCheck, // outbound
-  Package // staged or other
+  PackageOpen, 
+  PackageCheck, 
+  Package 
 } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export interface Tote {
@@ -17,6 +16,7 @@ export interface Tote {
   timestamp: string;
   user: string;
   grid?: string;
+  currentFacility?: string; // New field
 }
 
 interface ToteTableProps {
@@ -26,6 +26,7 @@ interface ToteTableProps {
   hideDestination?: boolean;
   hideGrid?: boolean;
   hideSource?: boolean;
+  hideCurrentFacility?: boolean;
 }
 
 const ToteTable: React.FC<ToteTableProps> = ({ 
@@ -34,7 +35,8 @@ const ToteTable: React.FC<ToteTableProps> = ({
   isLoading = false,
   hideDestination = false,
   hideGrid = false,
-  hideSource = false
+  hideSource = false,
+  hideCurrentFacility = false
 }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -44,19 +46,6 @@ const ToteTable: React.FC<ToteTableProps> = ({
         return <PackageCheck className="h-4 w-4 text-green-600" />;
       default:
         return <Package className="h-4 w-4 text-yellow-600" />;
-    }
-  };
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'inbound':
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case 'outbound':
-        return "bg-green-100 text-green-800 border-green-200";
-      case 'staged':
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
   
@@ -73,8 +62,10 @@ const ToteTable: React.FC<ToteTableProps> = ({
                 <TableHead>Tote ID</TableHead>
                 {!hideSource && <TableHead className="hidden md:table-cell">Source</TableHead>}
                 {!hideDestination && <TableHead className="hidden md:table-cell">Destination</TableHead>}
+                {!hideCurrentFacility && <TableHead className="hidden md:table-cell">Current Facility</TableHead>}
                 {!hideGrid && <TableHead className="hidden md:table-cell">Grid</TableHead>}
                 <TableHead className="hidden md:table-cell">Time</TableHead>
+                <TableHead className="hidden md:table-cell">User</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -85,13 +76,15 @@ const ToteTable: React.FC<ToteTableProps> = ({
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     {!hideSource && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
                     {!hideDestination && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
+                    {!hideCurrentFacility && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
                     {!hideGrid && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>}
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                   </TableRow>
                 ))
               ) : totes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                     No totes found
                   </TableCell>
                 </TableRow>
@@ -104,26 +97,18 @@ const ToteTable: React.FC<ToteTableProps> = ({
                         <span className="md:hidden ml-2 capitalize">{tote.status}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {tote.id}
-                      <div className="md:hidden mt-1 text-xs text-gray-500">
-                        {!hideSource && <div>From: {tote.source}</div>}
-                        {!hideDestination && <div>To: {tote.destination}</div>}
-                        {!hideGrid && tote.grid && <div>Grid: {tote.grid}</div>}
-                        <div>{new Date(tote.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </div>
-                    </TableCell>
+                    <TableCell className="font-medium">{tote.id}</TableCell>
                     {!hideSource && <TableCell className="hidden md:table-cell">{tote.source}</TableCell>}
                     {!hideDestination && <TableCell className="hidden md:table-cell">{tote.destination}</TableCell>}
-                    {!hideGrid && <TableCell className="hidden md:table-cell">
-                      {tote.grid || '-'}
-                    </TableCell>}
+                    {!hideCurrentFacility && <TableCell className="hidden md:table-cell">{tote.currentFacility || '-'}</TableCell>}
+                    {!hideGrid && <TableCell className="hidden md:table-cell">{tote.grid || '-'}</TableCell>}
                     <TableCell className="hidden md:table-cell">
                       {new Date(tote.timestamp).toLocaleTimeString([], { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                       })}
                     </TableCell>
+                    <TableCell className="hidden md:table-cell">{tote.user}</TableCell>
                   </TableRow>
                 ))
               )}
