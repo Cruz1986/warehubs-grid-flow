@@ -26,13 +26,29 @@ const ToteTabs: React.FC<ToteTabsProps> = ({
         <TabsTrigger value="outbound">Outbound</TabsTrigger>
       </TabsList>
       <TabsContent value="inbound">
-        <ToteTable totes={inboundTotes} title="Recent Inbound Totes" isLoading={isLoading} error={error} />
+        <ToteTable 
+          totes={inboundTotes} 
+          title="Recent Inbound Totes" 
+          isLoading={isLoading} 
+          error={error}
+          hideGrid={true}
+        />
       </TabsContent>
       <TabsContent value="staged">
-        <ToteTable totes={stagedTotes} title="Currently Staged Totes" isLoading={isLoading} error={error} />
+        <ToteTable 
+          totes={stagedTotes} 
+          title="Currently Staged Totes" 
+          isLoading={isLoading} 
+          error={error}
+        />
       </TabsContent>
       <TabsContent value="outbound">
-        <ToteTable totes={outboundTotes} title="Recent Outbound Totes" isLoading={isLoading} error={error} />
+        <ToteTable 
+          totes={outboundTotes} 
+          title="Recent Outbound Totes" 
+          isLoading={isLoading} 
+          error={error}
+        />
       </TabsContent>
     </Tabs>
   );

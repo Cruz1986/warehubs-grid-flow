@@ -34,8 +34,8 @@ export const useInboundTotes = () => {
           id: tote.tote_id,
           status: 'inbound' as const,
           source: tote.source || 'Unknown',
-          destination: tote.current_facility || 'Current Facility',
-          timestamp: new Date(tote.timestamp_in).toLocaleString(),
+          destination: tote.current_facility || 'Unknown',
+          timestamp: new Date(tote.timestamp_in).toISOString(),
           user: tote.operator_name || 'Unknown',
           grid: undefined,
           currentFacility: tote.current_facility || 'Unknown'

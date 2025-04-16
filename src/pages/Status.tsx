@@ -17,7 +17,8 @@ const Status = () => {
     gridStatuses,
     isLoadingTotes,
     isLoadingActivity,
-    isLoadingGrids
+    isLoadingGrids,
+    error
   } = useStatusData();
 
   return (
@@ -52,6 +53,7 @@ const Status = () => {
             stagedTotes={stagedTotes}
             outboundTotes={outboundTotes}
             isLoading={isLoadingTotes}
+            error={error}
           />
         </div>
       </div>

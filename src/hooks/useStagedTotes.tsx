@@ -33,13 +33,13 @@ export const useStagedTotes = () => {
         const formattedStaged = stagedData.map(tote => ({
           id: tote.tote_id || 'Unknown',
           status: 'staged' as const,
-          source: tote.staging_facility || 'Current Facility',
+          source: tote.staging_facility || 'Unknown',
           destination: tote.destination || 'Unknown',
-          timestamp: new Date(tote.grid_timestamp).toLocaleString(),
+          timestamp: new Date(tote.grid_timestamp).toISOString(),
           user: tote.staging_user || 'Unknown',
           grid: tote.grid_no,
           currentFacility: tote.staging_facility || 'Unknown',
-          stagingTime: tote.staging_time ? new Date(tote.staging_time).toLocaleString() : undefined
+          stagingTime: tote.staging_time ? new Date(tote.staging_time).toISOString() : undefined
         }));
         setStagedTotes(formattedStaged);
       } catch (error: any) {

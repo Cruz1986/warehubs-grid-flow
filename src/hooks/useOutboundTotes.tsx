@@ -35,11 +35,11 @@ export const useOutboundTotes = () => {
           status: 'completed' as const,
           source: 'Current Facility',
           destination: tote.destination || 'Unknown',
-          timestamp: new Date(tote.completed_time || tote.timestamp_out).toLocaleString(),
+          timestamp: new Date(tote.completed_time || tote.timestamp_out).toISOString(),
           user: tote.completed_by || tote.operator_name || 'Unknown',
           grid: undefined,
           currentFacility: tote.destination || 'Unknown',
-          completedTime: tote.completed_time ? new Date(tote.completed_time).toLocaleString() : undefined
+          completedTime: tote.completed_time ? new Date(tote.completed_time).toISOString() : undefined
         }));
         setOutboundTotes(formattedOutbound);
       } catch (error: any) {

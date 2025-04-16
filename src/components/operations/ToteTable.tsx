@@ -56,6 +56,27 @@ const ToteTable: React.FC<ToteTableProps> = ({
     }
   };
   
+  const formatDateTime = (dateTimeStr: string) => {
+    try {
+      const date = new Date(dateTimeStr);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      
+      // Format date as: Apr 16, 2025 10:30 AM
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+  
   return (
     <div>
       {title && <h2 className="text-xl font-semibold mb-4">{title}</h2>}
@@ -116,10 +137,7 @@ const ToteTable: React.FC<ToteTableProps> = ({
                     {!hideCurrentFacility && <TableCell className="hidden md:table-cell">{tote.currentFacility || '-'}</TableCell>}
                     {!hideGrid && <TableCell className="hidden md:table-cell">{tote.grid || '-'}</TableCell>}
                     <TableCell className="hidden md:table-cell">
-                      {new Date(tote.timestamp).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
+                      {formatDateTime(tote.timestamp)}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{tote.user}</TableCell>
                   </TableRow>

@@ -13,7 +13,7 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
   count: initialCount,
   isLoading: initialLoading = false
 }) => {
-  const [count, setCount] = useState(initialCount || 0);
+  const [count, setCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(initialLoading);
 
   useEffect(() => {
@@ -67,7 +67,7 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
   return (
     <StatusCard
       title="Staged Totes"
-      value={String(count)}
+      value={count !== undefined ? String(count) : "Loading..."}
       description="Awaiting outbound processing"
       icon={<Package className="h-4 w-4" />}
       isLoading={isLoading}
