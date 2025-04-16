@@ -84,12 +84,15 @@ export const useOutboundProcessing = (userFacility: string) => {
         return;
       }
       
+      // Get the username from localStorage
+      const username = localStorage.getItem('username') || 'unknown';
+      
       // Insert into outbound
       const insertData = {
         tote_id: toteId,
         status: 'outbound',
         destination: selectedDestination,
-        operator_name: localStorage.getItem('username') || 'unknown'
+        operator_name: username
       };
       
       const { error: insertError } = await supabase
@@ -115,22 +118,28 @@ export const useOutboundProcessing = (userFacility: string) => {
         toast.warning('Tote marked as outbound but staging status update failed');
       }
       
+      // Get the source from the staging record
+      const source = stagedTotes.staging_facility || userFacility;
+      
       // Add to local state
       const newTote: Tote = {
         id: toteId,
         status: 'outbound',
-        source: userFacility,
+        source: source,
         destination: selectedDestination,
         timestamp: new Date().toISOString(),
-        user: localStorage.getItem('username') || 'unknown',
+        user: username,
+        currentFacility: userFacility,
+        grid: stagedTotes.grid_no
       };
       
-      setRecentScans([newTote, ...recentScans]);
+      setRecentScans(prevScans => [newTote, ...prevScans]);
       toast.success(`Tote ${toteId} has been shipped to ${selectedDestination}`);
       
       // Refocus on tote input for continuous scanning
       if (toteInputRef.current) {
         toteInputRef.current.focus();
+        toteInputRef.current.value = '';
       }
     } catch (err) {
       console.error('Exception processing outbound tote:', err);

@@ -56,7 +56,11 @@ const OutboundProcessingForm: React.FC<OutboundProcessingFormProps> = ({
       <ToteTable
         totes={recentScans}
         title="Recent Outbound Scans"
-        isLoading={isLoading}
+        isLoading={isProcessing}
+        hideGrid={false}
+        hideCurrentFacility={false}
+        hideSource={false}
+        hideDestination={false}
       />
     </div>
   );
