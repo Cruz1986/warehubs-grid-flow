@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -48,11 +47,7 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
       return;
     }
 
-    // Ensure location has a value since it's required in the database
-    if (!newFacility.location.trim()) {
-      toast.error('Location is required');
-      return;
-    }
+    // Location is no longer required, so we've removed the validation
 
     try {
       setIsSubmitting(true);
@@ -62,7 +57,7 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
         .insert({
           name: newFacility.name,
           type: newFacility.type,
-          location: newFacility.location
+          location: newFacility.location // This can now be empty
         })
         .select()
         .single();
@@ -136,15 +131,13 @@ const AddFacilityDialog: React.FC<AddFacilityDialogProps> = ({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="location">Location *</Label>
+            <Label htmlFor="location">Location (Optional)</Label>
             <Input
               id="location"
               value={newFacility.location}
               onChange={(e) => setNewFacility({...newFacility, location: e.target.value})}
-              placeholder="Enter location"
-              required
+              placeholder="Enter location (optional)"
             />
-            <p className="text-xs text-muted-foreground">This field is required</p>
           </div>
         </div>
         <DialogFooter>
