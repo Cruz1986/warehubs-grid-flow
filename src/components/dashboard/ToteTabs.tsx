@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ToteTable, { Tote } from '../operations/ToteTable';
+import { Badge } from '@/components/ui/badge';
 
 interface ToteTabsProps {
   inboundTotes: Tote[];
@@ -21,9 +22,24 @@ const ToteTabs: React.FC<ToteTabsProps> = ({
   return (
     <Tabs defaultValue="inbound">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="inbound">Inbound</TabsTrigger>
-        <TabsTrigger value="staged">Staged</TabsTrigger>
-        <TabsTrigger value="outbound">Outbound</TabsTrigger>
+        <TabsTrigger value="inbound">
+          Inbound
+          {inboundTotes.length > 0 && (
+            <Badge variant="outline" className="ml-2">{inboundTotes.length}</Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="staged">
+          Staged
+          {stagedTotes.length > 0 && (
+            <Badge variant="outline" className="ml-2">{stagedTotes.length}</Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="outbound">
+          Outbound
+          {outboundTotes.length > 0 && (
+            <Badge variant="outline" className="ml-2">{outboundTotes.length}</Badge>
+          )}
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="inbound">
         <ToteTable 
@@ -48,6 +64,7 @@ const ToteTabs: React.FC<ToteTabsProps> = ({
           title="Recent Outbound Totes" 
           isLoading={isLoading} 
           error={error}
+          hideGrid={true}
         />
       </TabsContent>
     </Tabs>

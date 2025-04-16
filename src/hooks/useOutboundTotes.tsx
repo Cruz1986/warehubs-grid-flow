@@ -19,8 +19,7 @@ export const useOutboundTotes = () => {
         const { data: outboundData, error: outboundError } = await supabase
           .from('tote_outbound')
           .select('*')
-          .eq('status', 'completed')
-          .order('completed_time', { ascending: false })
+          .order('timestamp_out', { ascending: false })
           .limit(10);
         
         if (outboundError) {
@@ -30,17 +29,20 @@ export const useOutboundTotes = () => {
           return;
         }
         
+        console.log('Outbound data fetched:', outboundData);
+        
         const formattedOutbound = outboundData.map(tote => ({
           id: tote.tote_id,
           status: 'completed' as const,
-          source: 'Current Facility',
+          source: tote.current_facility || 'Current Facility',
           destination: tote.destination || 'Unknown',
-          timestamp: new Date(tote.completed_time || tote.timestamp_out).toISOString(),
-          user: tote.completed_by || tote.operator_name || 'Unknown',
+          timestamp: new Date(tote.timestamp_out || Date.now()).toISOString(),
+          user: tote.operator_name || 'Unknown',
           grid: undefined,
-          currentFacility: tote.destination || 'Unknown',
+          currentFacility: tote.current_facility || 'Unknown',
           completedTime: tote.completed_time ? new Date(tote.completed_time).toISOString() : undefined
         }));
+        
         setOutboundTotes(formattedOutbound);
       } catch (error: any) {
         console.error('Error fetching outbound totes data:', error);

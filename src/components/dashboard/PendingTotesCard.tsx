@@ -13,7 +13,7 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
   count: initialCount,
   isLoading: initialLoading = false
 }) => {
-  const [count, setCount] = useState(initialCount);
+  const [count, setCount] = useState<number | undefined>(initialCount);
   const [isLoading, setIsLoading] = useState(initialLoading);
 
   useEffect(() => {
