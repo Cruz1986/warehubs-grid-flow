@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import StatusCard from './StatusCard';
 import { Package } from 'lucide-react';
-import { getPendingTotesCount } from '@/integrations/googleScript/client';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PendingTotesCardProps {
   count?: number;
@@ -22,26 +22,53 @@ const PendingTotesCard: React.FC<PendingTotesCardProps> = ({
       return;
     }
 
-    const fetchPendingTotes = async () => {
+    const fetchStagedTotes = async () => {
       try {
         setIsLoading(true);
-        const pendingCount = await getPendingTotesCount();
-        setCount(pendingCount);
+        
+        // Get count of staged totes
+        const { count: stagedCount, error } = await supabase
+          .from('tote_staging')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'staged');
+        
+        if (error) {
+          console.error('Error fetching staged totes count:', error);
+          return;
+        }
+        
+        setCount(stagedCount || 0);
       } catch (error) {
-        console.error('Error fetching pending totes:', error);
+        console.error('Error fetching staged totes:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchPendingTotes();
+    fetchStagedTotes();
+    
+    // Set up real-time subscription for changes
+    const channel = supabase
+      .channel('staged-totes-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tote_staging' 
+      }, () => {
+        fetchStagedTotes();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [initialCount]);
 
   return (
     <StatusCard
-      title="Pending Totes"
+      title="Staged Totes"
       value={String(count)}
-      description="Waiting for processing"
+      description="Awaiting outbound processing"
       icon={<Package className="h-4 w-4" />}
       isLoading={isLoading}
     />

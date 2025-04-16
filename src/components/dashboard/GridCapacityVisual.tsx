@@ -1,13 +1,15 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Grid2X2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GridStatus {
   id: string;
   grid_number: string;
   status: string;
+  tote_count?: number;
 }
 
 interface GridCapacityVisualProps {
@@ -16,9 +18,85 @@ interface GridCapacityVisualProps {
 }
 
 const GridCapacityVisual: React.FC<GridCapacityVisualProps> = ({ 
-  gridStatuses, 
-  isLoading 
+  gridStatuses: initialGridStatuses, 
+  isLoading: initialLoading 
 }) => {
+  const [gridStatuses, setGridStatuses] = useState<GridStatus[]>(initialGridStatuses || []);
+  const [isLoading, setIsLoading] = useState(initialLoading);
+
+  useEffect(() => {
+    if (initialGridStatuses?.length > 0) {
+      setGridStatuses(initialGridStatuses);
+      return;
+    }
+    
+    const fetchGridData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch all grid numbers from grid_master
+        const { data: grids, error: gridError } = await supabase
+          .from('grid_master')
+          .select('id, grid_no')
+          .order('grid_no');
+        
+        if (gridError) {
+          console.error('Error fetching grid data:', gridError);
+          return;
+        }
+        
+        // Fetch staged totes to count per grid
+        const { data: stagedTotes, error: stagedError } = await supabase
+          .from('tote_staging')
+          .select('grid_no')
+          .eq('status', 'staged');
+          
+        if (stagedError) {
+          console.error('Error fetching staged totes:', stagedError);
+          return;
+        }
+        
+        // Count totes per grid
+        const gridCounts: Record<string, number> = {};
+        stagedTotes?.forEach(tote => {
+          gridCounts[tote.grid_no] = (gridCounts[tote.grid_no] || 0) + 1;
+        });
+        
+        // Format grid data
+        const formattedGrids: GridStatus[] = grids?.map(grid => ({
+          id: grid.id,
+          grid_number: grid.grid_no,
+          status: gridCounts[grid.grid_no] ? 'occupied' : 'available',
+          tote_count: gridCounts[grid.grid_no] || 0
+        })) || [];
+        
+        setGridStatuses(formattedGrids);
+      } catch (error) {
+        console.error('Error processing grid data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchGridData();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('grid-visual-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tote_staging' 
+      }, () => {
+        fetchGridData();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [initialGridStatuses]);
+
   return (
     <Card>
       <CardHeader>
@@ -44,14 +122,19 @@ const GridCapacityVisual: React.FC<GridCapacityVisualProps> = ({
                   return (
                     <div 
                       key={grid.id}
-                      className={`aspect-square flex items-center justify-center rounded-md text-xs font-medium border ${
+                      className={`aspect-square flex flex-col items-center justify-center rounded-md text-xs font-medium border ${
                         isOccupied 
                           ? 'bg-yellow-100 border-yellow-300 text-yellow-800' 
                           : 'bg-gray-50 border-gray-200 text-gray-500'
                       }`}
-                      title={`${grid.grid_number}: ${isOccupied ? 'Occupied' : 'Available'}`}
+                      title={`${grid.grid_number}: ${isOccupied ? `${grid.tote_count} totes` : 'Available'}`}
                     >
-                      {index + 1}
+                      <div>{grid.grid_number}</div>
+                      {isOccupied && grid.tote_count && (
+                        <div className="mt-1 text-[10px] bg-yellow-200 px-1 rounded-full">
+                          {grid.tote_count}
+                        </div>
+                      )}
                     </div>
                   );
                 }) : 
