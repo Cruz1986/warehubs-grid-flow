@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -9,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import AddUserDialog from './user-management/AddUserDialog';
 import ResetPasswordDialog from './user-management/ResetPasswordDialog';
 import UserTableRow from './user-management/UserTableRow';
@@ -28,44 +28,74 @@ const UserManagementTable = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [facilities, setFacilities] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPermission, setHasPermission] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   useEffect(() => {
-    const fetchFacilities = async () => {
+    // Check if user is logged in and has admin privileges
+    const checkPermission = () => {
       try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('facility_master')
-          .select('name');
-        
-        if (error) {
-          throw error;
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+          setHasPermission(false);
+          return null;
         }
         
-        // Extract facility names from the data
-        const facilityNames = data.map(facility => facility.name);
-        setFacilities(facilityNames);
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+        
+        // Check if user has admin role
+        const isAdmin = user.isAdmin === true || user.role === 'admin';
+        
+        if (!isAdmin) {
+          console.log('User does not have admin role:', user);
+          setHasPermission(false);
+          toast.error('You must be an admin to manage users');
+        }
+        
+        return user;
       } catch (error) {
-        console.error('Error fetching facilities:', error);
-        toast.error('Failed to load facilities');
-      } finally {
-        setIsLoading(false);
+        console.error('Error checking permissions:', error);
+        setHasPermission(false);
+        return null;
       }
     };
-
-    fetchFacilities();
-    fetchUsers();
+    
+    const user = checkPermission();
+    if (user && hasPermission) {
+      fetchFacilities();
+      fetchUsers();
+    }
   }, []);
+
+  const fetchFacilities = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('facility_master')
+        .select('name');
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Extract facility names from the data
+      const facilityNames = data.map(facility => facility.name);
+      setFacilities(facilityNames);
+    } catch (error) {
+      console.error('Error fetching facilities:', error);
+      toast.error('Failed to load facilities');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
       
-      // Get current user for auth context
-      const userStr = localStorage.getItem('user');
-      const currentUser = userStr ? JSON.parse(userStr) : null;
-      
       if (!currentUser) {
-        toast.error('You must be logged in to view users');
+        setHasPermission(false);
         return;
       }
 
@@ -78,7 +108,8 @@ const UserManagementTable = () => {
       if (error) {
         console.error('Error details:', error);
         if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
-          toast.error('You do not have permission to view users. Please log in as an admin.');
+          setHasPermission(false);
+          toast.error('You do not have permission to view users');
           return;
         }
         throw error;
@@ -119,25 +150,34 @@ const UserManagementTable = () => {
     facility: string;
   }) => {
     try {
-      // Get the current logged in user to use as the creator
-      const currentUserStr = localStorage.getItem('user');
-      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-      
       if (!currentUser) {
         toast.error('You must be logged in to add users');
         return;
       }
       
-      console.log('Adding user with data:', userData);
+      // Double-check admin privileges before adding user
+      const isAdmin = currentUser.isAdmin === true || currentUser.role === 'admin';
+      if (!isAdmin) {
+        toast.error('Only administrators can add new users');
+        return;
+      }
+      
+      console.log('Adding user with data:', {...userData, password: '[REDACTED]'});
+      
+      // Generate a new UUID for the user_id
+      const newUserId = crypto.randomUUID();
       
       const { data, error } = await supabase
         .from('users_log')
         .insert({
+          user_id: newUserId,
           username: userData.username,
-          password: userData.password,
+          password: userData.password, // In production, this should be hashed
           role: userData.role,
           facility: userData.facility,
-          status: 'active'
+          status: 'active',
+          created_by: currentUser.username,
+          created_at: new Date().toISOString()
         })
         .select();
       
@@ -177,9 +217,20 @@ const UserManagementTable = () => {
         return;
       }
       
+      // Double-check admin privileges
+      const isAdmin = currentUser?.isAdmin === true || currentUser?.role === 'admin';
+      if (!isAdmin) {
+        toast.error('Only administrators can reset passwords');
+        return;
+      }
+      
       const { error } = await supabase
         .from('users_log')
-        .update({ password: newPassword })
+        .update({ 
+          password: newPassword,
+          modified_by: currentUser?.username,
+          modified_at: new Date().toISOString()
+        })
         .eq('user_id', selectedUser.id);
       
       if (error) {
@@ -201,6 +252,13 @@ const UserManagementTable = () => {
 
   const handleDeleteUser = async (user: User) => {
     try {
+      // Double-check admin privileges
+      const isAdmin = currentUser?.isAdmin === true || currentUser?.role === 'admin';
+      if (!isAdmin) {
+        toast.error('Only administrators can delete users');
+        return;
+      }
+      
       const { error } = await supabase
         .from('users_log')
         .delete()
@@ -217,6 +275,22 @@ const UserManagementTable = () => {
       toast.error('Failed to delete user');
     }
   };
+
+  // If user doesn't have permission, show access denied message
+  if (!hasPermission) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            You don't have permission to manage users. Please log in with an administrator account.
+          </AlertDescription>
+        </Alert>
+        <p className="text-center text-gray-500 mt-4">
+          If you believe this is an error, please contact your system administrator.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
