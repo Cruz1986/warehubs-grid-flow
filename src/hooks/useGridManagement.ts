@@ -21,6 +21,8 @@ export const useGridManagement = () => {
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
+  const currentFacility = user?.facility || 'Unknown';
+  const username = user?.username || 'unknown';
   
   // Fetch valid grid mappings from Supabase
   useEffect(() => {
@@ -115,7 +117,9 @@ export const useGridManagement = () => {
           status: 'staged',
           grid_no: gridId,
           destination: destination,
-          operator_name: user?.username || 'unknown'
+          operator_name: username,
+          staging_facility: currentFacility,
+          staging_user: username
         })
         .select();
       
@@ -129,11 +133,12 @@ export const useGridManagement = () => {
       const newTote: Tote = {
         id: scannedTote,
         status: 'staged',
-        source: user?.facility || '',
+        source: currentFacility,
         destination,
         grid: gridId,
         timestamp: now.toISOString(),
-        user: user?.username || 'unknown',
+        user: username,
+        currentFacility: currentFacility,
       };
       
       // Add to staged totes list
