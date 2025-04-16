@@ -4,7 +4,7 @@ import { useActivityData } from './useActivityData';
 import { useGridData } from './useGridData';
 
 export const useStatusData = () => {
-  const { inboundTotes, stagedTotes, outboundTotes, isLoadingTotes } = useToteData();
+  const { inboundTotes, stagedTotes, outboundTotes, isLoadingTotes, error } = useToteData();
   const { facilityData, isLoadingActivity } = useActivityData();
   const { gridStatuses, isLoadingGrids } = useGridData();
 
@@ -13,6 +13,7 @@ export const useStatusData = () => {
     inboundTotes,
     stagedTotes,
     outboundTotes,
+    error,
     
     // Activity data
     facilityData,

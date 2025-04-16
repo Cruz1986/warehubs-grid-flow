@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
@@ -6,6 +7,7 @@ import {
   Package 
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface Tote {
   id: string;
@@ -24,6 +26,7 @@ interface ToteTableProps {
   totes: Tote[];
   title?: string;
   isLoading?: boolean;
+  error?: string | null;
   hideDestination?: boolean;
   hideGrid?: boolean;
   hideSource?: boolean;
@@ -34,6 +37,7 @@ const ToteTable: React.FC<ToteTableProps> = ({
   totes, 
   title, 
   isLoading = false,
+  error = null,
   hideDestination = false,
   hideGrid = false,
   hideSource = false,
@@ -55,6 +59,12 @@ const ToteTable: React.FC<ToteTableProps> = ({
   return (
     <div>
       {title && <h2 className="text-xl font-semibold mb-4">{title}</h2>}
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto">
@@ -87,7 +97,7 @@ const ToteTable: React.FC<ToteTableProps> = ({
                 ))
               ) : totes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
                     No totes found
                   </TableCell>
                 </TableRow>
