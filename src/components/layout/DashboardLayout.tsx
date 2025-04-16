@@ -83,39 +83,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, requireAdmi
     };
   }, []);
 
-useEffect(() => {
-  const checkSession = async () => {
-    try {
-      // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      console.log("Session check:", !!session); // Debug log
-      
-      if (!session) {
-        // Only redirect if we're not already on the login page
-        if (window.location.pathname !== '/') {
-          console.log("No valid session, redirecting to login");
-          localStorage.removeItem('user');
-          navigate('/');
-        }
-        return;
-      }
-      
-      // If we require admin access and user isn't admin, redirect
-      if (requireAdmin && user?.role?.toLowerCase() !== 'admin') {
-        navigate('/inbound');
-      }
-    } catch (error) {
-      console.error("Session check error:", error);
-      // Don't redirect on error - this prevents redirect loops if Supabase is having issues
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+      return;
     }
-  };
-  
-  // Only run this effect if we're not on the login page
-  if (window.location.pathname !== '/') {
-    checkSession();
-  }
-}, [user, navigate, requireAdmin]);
+
+    if (requireAdmin && user.role?.toLowerCase() !== 'admin') {
+      navigate('/inbound');
+    }
+  }, [user, navigate, requireAdmin]);
 
   return (
     <div className="flex h-screen bg-white">

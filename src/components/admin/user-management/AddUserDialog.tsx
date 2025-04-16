@@ -44,7 +44,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
 
   const handleAddUser = () => {
     // Validate form
-    if (!newUser.username || !newUser.password || !newUser.facility ) {
+    if (!newUser.username || !newUser.password || !newUser.facility) {
       toast.error("Please fill all required fields");
       return;
     }
