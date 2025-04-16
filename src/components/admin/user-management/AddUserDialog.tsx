@@ -46,7 +46,16 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
       if (!userStr) return false;
       
       const user = JSON.parse(userStr);
-      return user.isAdmin === true || user.role === 'admin';
+      console.log('User data in AddUserDialog:', user);
+      
+      // Case-insensitive check for admin role and multiple properties
+      const isAdmin = 
+        user.isAdmin === true || 
+        (user.role && user.role.toLowerCase() === 'admin') ||
+        (user.role && user.role === 'Admin');
+        
+      console.log('Is admin in AddUserDialog:', isAdmin);
+      return isAdmin;
     } catch (error) {
       console.error('Error checking admin permission:', error);
       return false;
