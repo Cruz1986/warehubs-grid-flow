@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusCards from '../components/dashboard/StatusCards';
 import RecentActivityCard from '../components/dashboard/RecentActivityCard';
 import SystemStatusCard from '../components/dashboard/SystemStatusCard';
+import DatabaseStatusCard from '../components/dashboard/DatabaseStatusCard';
 import { useDashboardData } from '@/hooks/useDashboardData';
 
 const AdminDashboard = () => {
@@ -25,6 +26,10 @@ const AdminDashboard = () => {
           systemStatuses={systemStatuses}
           isLoading={isLoading}
         />
+      </div>
+      
+      <div className="mt-6">
+        <DatabaseStatusCard />
       </div>
     </DashboardLayout>
   );

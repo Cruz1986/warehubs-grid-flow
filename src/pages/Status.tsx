@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusCards from '../components/dashboard/StatusCards';
 import ActivityCard from '../components/dashboard/ActivityCard';
