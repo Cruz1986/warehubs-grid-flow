@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -81,6 +82,19 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
     };
 
     fetchConsignments();
+    
+    // Set up real-time subscription for consignment updates
+    const channel = supabase
+      .channel('consignment-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'consignment_log' }, payload => {
+        console.log('Consignment data changed:', payload);
+        fetchConsignments();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentFacility]);
 
   const handleReceiveConsignment = async (consignmentId: string) => {
@@ -88,14 +102,101 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
     setError(null);
 
     try {
+      // Get totes for this consignment
+      const { data: toteData, error: toteError } = await supabase
+        .from('tote_outbound')
+        .select('tote_id')
+        .eq('consignment_id', consignmentId);
+        
+      if (toteError) {
+        console.error('Error fetching totes for consignment:', toteError);
+        setError('Failed to fetch totes for consignment');
+        toast.error('Failed to fetch totes for consignment');
+        return;
+      }
+      
+      const toteIds = toteData.map(tote => tote.tote_id);
+      console.log(`Processing ${toteIds.length} totes for consignment ${consignmentId}`);
+      
+      const username = localStorage.getItem('username') || 'unknown';
+      const timestamp = new Date().toISOString();
+      
+      // Process tote inbound for each tote in the consignment
+      for (const toteId of toteIds) {
+        // Get consignment data for source facility
+        const { data: consignmentData } = await supabase
+          .from('consignment_log')
+          .select('source_facility')
+          .eq('consignment_id', consignmentId)
+          .single();
+          
+        const sourceFacility = consignmentData?.source_facility || 'Unknown';
+          
+        // Insert tote into inbound at the destination
+        const { error: inboundError } = await supabase
+          .from('tote_inbound')
+          .insert({
+            tote_id: toteId,
+            source: sourceFacility,
+            current_facility: currentFacility,
+            operator_name: username,
+            timestamp_in: timestamp
+          });
+          
+        if (inboundError) {
+          console.error(`Error creating inbound record for tote ${toteId}:`, inboundError);
+        }
+        
+        // Update tote_register to reflect the new location and status
+        // First check if the tote exists in the register
+        const { data: registerData } = await supabase
+          .from('tote_register')
+          .select('*')
+          .eq('tote_id', toteId)
+          .maybeSingle();
+          
+        if (registerData) {
+          // Update existing record
+          const { error: updateError } = await supabase
+            .from('tote_register')
+            .update({
+              current_status: 'inbound',
+              current_facility: currentFacility,
+              inbound_timestamp: timestamp,
+              inbound_operator: username
+            })
+            .eq('tote_id', toteId);
+            
+          if (updateError) {
+            console.error(`Error updating tote_register for ${toteId}:`, updateError);
+          }
+        } else {
+          // Create new register record if it doesn't exist
+          const { error: createError } = await supabase
+            .from('tote_register')
+            .insert({
+              tote_id: toteId,
+              current_status: 'inbound',
+              current_facility: currentFacility,
+              source_facility: sourceFacility,
+              inbound_timestamp: timestamp,
+              inbound_operator: username
+            });
+            
+          if (createError) {
+            console.error(`Error creating tote_register for ${toteId}:`, createError);
+          }
+        }
+      }
+      
       // Update consignment status to 'received'
       const { error } = await supabase
         .from('consignment_log')
         .update({
           status: 'received',
-          received_time: new Date().toISOString(),
-          received_by: localStorage.getItem('username') || 'unknown',
-          received_count: 0 // You might want to implement a way to track received count
+          received_time: timestamp,
+          received_by: username,
+          received_count: toteIds.length
         })
         .eq('consignment_id', consignmentId);
 
@@ -106,37 +207,12 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
         return;
       }
 
-      // Refresh consignments
-      const { data, error: fetchError } = await supabase
-        .from('consignment_log')
-        .select('*')
-        .eq('destination_facility', currentFacility)
-        .in('status', ['intransit', 'pending'])
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error('Error fetching updated consignments:', fetchError);
-        setError('Failed to fetch updated consignments');
-        toast.error('Failed to fetch updated consignments');
-        return;
-      }
-
-      const consignmentData = data as ConsignmentLog[] || [];
-
-      const formattedConsignments: Consignment[] = consignmentData.map(consignment => ({
-        id: consignment.consignment_id,
-        source: consignment.source_facility,
-        destination: consignment.destination_facility,
-        status: consignment.status,
-        toteCount: consignment.tote_count,
-        createdAt: consignment.created_at || 'Unknown',
-        receivedCount: consignment.received_count,
-        receivedTime: consignment.received_time,
-        notes: consignment.notes,
-      }));
-
-      setConsignments(formattedConsignments);
-      toast.success(`Consignment ${consignmentId} marked as received`);
+      toast.success(`Consignment ${consignmentId} with ${toteIds.length} totes has been received`);
+      
+      // Remove the received consignment from the list
+      setConsignments(prevConsignments => 
+        prevConsignments.filter(consignment => consignment.id !== consignmentId)
+      );
     } catch (err) {
       console.error('Error receiving consignment:', err);
       setError('Failed to receive consignment');
@@ -226,7 +302,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
                     <TableCell className="hidden md:table-cell">{formatDate(consignment.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       {consignment.status !== 'received' ? (
-                        <Badge variant="outline" onClick={() => handleReceiveConsignment(consignment.id)}>
+                        <Badge variant="outline" onClick={() => handleReceiveConsignment(consignment.id)} className="cursor-pointer hover:bg-primary/10">
                           Receive
                         </Badge>
                       ) : (

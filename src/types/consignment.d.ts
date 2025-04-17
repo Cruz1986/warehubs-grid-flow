@@ -15,3 +15,17 @@ export interface ConsignmentLog {
   received_count?: number;
   notes?: string;
 }
+
+export interface ToteTransaction {
+  id: string;
+  tote_id: string;
+  source_facility: string;
+  destination_facility: string;
+  current_status: string;
+  current_facility: string;
+  consignment_id?: string;
+  timestamp: string;
+  operator: string;
+  grid?: string;
+  notes?: string;
+}
