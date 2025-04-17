@@ -13,6 +13,7 @@ import AddUserDialog from './user-management/AddUserDialog';
 import ResetPasswordDialog from './user-management/ResetPasswordDialog';
 import UserTableRow from './user-management/UserTableRow';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 interface User {
   id: string;
@@ -202,18 +203,29 @@ const handleAddUser = async (userData: {
     console.log("User created successfully, data returned:", data);
 
     if (data && typeof data === 'object') {
-      const responseData = data as AddUserResponse;
+      const responseData = data as unknown as { [key: string]: any };
       
-      const newUser: User = {
-        id: responseData.user_id,
-        username: responseData.username,
-        role: responseData.role,
-        facility: responseData.facility || 'Unknown',
-        lastLogin: 'Never'
-      };
-      
-      setUsers([...users, newUser]);
-      toast.success("User added successfully");
+      if (responseData.user_id && 
+          typeof responseData.user_id === 'string' && 
+          responseData.username && 
+          typeof responseData.username === 'string' && 
+          responseData.role && 
+          typeof responseData.role === 'string') {
+        
+        const newUser: User = {
+          id: responseData.user_id,
+          username: responseData.username,
+          role: responseData.role,
+          facility: responseData.facility || 'Unknown',
+          lastLogin: 'Never'
+        };
+        
+        setUsers([...users, newUser]);
+        toast.success("User added successfully");
+      } else {
+        console.error("Invalid user data structure returned:", responseData);
+        toast.error("User may have been created but returned data is invalid");
+      }
     } else {
       console.error("No data returned from add_user RPC");
       toast.error("User may have been created but no data was returned");
