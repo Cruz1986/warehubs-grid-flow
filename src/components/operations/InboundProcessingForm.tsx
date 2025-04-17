@@ -31,22 +31,18 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
   const [recentScans, setRecentScans] = useState<Tote[]>([]);
   const toteInputRef = useRef<HTMLInputElement>(null);
   
-  // Consignment related state
   const [activeTab, setActiveTab] = useState('direct');
   const [selectedConsignmentId, setSelectedConsignmentId] = useState<string | null>(null);
   const [consignmentSource, setConsignmentSource] = useState<string>('');
   const [expectedToteCount, setExpectedToteCount] = useState<number>(0);
   const [showDiscrepancyAlert, setShowDiscrepancyAlert] = useState(false);
   
-  // Get current user info from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   const username = user?.username || 'unknown';
   
-  // Initialize tote register hook with all its methods
-  const { getToteRegisterInfo, createToteRegister, updateToteRegister } = useToteRegister();
+  const { getToteRegisterInfo, createToteRegister, updateToteRegister, trackToteFacilityTransfer } = useToteRegister();
   
-  // Focus on the tote input when scanning is active
   useEffect(() => {
     if (isScanningActive && toteInputRef.current) {
       toteInputRef.current.focus();
@@ -62,7 +58,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     setIsScanningActive(true);
     toast.success(`Started scanning from ${selectedFacility}`);
     
-    // Focus on tote input with a slight delay
     setTimeout(() => {
       if (toteInputRef.current) {
         toteInputRef.current.focus();
@@ -73,7 +68,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
   const handleConsignmentSelection = async (consignmentId: string) => {
     setIsProcessing(true);
     try {
-      // Fetch consignment details
       const { data, error } = await supabase
         .from('consignment_log')
         .select('*')
@@ -94,7 +88,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       
       toast.success(`Started receiving consignment ${consignmentId} from ${data.source_facility}`);
       
-      // Focus on tote input with a slight delay
       setTimeout(() => {
         if (toteInputRef.current) {
           toteInputRef.current.focus();
@@ -114,7 +107,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       return;
     }
     
-    // Check for discrepancy if this is a consignment-based inbound
     if (selectedConsignmentId && expectedToteCount > 0 && recentScans.length !== expectedToteCount) {
       setShowDiscrepancyAlert(true);
       return;
@@ -127,9 +119,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     setIsProcessing(true);
     
     try {
-      // If this is a consignment-based inbound, update the consignment status
       if (selectedConsignmentId) {
-        // Update consignment status to 'received'
         const { error: consignmentError } = await supabase
           .from('consignment_log')
           .update({
@@ -149,7 +139,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       
       toast.success(`Completed inbound process from ${selectedFacility}`);
       
-      // Reset the form
       setRecentScans([]);
       setSelectedFacility('');
       setIsScanningActive(false);
@@ -172,7 +161,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       return;
     }
     
-    // Check if tote already scanned
     if (recentScans.some(tote => tote.id === toteId)) {
       toast.error(`Tote ${toteId} has already been scanned`);
       return;
@@ -181,18 +169,14 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     setIsProcessing(true);
     
     try {
-      // First, check tote_register to see if this tote exists and is at another facility
       const registerData = await getToteRegisterInfo(toteId);
       
-      // If tote exists in another facility with inbound status and it's not the current facility
       if (registerData && 
           registerData.current_facility !== userFacility && 
           registerData.current_status === 'inbound') {
-        // Allow duplicate totes based on current facility
         console.log(`Tote ${toteId} exists in another facility, but allowing based on current facility rule`);
       }
       
-      // Insert into tote_inbound table
       const insertData = {
         tote_id: toteId,
         status: 'inbound',
@@ -211,31 +195,15 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         return;
       }
       
-      // Update or create entry in tote_register
-      const timestamp = new Date().toISOString();
+      await trackToteFacilityTransfer(
+        toteId,
+        selectedFacility, 
+        userFacility,
+        username,
+        'inbound'
+      );
       
-      if (registerData) {
-        // Update existing register entry
-        await updateToteRegister(toteId, {
-          current_status: 'inbound',
-          current_facility: userFacility,
-          inbound_timestamp: timestamp,
-          inbound_operator: username
-        });
-      } else {
-        // Create new register entry
-        await createToteRegister(toteId, {
-          current_status: 'inbound',
-          current_facility: userFacility,
-          source_facility: selectedFacility,
-          inbound_timestamp: timestamp,
-          inbound_operator: username
-        });
-      }
-      
-      // If this is a consignment-based inbound, update the tote with the consignment ID
       if (selectedConsignmentId) {
-        // Check if the tote is in tote_outbound with the correct consignment_id
         const { data: outboundData } = await supabase
           .from('tote_outbound')
           .select('*')
@@ -244,13 +212,12 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
           .maybeSingle();
       }
       
-      // Add to local state
       const newTote: Tote = {
         id: toteId,
         status: 'inbound',
         source: selectedFacility,
         destination: userFacility,
-        timestamp: timestamp,
+        timestamp: new Date().toISOString(),
         user: username,
         currentFacility: userFacility,
         consignmentId: selectedConsignmentId || undefined
@@ -259,7 +226,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       setRecentScans([newTote, ...recentScans]);
       toast.success(`Tote ${toteId} has been received from ${selectedFacility}`);
       
-      // Refocus on tote input for continuous scanning
       if (toteInputRef.current) {
         toteInputRef.current.focus();
       }

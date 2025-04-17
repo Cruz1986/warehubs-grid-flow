@@ -3,12 +3,16 @@ import { useState, useRef } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Tote } from '@/components/operations/ToteTable';
+import { useToteRegister } from '@/hooks/useToteRegister';
 
 export const useToteScan = (userFacility: string, selectedDestination: string) => {
   const [isScanningActive, setIsScanningActive] = useState(false);
   const [recentScans, setRecentScans] = useState<Tote[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const toteInputRef = useRef<HTMLInputElement>(null);
+  
+  // Use tote register hook for better lifecycle tracking
+  const { trackToteFacilityTransfer } = useToteRegister();
 
   const startScanning = () => {
     if (!selectedDestination) {
@@ -97,6 +101,15 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         setIsProcessing(false);
         return;
       }
+      
+      // Track the tote transfer between facilities using the improved method
+      await trackToteFacilityTransfer(
+        toteId,
+        userFacility,
+        selectedDestination,
+        username,
+        'outbound'
+      );
       
       // Add to local state
       const newTote: Tote = {

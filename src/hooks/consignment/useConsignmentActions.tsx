@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Tote } from '@/components/operations/ToteTable';
+import { useToteRegister } from '@/hooks/useToteRegister';
 
 export const useConsignmentActions = (
   recentScans: Tote[],
@@ -9,6 +10,7 @@ export const useConsignmentActions = (
   selectedDestination: string
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const { updateToteRegister } = useToteRegister();
 
   const fetchConsignmentDetails = async (consignmentId: string) => {
     setIsProcessing(true);
@@ -67,6 +69,14 @@ export const useConsignmentActions = (
         
       if (updateError) {
         throw updateError;
+      }
+      
+      // Update tote register entries for all totes to reflect the intransit status
+      for (const toteId of toteIds) {
+        await updateToteRegister(toteId, {
+          current_status: 'intransit',
+          staged_destination: selectedDestination
+        });
       }
       
       // Log the consignment creation to audit trail with intransit status

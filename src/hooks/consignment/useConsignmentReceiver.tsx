@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ConsignmentLog } from '@/types/consignment';
+import { useToteRegister } from '@/hooks/useToteRegister';
 
 export interface Consignment {
   id: string;
@@ -20,13 +20,13 @@ export const useConsignmentReceiver = (currentFacility: string) => {
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { updateToteRegister } = useToteRegister();
 
   const fetchConsignments = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Modified query to get consignments for the current facility that are in transit or pending
       const { data, error } = await supabase
         .from('consignment_log')
         .select('*')
@@ -69,7 +69,6 @@ export const useConsignmentReceiver = (currentFacility: string) => {
   useEffect(() => {
     fetchConsignments();
     
-    // Set up real-time subscription for consignment updates
     const channel = supabase
       .channel('consignment-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'consignment_log' }, payload => {
@@ -88,7 +87,6 @@ export const useConsignmentReceiver = (currentFacility: string) => {
     setError(null);
 
     try {
-      // Get totes for this consignment
       const { data: toteData, error: toteError } = await supabase
         .from('tote_outbound')
         .select('tote_id')
@@ -107,7 +105,6 @@ export const useConsignmentReceiver = (currentFacility: string) => {
       const username = localStorage.getItem('username') || 'unknown';
       const timestamp = new Date().toISOString();
       
-      // Get consignment data for source facility
       const { data: consignmentData } = await supabase
         .from('consignment_log')
         .select('source_facility')
@@ -116,9 +113,7 @@ export const useConsignmentReceiver = (currentFacility: string) => {
         
       const sourceFacility = consignmentData?.source_facility || 'Unknown';
       
-      // Process tote inbound for each tote in the consignment
       for (const toteId of toteIds) {
-        // Check if tote already exists in inbound at this facility
         const { data: existingInbound } = await supabase
           .from('tote_inbound')
           .select('*')
@@ -127,9 +122,7 @@ export const useConsignmentReceiver = (currentFacility: string) => {
           .eq('status', 'inbound')
           .maybeSingle();
         
-        // Only insert if this is a new inbound for this facility
         if (!existingInbound) {
-          // Insert tote into inbound at the destination
           const { error: inboundError } = await supabase
             .from('tote_inbound')
             .insert({
@@ -138,18 +131,24 @@ export const useConsignmentReceiver = (currentFacility: string) => {
               current_facility: currentFacility,
               operator_name: username,
               timestamp_in: timestamp,
-              consignment_id: consignmentId // Added consignment ID to inbound record
+              consignment_id: consignmentId
             });
             
           if (inboundError) {
             console.error(`Error creating inbound record for tote ${toteId}:`, inboundError);
           }
+          
+          await updateToteRegister(toteId, {
+            current_status: 'inbound',
+            current_facility: currentFacility,
+            inbound_timestamp: timestamp,
+            inbound_operator: username
+          });
         } else {
           console.log(`Tote ${toteId} already exists in inbound at ${currentFacility}, skipping insert`);
         }
       }
       
-      // Update consignment status to 'received'
       const { error } = await supabase
         .from('consignment_log')
         .update({
@@ -169,7 +168,6 @@ export const useConsignmentReceiver = (currentFacility: string) => {
 
       toast.success(`Consignment ${consignmentId} with ${toteIds.length} totes has been received`);
       
-      // Remove the received consignment from the list
       setConsignments(prevConsignments => 
         prevConsignments.filter(consignment => consignment.id !== consignmentId)
       );

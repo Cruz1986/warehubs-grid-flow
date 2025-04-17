@@ -105,11 +105,56 @@ export const useToteRegister = () => {
     }
   };
 
+  // New method to track tote movement between facilities
+  const trackToteFacilityTransfer = async (
+    toteId: string, 
+    sourceFacility: string, 
+    destinationFacility: string, 
+    operator: string,
+    status: 'inbound' | 'outbound' | 'intransit' = 'intransit'
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // First, check if tote exists in register
+      const existingTote = await getToteRegisterInfo(toteId);
+      const timestamp = new Date().toISOString();
+      
+      if (existingTote) {
+        // Update existing tote with new facility and status
+        return await updateToteRegister(toteId, {
+          current_status: status,
+          current_facility: status === 'inbound' ? destinationFacility : sourceFacility,
+          source_facility: sourceFacility,
+          ...(status === 'inbound' ? { inbound_timestamp: timestamp, inbound_operator: operator } : {}),
+          ...(status === 'outbound' ? { outbound_timestamp: timestamp, outbound_operator: operator, staged_destination: destinationFacility } : {})
+        });
+      } else {
+        // Create new tote register entry
+        return await createToteRegister(toteId, {
+          current_status: status,
+          current_facility: status === 'inbound' ? destinationFacility : sourceFacility,
+          source_facility: sourceFacility,
+          ...(status === 'inbound' ? { inbound_timestamp: timestamp, inbound_operator: operator } : {}),
+          ...(status === 'outbound' ? { outbound_timestamp: timestamp, outbound_operator: operator, staged_destination: destinationFacility } : {})
+        });
+      }
+    } catch (err) {
+      console.error('Error tracking tote facility transfer:', err);
+      setError('Failed to track tote movement between facilities');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     isLoading,
     error,
     getToteRegisterInfo,
     createToteRegister,
-    updateToteRegister
+    updateToteRegister,
+    trackToteFacilityTransfer
   };
 };
