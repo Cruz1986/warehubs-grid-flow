@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, PackageCheck } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import ToteScanner from './ToteScanner';
 import FacilitySelector from './FacilitySelector';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,8 +43,8 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
   const user = userString ? JSON.parse(userString) : null;
   const username = user?.username || 'unknown';
   
-  // Initialize tote register hook
-  const { createToteRegister, updateToteRegister } = useToteRegister();
+  // Initialize tote register hook with all its methods
+  const { getToteRegisterInfo, createToteRegister, updateToteRegister } = useToteRegister();
   
   // Focus on the tote input when scanning is active
   useEffect(() => {
@@ -182,11 +182,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     
     try {
       // First, check tote_register to see if this tote exists and is at another facility
-      const { data: registerData } = await supabase
-        .from('tote_register')
-        .select('current_facility, current_status')
-        .eq('tote_id', toteId)
-        .maybeSingle();
+      const registerData = await getToteRegisterInfo(toteId);
       
       // If tote exists in another facility with inbound status and it's not the current facility
       if (registerData && 
