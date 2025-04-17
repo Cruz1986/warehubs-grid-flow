@@ -21,7 +21,7 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
   isLoading,
   disabled = false
 }) => {
-  const [availableConsignments, setAvailableConsignments] = useState<{id: string, source: string}[]>([]);
+  const [availableConsignments, setAvailableConsignments] = useState<{id: string, source: string, toteCount: number}[]>([]);
   const [selectedConsignmentId, setSelectedConsignmentId] = useState<string>('');
   const [isLoadingConsignments, setIsLoadingConsignments] = useState<boolean>(false);
 
@@ -31,7 +31,7 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
       try {
         const { data, error } = await supabase
           .from('consignment_log')
-          .select('consignment_id, source_facility')
+          .select('consignment_id, source_facility, tote_count')
           .eq('destination_facility', currentFacility)
           .eq('status', 'intransit')
           .order('created_at', { ascending: false });
@@ -46,7 +46,8 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
         
         const formattedConsignments = data.map(item => ({
           id: item.consignment_id,
-          source: item.source_facility
+          source: item.source_facility,
+          toteCount: item.tote_count || 0
         }));
         
         setAvailableConsignments(formattedConsignments);
@@ -107,7 +108,7 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
               ) : (
                 availableConsignments.map((consignment) => (
                   <SelectItem key={consignment.id} value={consignment.id}>
-                    {consignment.id} (from {consignment.source})
+                    {consignment.id.substring(0, 8)}... ({consignment.toteCount} totes from {consignment.source})
                   </SelectItem>
                 ))
               )}

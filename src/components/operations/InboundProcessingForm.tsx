@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import ConsignmentSelector from './inbound/ConsignmentSelector';
 import ConsignmentDetailsPanel from './inbound/ConsignmentDetailsPanel';
 import DiscrepancyAlert from './inbound/DiscrepancyAlert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToteRegister } from '@/hooks/useToteRegister';
 
 interface InboundProcessingFormProps {
   facilities: string[];
@@ -42,6 +42,9 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   const username = user?.username || 'unknown';
+  
+  // Initialize tote register hook
+  const { createToteRegister, updateToteRegister } = useToteRegister();
   
   // Focus on the tote input when scanning is active
   useEffect(() => {
@@ -178,23 +181,22 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     setIsProcessing(true);
     
     try {
-      // Check if tote exists in any facility with status "inbound"
-      const { data: existingToteData } = await supabase
+      // First, check tote_register to see if this tote exists and is at another facility
+      const { data: registerData } = await supabase
         .from('tote_register')
         .select('current_facility, current_status')
         .eq('tote_id', toteId)
-        .eq('current_status', 'inbound')
         .maybeSingle();
       
       // If tote exists in another facility with inbound status and it's not the current facility
-      if (existingToteData && 
-          existingToteData.current_facility !== userFacility && 
-          existingToteData.current_status === 'inbound') {
+      if (registerData && 
+          registerData.current_facility !== userFacility && 
+          registerData.current_status === 'inbound') {
         // Allow duplicate totes based on current facility
         console.log(`Tote ${toteId} exists in another facility, but allowing based on current facility rule`);
       }
       
-      // Insert into Supabase
+      // Insert into tote_inbound table
       const insertData = {
         tote_id: toteId,
         status: 'inbound',
@@ -213,6 +215,28 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         return;
       }
       
+      // Update or create entry in tote_register
+      const timestamp = new Date().toISOString();
+      
+      if (registerData) {
+        // Update existing register entry
+        await updateToteRegister(toteId, {
+          current_status: 'inbound',
+          current_facility: userFacility,
+          inbound_timestamp: timestamp,
+          inbound_operator: username
+        });
+      } else {
+        // Create new register entry
+        await createToteRegister(toteId, {
+          current_status: 'inbound',
+          current_facility: userFacility,
+          source_facility: selectedFacility,
+          inbound_timestamp: timestamp,
+          inbound_operator: username
+        });
+      }
+      
       // If this is a consignment-based inbound, update the tote with the consignment ID
       if (selectedConsignmentId) {
         // Check if the tote is in tote_outbound with the correct consignment_id
@@ -222,37 +246,6 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
           .eq('tote_id', toteId)
           .eq('consignment_id', selectedConsignmentId)
           .maybeSingle();
-          
-        // Update tote_register to reflect received status
-        const { data: registerData } = await supabase
-          .from('tote_register')
-          .select('*')
-          .eq('tote_id', toteId)
-          .maybeSingle();
-          
-        if (registerData) {
-          await supabase
-            .from('tote_register')
-            .update({
-              current_status: 'inbound',
-              current_facility: userFacility,
-              inbound_timestamp: new Date().toISOString(),
-              inbound_operator: username
-            })
-            .eq('tote_id', toteId);
-        } else {
-          // Create new register entry if it doesn't exist
-          await supabase
-            .from('tote_register')
-            .insert({
-              tote_id: toteId,
-              current_status: 'inbound',
-              current_facility: userFacility,
-              source_facility: selectedFacility,
-              inbound_timestamp: new Date().toISOString(),
-              inbound_operator: username
-            });
-        }
       }
       
       // Add to local state
@@ -261,7 +254,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         status: 'inbound',
         source: selectedFacility,
         destination: userFacility,
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp,
         user: username,
         currentFacility: userFacility,
         consignmentId: selectedConsignmentId || undefined

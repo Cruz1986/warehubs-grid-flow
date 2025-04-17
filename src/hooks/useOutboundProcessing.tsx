@@ -1,11 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { useToteScan } from './tote/useToteScan';
 import { useConsignmentManagement } from './consignment/useConsignmentManagement';
 import { Tote } from '@/components/operations/ToteTable';
+import { useToteRegister } from './useToteRegister';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useOutboundProcessing = (userFacility: string) => {
   const [selectedDestination, setSelectedDestination] = useState('');
+  const { updateToteRegister, createToteRegister } = useToteRegister();
   
   const { 
     isScanningActive,
@@ -46,6 +48,40 @@ export const useOutboundProcessing = (userFacility: string) => {
     const success = await finalizeOutbound();
     
     if (success) {
+      // Update tote_register for all totes in outbound
+      const username = localStorage.getItem('username') || 'unknown';
+      const timestamp = new Date().toISOString();
+      
+      for (const tote of recentScans) {
+        // Check if tote exists in register
+        const toteInfo = await supabase
+          .from('tote_register')
+          .select('*')
+          .eq('tote_id', tote.id)
+          .maybeSingle();
+          
+        if (toteInfo.data) {
+          // Update existing tote
+          await updateToteRegister(tote.id, {
+            current_status: 'intransit',
+            current_facility: userFacility,
+            outbound_timestamp: timestamp,
+            outbound_operator: username,
+            staged_destination: selectedDestination
+          });
+        } else {
+          // Create new tote register entry
+          await createToteRegister(tote.id, {
+            current_status: 'intransit',
+            current_facility: userFacility,
+            source_facility: userFacility,
+            outbound_timestamp: timestamp,
+            outbound_operator: username,
+            staged_destination: selectedDestination
+          });
+        }
+      }
+      
       setTimeout(() => {
         resetScans();
         setSelectedDestination('');

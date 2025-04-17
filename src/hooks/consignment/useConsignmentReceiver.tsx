@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ConsignmentLog } from '@/types/consignment';
+import { useToteRegister } from '@/hooks/useToteRegister';
 
 export interface Consignment {
   id: string;
@@ -20,6 +21,7 @@ export const useConsignmentReceiver = (currentFacility: string) => {
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { createToteRegister, updateToteRegister } = useToteRegister();
 
   const fetchConsignments = async () => {
     setIsLoading(true);
@@ -107,17 +109,17 @@ export const useConsignmentReceiver = (currentFacility: string) => {
       const username = localStorage.getItem('username') || 'unknown';
       const timestamp = new Date().toISOString();
       
+      // Get consignment data for source facility
+      const { data: consignmentData } = await supabase
+        .from('consignment_log')
+        .select('source_facility')
+        .eq('consignment_id', consignmentId)
+        .single();
+        
+      const sourceFacility = consignmentData?.source_facility || 'Unknown';
+      
       // Process tote inbound for each tote in the consignment
       for (const toteId of toteIds) {
-        // Get consignment data for source facility
-        const { data: consignmentData } = await supabase
-          .from('consignment_log')
-          .select('source_facility')
-          .eq('consignment_id', consignmentId)
-          .single();
-          
-        const sourceFacility = consignmentData?.source_facility || 'Unknown';
-          
         // Check if tote already exists in inbound at this facility
         const { data: existingInbound } = await supabase
           .from('tote_inbound')
@@ -157,38 +159,22 @@ export const useConsignmentReceiver = (currentFacility: string) => {
           .maybeSingle();
           
         if (registerData) {
-          // Update existing record only if the current_facility is different or status needs updating
-          if (registerData.current_facility !== currentFacility || registerData.current_status !== 'inbound') {
-            const { error: updateError } = await supabase
-              .from('tote_register')
-              .update({
-                current_status: 'inbound',
-                current_facility: currentFacility,
-                inbound_timestamp: timestamp,
-                inbound_operator: username
-              })
-              .eq('tote_id', toteId);
-              
-            if (updateError) {
-              console.error(`Error updating tote_register for ${toteId}:`, updateError);
-            }
-          }
+          // Update existing tote register record
+          await updateToteRegister(toteId, {
+            current_status: 'inbound',
+            current_facility: currentFacility,
+            inbound_timestamp: timestamp,
+            inbound_operator: username
+          });
         } else {
-          // Create new register record if it doesn't exist
-          const { error: createError } = await supabase
-            .from('tote_register')
-            .insert({
-              tote_id: toteId,
-              current_status: 'inbound',
-              current_facility: currentFacility,
-              source_facility: sourceFacility,
-              inbound_timestamp: timestamp,
-              inbound_operator: username
-            });
-            
-          if (createError) {
-            console.error(`Error creating tote_register for ${toteId}:`, createError);
-          }
+          // Create new tote register record
+          await createToteRegister(toteId, {
+            current_status: 'inbound',
+            current_facility: currentFacility,
+            source_facility: sourceFacility,
+            inbound_timestamp: timestamp,
+            inbound_operator: username
+          });
         }
       }
       
