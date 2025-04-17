@@ -14,6 +14,7 @@ import UserManagement from "./pages/UserManagement";
 import Status from "./pages/Status";
 import GridMaster from "./pages/GridMaster";
 import CreateAdminUser from './pages/CreateAdminUser';
+import FacilityAccessGuard from "./components/auth/FacilityAccessGuard";
 
 const queryClient = new QueryClient();
 
@@ -31,8 +32,16 @@ function App() {
             <Route path="/grid-management" element={<GridManagement />} />
             <Route path="/outbound" element={<Outbound />} />
             <Route path="/status" element={<Status />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/admin-dashboard" element={
+              <FacilityAccessGuard allowedFacility="All">
+                <AdminDashboard />
+              </FacilityAccessGuard>
+            } />
+            <Route path="/user-management" element={
+              <FacilityAccessGuard allowedFacility="All">
+                <UserManagement />
+              </FacilityAccessGuard>
+            } />
             <Route path="/grid-master" element={<GridMaster />} />
             <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
             <Route path="*" element={<NotFound />} />

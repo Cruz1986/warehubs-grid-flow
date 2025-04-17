@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusCards from '../components/dashboard/StatusCards';
@@ -47,31 +46,55 @@ const Status = () => {
     let dataToExport: any[] = [];
     let fileName = 'warehouse-data';
     
-    if (dataType === 'all' || dataType === 'inbound') {
-      dataToExport = [...dataToExport, ...inboundTotes.map(tote => ({...tote, type: 'inbound'}))];
-      fileName = dataType === 'inbound' ? 'inbound-totes' : fileName;
-    }
-    
-    if (dataType === 'all' || dataType === 'staged') {
-      dataToExport = [...dataToExport, ...stagedTotes.map(tote => ({...tote, type: 'staged'}))];
-      fileName = dataType === 'staged' ? 'staged-totes' : fileName;
-    }
-    
-    if (dataType === 'all' || dataType === 'outbound') {
-      dataToExport = [...dataToExport, ...outboundTotes.map(tote => ({...tote, type: 'outbound'}))];
-      fileName = dataType === 'outbound' ? 'outbound-totes' : fileName;
-    }
-    
-    if (dataType === 'grid') {
-      dataToExport = gridStatuses;
-      fileName = 'grid-statuses';
+    // Fix: ensure we have data before attempting to export
+    if (inboundTotes && outboundTotes && stagedTotes && gridStatuses) {
+      if (dataType === 'all' || dataType === 'inbound') {
+        dataToExport = [...dataToExport, ...inboundTotes.map(tote => ({...tote, type: 'inbound'}))];
+        fileName = dataType === 'inbound' ? 'inbound-totes' : fileName;
+      }
+      
+      if (dataType === 'all' || dataType === 'staged') {
+        dataToExport = [...dataToExport, ...stagedTotes.map(tote => ({...tote, type: 'staged'}))];
+        fileName = dataType === 'staged' ? 'staged-totes' : fileName;
+      }
+      
+      if (dataType === 'all' || dataType === 'outbound') {
+        dataToExport = [...dataToExport, ...outboundTotes.map(tote => ({...tote, type: 'outbound'}))];
+        fileName = dataType === 'outbound' ? 'outbound-totes' : fileName;
+      }
+      
+      if (dataType === 'grid') {
+        dataToExport = gridStatuses || [];
+        fileName = 'grid-statuses';
+      }
     }
     
     // Apply date filtering if dates are selected
     if (startDate || endDate) {
       dataToExport = dataToExport.filter(item => {
+        if (!item) return false;
+        
         // Different data types might have different date fields
-        const itemDate = new Date(item.created_at || item.timestamp || item.date || Date.now());
+        let itemDate;
+        try {
+          // Try to find a valid date field
+          const dateStr = item.created_at || item.timestamp || item.timestamp_in || 
+                          item.timestamp_out || item.grid_timestamp || item.date;
+                          
+          if (dateStr) {
+            itemDate = new Date(dateStr);
+          } else {
+            return true; // If no date field, include the item
+          }
+          
+          // Check if date parsing worked
+          if (isNaN(itemDate.getTime())) {
+            return true; // Keep items with invalid dates
+          }
+        } catch (e) {
+          console.error('Error parsing date for item:', item, e);
+          return true; // Keep items with date parsing errors
+        }
         
         if (startDate && endDate) {
           return itemDate >= startDate && itemDate <= endDate;

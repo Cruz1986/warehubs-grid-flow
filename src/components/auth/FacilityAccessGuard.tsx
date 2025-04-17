@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FacilityAccessGuardProps {
   children: React.ReactNode;
@@ -21,11 +22,46 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   const hasAllFacilities = user?.facility === 'All';
   const hasSpecificFacility = user?.facility === allowedFacility;
   
-  const hasAccess = user && (isAdmin || hasAllFacilities || hasSpecificFacility || 
-    (isManager && hasSpecificFacility)); // Added manager check
+  // Enhanced access check - ensures both Supabase users and local users work
+  const hasAccess = user && (
+    isAdmin || 
+    hasAllFacilities || 
+    hasSpecificFacility || 
+    (isManager && hasSpecificFacility)
+  );
   
+  // Special case handling for users created directly in Supabase
+  const handleSupabaseUser = async () => {
+    if (!user && window.location.pathname !== '/') {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          console.log('Detected Supabase user:', data.session.user);
+          // Create a local user representation for the Supabase user
+          const supabaseUser = {
+            id: data.session.user.id,
+            username: data.session.user.email || 'supabase-user',
+            role: 'admin', // Default role for Supabase users
+            facility: 'All', // Grant all facility access
+          };
+          
+          localStorage.setItem('user', JSON.stringify(supabaseUser));
+          window.location.reload(); // Reload to apply the new user data
+          return true;
+        }
+      } catch (error) {
+        console.error('Error checking Supabase session:', error);
+      }
+    }
+    return false;
+  };
+  
+  // If no local user is found, check for Supabase user
   if (!user) {
-    // User is not logged in, redirect to login page
+    // Attempt to handle Supabase user
+    handleSupabaseUser();
+    
+    // Until that completes, redirect to login page
     return <Navigate to="/" replace />;
   }
   
