@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ConsignmentLog } from '@/types/consignment';
+import { ConsignmentLog, Consignment } from '@/types/consignment';
 
 export const useFetchConsignments = (currentFacility: string) => {
-  const [consignments, setConsignments] = useState<ConsignmentLog[]>([]);
+  const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +29,21 @@ export const useFetchConsignments = (currentFacility: string) => {
       }
 
       console.log('Fetched consignments for facility:', currentFacility, data);
-      setConsignments(data || []);
+      
+      // Map ConsignmentLog to Consignment
+      const mappedConsignments = (data || []).map((log: ConsignmentLog) => ({
+        id: log.id,
+        source: log.source_facility,
+        destination: log.destination_facility,
+        status: log.status,
+        toteCount: log.tote_count,
+        createdAt: log.created_at || '',
+        receivedCount: log.received_count,
+        receivedTime: log.received_time,
+        notes: log.notes
+      }));
+      
+      setConsignments(mappedConsignments);
     } catch (err) {
       console.error('Error processing consignments:', err);
       setError('Failed to process consignments');
