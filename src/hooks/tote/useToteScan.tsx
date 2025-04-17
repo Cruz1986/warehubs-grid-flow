@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +11,12 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
   const toteInputRef = useRef<HTMLInputElement>(null);
   
   // Use tote register hook for better lifecycle tracking
-  const { trackToteFacilityTransfer } = useToteRegister();
+  const { 
+    trackToteFacilityTransfer, 
+    updateToteRegister,
+    updateToteConsignment,
+    getToteRegisterInfo 
+  } = useToteRegister();
 
   const startScanning = () => {
     if (!selectedDestination) {
@@ -83,22 +87,23 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
       // Get the username from localStorage
       const username = localStorage.getItem('username') || 'unknown';
       
-      // Check if tote exists in register
-      const { data: existingTote } = await supabase
-        .from('tote_register')
-        .select('tote_id, current_facility, current_status')
-        .eq('tote_id', toteId)
-        .maybeSingle();
-        
+      // Check if tote exists in register to determine source info
+      const existingTote = await getToteRegisterInfo(toteId);
+      
       // If tote doesn't exist in the register, it's a new tote being added to the system
       const isNewTote = !existingTote;
-            
+      
+      // Determine the source facility - use existing data or current facility
+      const sourceFacility = existingTote?.current_facility || userFacility;
+      
       // Insert into outbound
+      const timestamp = new Date().toISOString();
       const insertData = {
         tote_id: toteId,
         status: 'outbound',
         destination: selectedDestination,
-        operator_name: username
+        operator_name: username,
+        timestamp_out: timestamp
       };
       
       const { error: insertError } = await supabase
@@ -113,24 +118,34 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         return;
       }
       
-      // Track the tote transfer between facilities using the improved method
+      // Track the tote transfer between facilities
       await trackToteFacilityTransfer(
         toteId,
-        userFacility,
+        sourceFacility,
         selectedDestination,
         username,
         'outbound'
       );
       
+      // Also update the tote register directly to ensure it's in sync
+      await updateToteRegister(toteId, {
+        current_status: 'outbound',
+        current_facility: sourceFacility,
+        destination: selectedDestination,
+        ob_timestamp: timestamp,
+        outbound_by: username,
+        activity: `Outbound scan from ${sourceFacility} to ${selectedDestination}`
+      });
+      
       // Add to local state
       const newTote: Tote = {
         id: toteId,
         status: 'outbound' as 'outbound',
-        source: userFacility,
+        source: sourceFacility,
         destination: selectedDestination,
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp,
         user: username,
-        currentFacility: userFacility,
+        currentFacility: sourceFacility,
         isNewTote: isNewTote
       };
       
@@ -161,6 +176,22 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     setIsScanningActive(false);
   };
 
+  // Update all totes with consignment info
+  const updateTotesWithConsignment = async (consignmentId: string) => {
+    for (const tote of recentScans) {
+      await updateToteConsignment(tote.id, consignmentId);
+    }
+    
+    // Update UI with consignment info
+    const updatedScans = recentScans.map(tote => ({
+      ...tote,
+      consignmentId,
+      consignmentStatus: 'In Transit'
+    }));
+    
+    setRecentScans(updatedScans as Tote[]);
+  };
+
   return {
     isScanningActive,
     recentScans,
@@ -169,6 +200,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     startScanning,
     handleToteScan,
     resetScans,
-    updateRecentScans: setRecentScans
+    updateRecentScans: setRecentScans,
+    updateTotesWithConsignment
   };
 };
