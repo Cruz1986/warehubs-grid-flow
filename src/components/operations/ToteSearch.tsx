@@ -1,16 +1,19 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ToteScanner from './ToteScanner';
 import { useToteSearch } from '@/hooks/useToteSearch';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { History, ArrowDownWideNarrow, AlertTriangle } from 'lucide-react';
+import { History, ArrowDownWideNarrow, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const ToteSearch = () => {
   const { searchTote, searchResult, toteHistory, isLoading, error, notFound } = useToteSearch();
+  const [lastScannedTote, setLastScannedTote] = useState<string | null>(null);
 
   const handleSearch = async (toteId: string) => {
+    setLastScannedTote(toteId);
     await searchTote(toteId);
   };
 
@@ -32,6 +35,15 @@ const ToteSearch = () => {
             buttonText="Search"
             isLoading={isLoading}
           />
+
+          {lastScannedTote && (
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Last scanned: {lastScannedTote}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {error && (
             <Alert variant="destructive">
