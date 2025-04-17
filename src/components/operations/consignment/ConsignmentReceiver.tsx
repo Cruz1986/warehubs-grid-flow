@@ -49,7 +49,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
           onClose={handleDiscrepancyClose}
           onConfirm={handleDiscrepancyConfirm}
           expectedCount={currentConsignment.toteCount}
-          actualCount={currentConsignment.received_count || 0}
+          actualCount={currentConsignment.receivedCount || 0}
         />
       )}
     </div>
