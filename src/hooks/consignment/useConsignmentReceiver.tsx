@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useFetchConsignments } from './useFetchConsignments';
 import { useReceiveConsignment } from './useReceiveConsignment';
@@ -40,11 +41,13 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
   const handleDiscrepancyConfirm = async () => {
     setShowDiscrepancy(false);
     setCurrentConsignment(null);
+    refetchConsignments();
   };
 
   const handleDiscrepancyClose = () => {
     setShowDiscrepancy(false);
     setCurrentConsignment(null);
+    refetchConsignments();
   };
 
   return {
@@ -56,6 +59,7 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
     showDiscrepancy,
     handleDiscrepancyConfirm,
     handleDiscrepancyClose,
-    formatDate
+    formatDate,
+    refetchConsignments
   };
 };

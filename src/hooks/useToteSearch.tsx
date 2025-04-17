@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,9 +21,16 @@ export const useToteSearch = () => {
   const [notFound, setNotFound] = useState(false);
 
   const searchTote = async (toteId: string) => {
+    if (!toteId || toteId.trim() === '') {
+      toast.error('Please enter a valid tote ID');
+      return null;
+    }
+    
     setIsLoading(true);
     setError(null);
     setNotFound(false);
+    setSearchResult(null);
+    setToteHistory([]);
     
     try {
       // Fetch current tote data
@@ -41,12 +49,12 @@ export const useToteSearch = () => {
 
       if (!currentData) {
         setNotFound(true);
-        setSearchResult(null);
-        setToteHistory([]);
+        console.log('Tote not found:', toteId);
         return null;
       }
 
       setSearchResult(currentData);
+      console.log('Tote found:', currentData);
 
       // Fetch tote history from all relevant tables
       const [inbound, outbound, staging] = await Promise.all([
@@ -66,6 +74,8 @@ export const useToteSearch = () => {
           .eq('tote_id', toteId)
           .order('grid_timestamp', { ascending: false })
       ]);
+
+      console.log('History data:', { inbound: inbound.data, outbound: outbound.data, staging: staging.data });
 
       // Combine and sort history
       const history: ToteHistory[] = [

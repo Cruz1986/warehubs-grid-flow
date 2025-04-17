@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useConsignmentReceiver } from '@/hooks/consignment/useConsignmentReceiver';
 import ConsignmentTable from './ConsignmentTable';
 import DiscrepancyAlert from '../inbound/DiscrepancyAlert';
+import { AlertCircle } from 'lucide-react';
 
 interface ConsignmentReceiverProps {
   currentFacility: string;
@@ -23,8 +24,14 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
     showDiscrepancy,
     handleDiscrepancyConfirm,
     handleDiscrepancyClose,
-    formatDate
+    formatDate,
+    refetchConsignments
   } = useConsignmentReceiver(currentFacility, isAdmin);
+
+  // Force refresh consignments on mount
+  useEffect(() => {
+    refetchConsignments();
+  }, [refetchConsignments]);
 
   return (
     <div>
@@ -33,6 +40,15 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {!isLoading && consignments.length === 0 && (
+        <Alert className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No consignments available for {currentFacility}. Please check back later or contact your supervisor.
+          </AlertDescription>
         </Alert>
       )}
 
