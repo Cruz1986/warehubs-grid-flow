@@ -1,16 +1,20 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   PackageOpen, 
   PackageCheck, 
-  Package 
+  Package,
+  Truck,
+  CheckCircle
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 export interface Tote {
   id: string;
-  status: 'inbound' | 'staged' | 'outbound' | 'completed';
+  status: 'inbound' | 'staged' | 'outbound' | 'intransit' | 'completed' | 'delivered';
   source: string;
   destination: string;
   timestamp: string;
@@ -19,6 +23,8 @@ export interface Tote {
   currentFacility?: string; 
   stagingTime?: string;
   completedTime?: string;
+  consignmentId?: string;
+  consignmentStatus?: string;
 }
 
 interface ToteTableProps {
@@ -30,6 +36,7 @@ interface ToteTableProps {
   hideGrid?: boolean;
   hideSource?: boolean;
   hideCurrentFacility?: boolean;
+  hideConsignment?: boolean;
   // New prop to specifically hide destination for inbound totes
   alwaysHideDestinationForInbound?: boolean;
 }
@@ -43,6 +50,7 @@ const ToteTable: React.FC<ToteTableProps> = ({
   hideGrid = false,
   hideSource = false,
   hideCurrentFacility = false,
+  hideConsignment = true,
   alwaysHideDestinationForInbound = false
 }) => {
   const getStatusIcon = (status: string) => {
@@ -51,6 +59,10 @@ const ToteTable: React.FC<ToteTableProps> = ({
         return <PackageOpen className="h-4 w-4 text-blue-600" />;
       case 'outbound':
         return <PackageCheck className="h-4 w-4 text-green-600" />;
+      case 'intransit':
+        return <Truck className="h-4 w-4 text-orange-600" />;
+      case 'delivered':
+        return <CheckCircle className="h-4 w-4 text-green-700" />;
       case 'completed':
         return <Package className="h-4 w-4 text-green-600" />;
       default:
@@ -102,6 +114,7 @@ const ToteTable: React.FC<ToteTableProps> = ({
                 )}
                 {!hideCurrentFacility && <TableHead className="hidden md:table-cell">Current Facility</TableHead>}
                 {!hideGrid && <TableHead className="hidden md:table-cell">Grid</TableHead>}
+                {!hideConsignment && <TableHead className="hidden md:table-cell">Consignment</TableHead>}
                 <TableHead className="hidden md:table-cell">Time</TableHead>
                 <TableHead className="hidden md:table-cell">User</TableHead>
               </TableRow>
@@ -119,13 +132,14 @@ const ToteTable: React.FC<ToteTableProps> = ({
                     )}
                     {!hideCurrentFacility && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
                     {!hideGrid && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>}
+                    {!hideConsignment && <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>}
                     <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
                   </TableRow>
                 ))
               ) : totes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-4 text-muted-foreground">
                     No totes found
                   </TableCell>
                 </TableRow>
@@ -146,6 +160,23 @@ const ToteTable: React.FC<ToteTableProps> = ({
                     )}
                     {!hideCurrentFacility && <TableCell className="hidden md:table-cell">{tote.currentFacility || '-'}</TableCell>}
                     {!hideGrid && <TableCell className="hidden md:table-cell">{tote.grid || '-'}</TableCell>}
+                    {!hideConsignment && (
+                      <TableCell className="hidden md:table-cell">
+                        {tote.consignmentId ? (
+                          <div>
+                            <div className="font-medium text-sm">{tote.consignmentId}</div>
+                            {tote.consignmentStatus && (
+                              <Badge variant={
+                                tote.consignmentStatus === 'In Transit' ? 'outline' :
+                                tote.consignmentStatus === 'Delivered' ? 'success' : 'secondary'
+                              } className="mt-1">
+                                {tote.consignmentStatus}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : '-'}
+                      </TableCell>
+                    )}
                     <TableCell className="hidden md:table-cell">
                       {formatDateTime(tote.timestamp)}
                     </TableCell>

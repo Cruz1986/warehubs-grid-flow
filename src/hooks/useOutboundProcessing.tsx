@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Tote } from '@/components/operations/ToteTable';
@@ -9,11 +9,27 @@ export const useOutboundProcessing = (userFacility: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isScanningActive, setIsScanningActive] = useState(false);
   const [recentScans, setRecentScans] = useState<Tote[]>([]);
+  const [consignmentId, setConsignmentId] = useState<string | null>(null);
+  const [consignmentStatus, setConsignmentStatus] = useState<string>('pending');
   const toteInputRef = useRef<HTMLInputElement>(null);
+
+  // Check for existing consignment if there are scans
+  useEffect(() => {
+    if (recentScans.length > 0 && recentScans[0].consignmentId) {
+      setConsignmentId(recentScans[0].consignmentId);
+      setConsignmentStatus(recentScans[0].consignmentStatus || 'pending');
+    }
+  }, [recentScans]);
 
   const startScanning = () => {
     if (!selectedDestination) {
       toast.error("Please select a destination facility before starting");
+      return;
+    }
+    
+    // Validate that destination is not the current facility
+    if (selectedDestination === userFacility) {
+      toast.error("Destination cannot be the current facility");
       return;
     }
     
@@ -28,18 +44,167 @@ export const useOutboundProcessing = (userFacility: string) => {
     }, 100);
   };
 
+  const generateConsignment = async () => {
+    if (recentScans.length === 0) {
+      toast.warning("No totes have been scanned yet");
+      return;
+    }
+    
+    if (consignmentId) {
+      toast.info(`Consignment ${consignmentId} already generated`);
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      // Create a unique consignment ID
+      const newConsignmentId = `CS-${userFacility.substring(0, 3)}-${Date.now().toString().substring(7)}`;
+      
+      // Update all scanned totes with the consignment ID
+      const toteIds = recentScans.map(tote => tote.id);
+      
+      // Update tote_outbound records
+      const { error: updateError } = await supabase
+        .from('tote_outbound')
+        .update({ 
+          consignment_id: newConsignmentId,
+          status: 'intransit' 
+        })
+        .in('tote_id', toteIds);
+        
+      if (updateError) {
+        throw updateError;
+      }
+      
+      // Update tote_register records
+      for (const toteId of toteIds) {
+        const { error: registerError } = await supabase
+          .from('tote_register')
+          .update({
+            current_status: 'intransit',
+            outbound_timestamp: new Date().toISOString(),
+            outbound_operator: localStorage.getItem('username') || 'unknown',
+            staged_destination: selectedDestination
+          })
+          .eq('tote_id', toteId);
+          
+        if (registerError) {
+          console.error(`Error updating tote_register for ${toteId}:`, registerError);
+        }
+      }
+      
+      // Log the consignment creation to audit trail
+      const { error: logError } = await supabase
+        .from('consignment_log')
+        .insert({
+          consignment_id: newConsignmentId,
+          source_facility: userFacility,
+          destination_facility: selectedDestination,
+          tote_count: toteIds.length,
+          status: 'intransit',
+          created_by: localStorage.getItem('username') || 'unknown'
+        });
+        
+      if (logError && logError.code !== '42P01') { // Ignore error if table doesn't exist yet
+        console.error('Error logging consignment:', logError);
+      }
+      
+      setConsignmentId(newConsignmentId);
+      setConsignmentStatus('In Transit');
+      
+      // Update local state
+      const updatedScans = recentScans.map(tote => ({
+        ...tote,
+        consignmentId: newConsignmentId,
+        consignmentStatus: 'In Transit',
+        status: 'intransit'
+      }));
+      
+      setRecentScans(updatedScans);
+      toast.success(`Consignment ${newConsignmentId} has been generated for ${toteIds.length} totes`);
+    } catch (err: any) {
+      console.error('Error generating consignment:', err);
+      toast.error(`Failed to generate consignment: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const completeOutbound = async () => {
     if (recentScans.length === 0) {
       toast.warning("No totes have been scanned yet");
       return;
     }
     
-    toast.success(`Completed outbound process to ${selectedDestination}`);
+    setIsProcessing(true);
     
-    // Reset the form
-    setRecentScans([]);
-    setSelectedDestination('');
-    setIsScanningActive(false);
+    try {
+      // If there's no consignment yet, generate one
+      if (!consignmentId) {
+        await generateConsignment();
+      }
+      
+      // Mark the consignment as completed
+      if (consignmentId) {
+        const { error: consignmentError } = await supabase
+          .from('consignment_log')
+          .update({ 
+            status: 'completed',
+            completed_time: new Date().toISOString(),
+            completed_by: localStorage.getItem('username') || 'unknown'
+          })
+          .eq('consignment_id', consignmentId);
+          
+        if (consignmentError && consignmentError.code !== '42P01') { // Ignore error if table doesn't exist yet
+          console.error('Error updating consignment:', consignmentError);
+        }
+      }
+      
+      toast.success(`Completed outbound process to ${selectedDestination}`);
+      setConsignmentStatus('Completed');
+      
+      // Reset the form after a delay
+      setTimeout(() => {
+        setRecentScans([]);
+        setSelectedDestination('');
+        setIsScanningActive(false);
+        setConsignmentId(null);
+      }, 5000); // Give users time to see the completion message
+    } catch (err: any) {
+      console.error('Error completing outbound process:', err);
+      toast.error(`Failed to complete outbound: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const logError = async (toteId: string, errorMessage: string) => {
+    try {
+      // Get the username from localStorage
+      const username = localStorage.getItem('username') || 'unknown';
+      
+      // Log the error in scan_error_logs table
+      const { error } = await supabase
+        .from('scan_error_logs')
+        .insert({
+          tote_id: toteId,
+          error_message: errorMessage,
+          operator: username,
+          operation_type: 'outbound',
+          scan_data: { 
+            tote_id: toteId, 
+            destination: selectedDestination,
+            facility: userFacility
+          }
+        });
+        
+      if (error) {
+        console.error('Error logging scan error:', error);
+      }
+    } catch (err) {
+      console.error('Exception logging scan error:', err);
+    }
   };
 
   const handleToteScan = async (toteId: string) => {
@@ -57,6 +222,36 @@ export const useOutboundProcessing = (userFacility: string) => {
     setIsProcessing(true);
     
     try {
+      // First check if the tote is already in transit or at destination
+      const { data: registerData, error: registerError } = await supabase
+        .from('tote_register')
+        .select('*')
+        .eq('tote_id', toteId)
+        .maybeSingle();
+        
+      if (registerError) {
+        console.error('Error checking tote_register:', registerError);
+      }
+      
+      // Check if tote is already in transit
+      if (registerData && registerData.current_status === 'intransit') {
+        const errorMsg = `Tote ${toteId} is already in transit to ${registerData.staged_destination}`;
+        await logError(toteId, errorMsg);
+        toast.error(errorMsg);
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Check if tote is at a different facility but not intended for outbound
+      if (registerData && registerData.current_facility !== userFacility) {
+        // If the tote is physically present but not registered to this facility, log error
+        const errorMsg = `Tote ${toteId} is registered to ${registerData.current_facility}, not ${userFacility}`;
+        await logError(toteId, errorMsg);
+        toast.error(errorMsg);
+        setIsProcessing(false);
+        return;
+      }
+      
       // Check if tote exists and is staged for the selected destination
       const { data: stagedTotes, error: stagedError } = await supabase
         .from('tote_staging')
@@ -72,14 +267,18 @@ export const useOutboundProcessing = (userFacility: string) => {
       }
       
       if (!stagedTotes) {
-        toast.error(`Tote ${toteId} is not staged for outbound processing`);
+        const errorMsg = `Tote ${toteId} is not staged for outbound processing`;
+        await logError(toteId, errorMsg);
+        toast.error(errorMsg);
         setIsProcessing(false);
         return;
       }
       
       // Check if tote is staged for the correct destination
       if (stagedTotes.destination !== selectedDestination) {
-        toast.error(`Tote ${toteId} is staged for ${stagedTotes.destination}, not ${selectedDestination}`);
+        const errorMsg = `Tote ${toteId} is staged for ${stagedTotes.destination}, not ${selectedDestination}`;
+        await logError(toteId, errorMsg);
+        toast.error(errorMsg);
         setIsProcessing(false);
         return;
       }
@@ -118,6 +317,39 @@ export const useOutboundProcessing = (userFacility: string) => {
         toast.warning('Tote marked as outbound but staging status update failed');
       }
       
+      // Update tote_register record
+      if (registerData) {
+        const { error: updateRegisterError } = await supabase
+          .from('tote_register')
+          .update({
+            current_status: 'outbound',
+            outbound_timestamp: new Date().toISOString(),
+            outbound_operator: username,
+            staged_destination: selectedDestination
+          })
+          .eq('tote_id', toteId);
+          
+        if (updateRegisterError) {
+          console.error('Error updating tote_register:', updateRegisterError);
+        }
+      } else {
+        // Create a new tote_register record if one doesn't exist
+        const { error: createRegisterError } = await supabase
+          .from('tote_register')
+          .insert({
+            tote_id: toteId,
+            current_status: 'outbound',
+            current_facility: userFacility,
+            outbound_timestamp: new Date().toISOString(),
+            outbound_operator: username,
+            staged_destination: selectedDestination
+          });
+          
+        if (createRegisterError) {
+          console.error('Error creating tote_register:', createRegisterError);
+        }
+      }
+      
       // Get inbound record to find the original source
       const { data: inboundTote, error: inboundError } = await supabase
         .from('tote_inbound')
@@ -141,11 +373,13 @@ export const useOutboundProcessing = (userFacility: string) => {
         timestamp: new Date().toISOString(),
         user: username,
         currentFacility: userFacility,
-        grid: stagedTotes.grid_no
+        grid: stagedTotes.grid_no,
+        consignmentId: consignmentId || undefined,
+        consignmentStatus: consignmentStatus === 'pending' ? undefined : consignmentStatus
       };
       
       setRecentScans(prevScans => [newTote, ...prevScans]);
-      toast.success(`Tote ${toteId} has been shipped to ${selectedDestination}`);
+      toast.success(`Tote ${toteId} has been added to outbound batch for ${selectedDestination}`);
       
       // Refocus on tote input for continuous scanning
       if (toteInputRef.current) {
@@ -167,8 +401,11 @@ export const useOutboundProcessing = (userFacility: string) => {
     isScanningActive,
     recentScans,
     toteInputRef,
+    consignmentId,
+    consignmentStatus,
     startScanning,
     completeOutbound,
-    handleToteScan
+    handleToteScan,
+    generateConsignment
   };
 };

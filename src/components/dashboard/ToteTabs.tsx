@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ToteTable, { Tote } from '../operations/ToteTable';
@@ -65,10 +66,11 @@ const ToteTabs: React.FC<ToteTabsProps> = ({
           title="Recent Outbound Totes" 
           isLoading={isLoading} 
           error={error}
-          hideGrid={false}  // Changed to show grid to provide better context
-          hideCurrentFacility={false}  // Show current facility
-          hideSource={false}  // Show source
-          hideDestination={false}  // Show destination
+          hideGrid={false}
+          hideCurrentFacility={false}
+          hideSource={false}
+          hideDestination={false}
+          hideConsignment={false}
         />
       </TabsContent>
     </Tabs>

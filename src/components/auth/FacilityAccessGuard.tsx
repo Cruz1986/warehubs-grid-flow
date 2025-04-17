@@ -1,17 +1,17 @@
+
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 
 interface FacilityAccessGuardProps {
   children: React.ReactNode;
   allowedFacility: string;
-  requiresAdmin?: boolean; // New prop to specify if only admins can access
+  requiresAdmin?: boolean; 
 }
 
 const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({ 
   children, 
   allowedFacility,
-  requiresAdmin = false // Default to false to allow managers
+  requiresAdmin = false 
 }) => {
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
@@ -28,6 +28,9 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   const hasAllFacilities = user?.facility === 'All';
   const hasSpecificFacility = user?.facility === allowedFacility;
   
+  // For managers, check if they are accessing their own facility's data
+  const isManagerAccessingOwnFacility = isManager && hasSpecificFacility;
+  
   // If component requires admin access, check that first
   if (requiresAdmin && !isAdmin) {
     console.log('Access denied: Admin role required');
@@ -35,7 +38,7 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   }
   
   // Check regular facility access
-  // Allow manager access to the management pages, but we'll filter content within those pages
+  // Allow manager access to their facility only
   const hasAccess = user && (
     isAdmin || 
     (isManager && (hasAllFacilities || hasSpecificFacility || allowedFacility === 'All')) ||
@@ -50,6 +53,7 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   console.log('FacilityAccessGuard - Is Admin:', isAdmin);
   console.log('FacilityAccessGuard - Is Manager:', isManager);
   console.log('FacilityAccessGuard - Has Access:', hasAccess);
+  console.log('FacilityAccessGuard - Is Manager Accessing Own Facility:', isManagerAccessingOwnFacility);
   
   if (!user) {
     return <Navigate to="/" replace />;

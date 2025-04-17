@@ -57,6 +57,39 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_error_logs: {
+        Row: {
+          error_message: string | null
+          id: string
+          operation_type: string | null
+          operator: string | null
+          resolved: boolean | null
+          scan_data: Json | null
+          timestamp: string | null
+          tote_id: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          operation_type?: string | null
+          operator?: string | null
+          resolved?: boolean | null
+          scan_data?: Json | null
+          timestamp?: string | null
+          tote_id?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          operation_type?: string | null
+          operator?: string | null
+          resolved?: boolean | null
+          scan_data?: Json | null
+          timestamp?: string | null
+          tote_id?: string | null
+        }
+        Relationships: []
+      }
       tote_inbound: {
         Row: {
           current_facility: string | null
@@ -117,6 +150,57 @@ export type Database = {
           status?: string
           timestamp_out?: string | null
           tote_id?: string
+        }
+        Relationships: []
+      }
+      tote_register: {
+        Row: {
+          created_at: string | null
+          current_facility: string | null
+          current_status: string | null
+          inbound_operator: string | null
+          inbound_timestamp: string | null
+          outbound_operator: string | null
+          outbound_timestamp: string | null
+          source_facility: string | null
+          staged_destination: string | null
+          staged_grid_no: string | null
+          staged_operator: string | null
+          staged_timestamp: string | null
+          tote_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_facility?: string | null
+          current_status?: string | null
+          inbound_operator?: string | null
+          inbound_timestamp?: string | null
+          outbound_operator?: string | null
+          outbound_timestamp?: string | null
+          source_facility?: string | null
+          staged_destination?: string | null
+          staged_grid_no?: string | null
+          staged_operator?: string | null
+          staged_timestamp?: string | null
+          tote_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_facility?: string | null
+          current_status?: string | null
+          inbound_operator?: string | null
+          inbound_timestamp?: string | null
+          outbound_operator?: string | null
+          outbound_timestamp?: string | null
+          source_facility?: string | null
+          staged_destination?: string | null
+          staged_grid_no?: string | null
+          staged_operator?: string | null
+          staged_timestamp?: string | null
+          tote_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -200,6 +284,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_user: {
+        Args: {
+          p_username: string
+          p_password: string
+          p_role: string
+          p_facility: string
+        }
+        Returns: Json
+      }
       check_is_admin: {
         Args: { user_uid: string } | { username: string }
         Returns: boolean
@@ -208,8 +301,29 @@ export type Database = {
         Args: { admin_username: string; admin_password: string }
         Returns: Json
       }
+      delete_user: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      register_inbound_tote: {
+        Args: {
+          p_tote_id: string
+          p_source_facility: string
+          p_inbound_operator: string
+          p_current_facility: string
+        }
+        Returns: Json
+      }
+      reset_user_password: {
+        Args: { p_user_id: string; p_new_password: string }
+        Returns: boolean
+      }
+      update_last_login: {
+        Args: { p_user_id: string; p_login_time?: string }
         Returns: boolean
       }
     }
