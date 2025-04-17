@@ -31,42 +31,38 @@ const UserManagementTable = () => {
   const [hasPermission, setHasPermission] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
-  useEffect(() => {
-    try {
-      // Get and log the user directly from localStorage
-      const userStr = localStorage.getItem('user');
-      console.log('Raw user string from localStorage:', userStr);
-      
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        console.log('Parsed user object:', user);
-        setCurrentUser(user);
-        
-        // Set permission based on role - case insensitive comparison
-        const isAdmin = user.role?.toLowerCase() === 'admin';
-        const isManager = user.role?.toLowerCase() === 'manager';
-        
-        setHasPermission(isAdmin || isManager);
-        
-        // Log role for debugging
-        if (user.role) {
-          console.log('User role:', user.role);
-          console.log('User facility:', user.facility);
-          console.log('Has permission:', isAdmin || isManager);
-        }
-      } else {
-        console.log('No user found in localStorage');
-        setHasPermission(false);
-      }
-    } catch (error) {
-      console.error('Error parsing user from localStorage:', error);
+useEffect(() => {
+  try {
+    const userStr = localStorage.getItem('user');
+    console.log('Raw user string from localStorage:', userStr);
+
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('Parsed user object:', user);
+      setCurrentUser(user);
+
+      const isAdmin = user.role?.toLowerCase() === 'admin';
+      const isManager = user.role?.toLowerCase() === 'manager';
+
+      setHasPermission(isAdmin || isManager);
+    } else {
+      console.log('No user found in localStorage');
       setHasPermission(false);
     }
-    
-    // Proceed to fetch data
+  } catch (error) {
+    console.error('Error parsing user from localStorage:', error);
+    setHasPermission(false);
+  }
+}, []);
+
+// Separate fetching logic after currentUser is set
+useEffect(() => {
+  if (currentUser && hasPermission) {
     fetchFacilities();
     fetchUsers();
-  }, []);
+  }
+}, [currentUser, hasPermission]);
+
 
   const fetchFacilities = async () => {
     try {
@@ -93,60 +89,40 @@ const UserManagementTable = () => {
   };
 
   const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      
-      console.log('Fetching users with current user:', currentUser);
-      
-      // Start with a basic query to get all users
-      let query = supabase
-        .from('users_log')
-        .select('user_id, username, role, facility, last_login');
-      
-      // If user is a manager, only show users from their facility
-      if (currentUser?.role?.toLowerCase() === 'manager' && currentUser?.facility !== 'All') {
-        query = query.eq('facility', currentUser.facility);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error details from user fetch:', error);
-        if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
-          console.log('Permission denied by Supabase RLS policies');
-          toast.error('Database permission denied: ' + error.message);
-          return;
-        }
-        throw error;
-      }
-      
-      // Log the raw data for debugging
-      console.log('Raw users data from database:', data);
-      
-      if (!data || data.length === 0) {
-        console.log('No users found in database');
-        setUsers([]);
-        return;
-      }
-      
-      // Map the data to our User interface format
-      const mappedUsers = data.map((user) => ({
-        id: user.user_id,
-        username: user.username,
-        role: user.role,
-        facility: user.facility || 'Unknown',
-        lastLogin: user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'
-      }));
-      
-      console.log('Mapped users:', mappedUsers);
-      setUsers(mappedUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
-    } finally {
-      setIsLoading(false);
+  try {
+    setIsLoading(true);
+
+    let query = supabase
+      .from('users_log')
+      .select('user_id, username, role, facility, last_login');
+
+    if (currentUser?.role?.toLowerCase() === 'manager' && currentUser.facility && currentUser.facility !== 'All') {
+      query = query.eq('facility', currentUser.facility);
     }
-  };
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    const mappedUsers = data.map((user) => ({
+      id: user.user_id,
+      username: user.username,
+      role: user.role,
+      facility: user.facility || 'Unknown',
+      lastLogin: user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'
+    }));
+
+    setUsers(mappedUsers);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    toast.error('Failed to load users');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleAddUser = async (userData: {
     username: string;
