@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -21,7 +20,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from '@/integrations/supabase/client';
 
 interface AddUserDialogProps {
   facilities: string[];
@@ -51,13 +49,9 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
         const user = JSON.parse(userStr);
         setCurrentUser(user);
         
-        // If current user is not an admin, set role to user by default
-        if (user.role?.toLowerCase() !== 'admin') {
-          setRole('user');
-          // Set facility to current user's facility if not admin
-          if (user.facility && user.facility !== 'All') {
-            setFacility(user.facility);
-          }
+        // If current user is manager, set default facility to their facility
+        if (user.role?.toLowerCase() === 'manager' && user.facility && user.facility !== 'All') {
+          setFacility(user.facility);
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -68,9 +62,13 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
   // Set initial facility value if facilities are loaded
   useEffect(() => {
     if (facilities.length > 0 && !facility) {
-      setFacility(facilities[0]);
+      // For admin users, default to first facility in the list
+      // For managers, their facility is already set in the previous useEffect
+      if (currentUser?.role?.toLowerCase() === 'admin' || !currentUser?.facility) {
+        setFacility(facilities[0]);
+      }
     }
-  }, [facilities, facility]);
+  }, [facilities, facility, currentUser]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -102,28 +100,12 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
     
     if (!validateForm()) return;
     
-    // Check if user is logged in before submitting
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      setErrors({
-        ...errors,
-        general: 'You must be logged in to add users'
-      });
-      return;
-    }
-    
     const userData = {
       username: username.trim(),
       password: password.trim(),
       role,
-      facility: currentUser?.role?.toLowerCase() === 'admin' ? facility : currentUser?.facility || facility
+      facility
     };
-    
-    // If the current user is not an admin, they can only create users for their facility
-    if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.facility !== 'All') {
-      userData.facility = currentUser.facility;
-      userData.role = 'user'; // Non-admins can only create users, not admins
-    }
     
     onAddUser(userData);
     
@@ -136,7 +118,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
     setUsername('');
     setPassword('');
     setRole('user');
-    setFacility(facilities.length > 0 ? facilities[0] : '');
+    setFacility(currentUser?.facility && currentUser.facility !== 'All' ? currentUser.facility : (facilities.length > 0 ? facilities[0] : ''));
     setErrors({});
   };
 
