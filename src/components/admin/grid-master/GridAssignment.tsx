@@ -38,6 +38,12 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({
   isLoading 
 }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  // Get user role and facility from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const userFacility = user?.facility;
 
   const handleDeleteMapping = async (mappingId: string) => {
     if (window.confirm('Are you sure you want to delete this grid mapping?')) {
@@ -61,6 +67,16 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({
     }
   };
 
+  // Filter displayed mappings for managers
+  const displayedMappings = isAdmin 
+    ? gridMappings 
+    : gridMappings.filter(mapping => {
+        // For non-admin users with facility access, only show mappings where their facility is source or destination
+        return userFacility === 'All' || 
+               mapping.source_name === userFacility || 
+               mapping.destination_name === userFacility;
+      });
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -80,12 +96,13 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({
           <div className="text-center py-6">Loading facilities...</div>
         ) : facilities.length < 2 ? (
           <div className="text-center py-6 text-gray-500">
-            You need at least two facilities to create a grid mapping. Please add facilities first.
+            You need at least two facilities to create a grid mapping. {!isAdmin && 'Please contact an administrator to add facilities.'}
           </div>
         ) : (
           <GridMappingsTable 
-            gridMappings={gridMappings} 
-            onDeleteMapping={handleDeleteMapping} 
+            gridMappings={displayedMappings} 
+            onDeleteMapping={handleDeleteMapping}
+            isAdmin={isAdmin}
           />
         )}
       </CardContent>
@@ -97,6 +114,7 @@ const GridAssignment: React.FC<GridAssignmentProps> = ({
         onGridAssigned={onGridAssigned}
         facilities={facilities}
         gridMappings={gridMappings}
+        userFacility={userFacility}
       />
     </Card>
   );

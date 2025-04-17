@@ -36,6 +36,11 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
   isLoading
 }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  // Get user role from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   const handleDeleteFacility = async (facility: Facility) => {
     if (window.confirm(`Are you sure you want to delete ${facility.name}?`)) {
@@ -69,17 +74,19 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
             Manage facilities: Fulfillment Centers, Sourcing Hubs, and Darkstores
           </CardDescription>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Facility
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Facility
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="text-center py-6">Loading facilities...</div>
         ) : facilities.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
-            No facilities configured yet. Use the Add Facility button to create one.
+            No facilities configured yet. {isAdmin ? 'Use the Add Facility button to create one.' : 'Please contact an administrator to add facilities.'}
           </div>
         ) : (
           <Table>
@@ -88,7 +95,7 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
+                {isAdmin && <TableHead className="w-24">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,15 +108,17 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
                     </span>
                   </TableCell>
                   <TableCell>{facility.location || '-'}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDeleteFacility(facility)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleDeleteFacility(facility)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -117,11 +126,13 @@ const FacilityMaster: React.FC<FacilityMasterProps> = ({
         )}
       </CardContent>
       
-      <AddFacilityDialog 
-        isOpen={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onFacilityAdded={onFacilityAdded}
-      />
+      {isAdmin && (
+        <AddFacilityDialog 
+          isOpen={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onFacilityAdded={onFacilityAdded}
+        />
+      )}
     </Card>
   );
 };

@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      consignment_log: {
+        Row: {
+          completed_by: string | null
+          completed_time: string | null
+          consignment_id: string
+          created_at: string | null
+          created_by: string | null
+          destination_facility: string
+          id: string
+          notes: string | null
+          received_by: string | null
+          received_count: number | null
+          received_time: string | null
+          source_facility: string
+          status: string
+          tote_count: number
+        }
+        Insert: {
+          completed_by?: string | null
+          completed_time?: string | null
+          consignment_id: string
+          created_at?: string | null
+          created_by?: string | null
+          destination_facility: string
+          id?: string
+          notes?: string | null
+          received_by?: string | null
+          received_count?: number | null
+          received_time?: string | null
+          source_facility: string
+          status?: string
+          tote_count?: number
+        }
+        Update: {
+          completed_by?: string | null
+          completed_time?: string | null
+          consignment_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          destination_facility?: string
+          id?: string
+          notes?: string | null
+          received_by?: string | null
+          received_count?: number | null
+          received_time?: string | null
+          source_facility?: string
+          status?: string
+          tote_count?: number
+        }
+        Relationships: []
+      }
       facility_master: {
         Row: {
           created_at: string | null
@@ -124,6 +175,7 @@ export type Database = {
         Row: {
           completed_by: string | null
           completed_time: string | null
+          consignment_id: string | null
           destination: string
           id: string
           operator_name: string
@@ -134,6 +186,7 @@ export type Database = {
         Insert: {
           completed_by?: string | null
           completed_time?: string | null
+          consignment_id?: string | null
           destination: string
           id?: string
           operator_name: string
@@ -144,6 +197,7 @@ export type Database = {
         Update: {
           completed_by?: string | null
           completed_time?: string | null
+          consignment_id?: string | null
           destination?: string
           id?: string
           operator_name?: string

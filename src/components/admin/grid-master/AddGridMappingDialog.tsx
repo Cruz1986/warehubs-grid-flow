@@ -1,7 +1,5 @@
 
-import React, { useState } from 'react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,10 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { toast } from 'sonner';
 import { Facility } from '../GridMasterComponent';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GridMapping {
   id: string;
@@ -35,6 +35,7 @@ interface AddGridMappingDialogProps {
   onGridAssigned: (mapping: GridMapping) => void;
   facilities: Facility[];
   gridMappings: GridMapping[];
+  userFacility?: string;
 }
 
 const AddGridMappingDialog: React.FC<AddGridMappingDialogProps> = ({
@@ -42,52 +43,99 @@ const AddGridMappingDialog: React.FC<AddGridMappingDialogProps> = ({
   onOpenChange,
   onGridAssigned,
   facilities,
-  gridMappings
+  gridMappings,
+  userFacility
 }) => {
-  const [newMapping, setNewMapping] = useState({
-    source_name: '',
-    destination_name: '',
-    grid_no: ''
-  });
+  const [source, setSource] = useState('');
+  const [destination, setDestination] = useState('');
+  const [gridNumber, setGridNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingGrids, setExistingGrids] = useState<string[]>([]);
+  
+  // Get user role from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
 
-  const handleAddMapping = async () => {
-    if (!newMapping.source_name || !newMapping.destination_name || !newMapping.grid_no) {
-      toast.error("Please fill all required fields");
+  // Filter available facilities for source and destination
+  const availableSources = isAdmin 
+    ? facilities 
+    : facilities.filter(f => userFacility === 'All' || f.name === userFacility);
+  
+  const availableDestinations = isAdmin 
+    ? facilities.filter(f => f.id !== source)
+    : facilities.filter(f => (userFacility === 'All' || f.name === userFacility) && f.id !== source);
+
+  // Collect existing grid numbers for validation
+  useEffect(() => {
+    if (gridMappings && gridMappings.length > 0) {
+      const existingNumbers = gridMappings.map(mapping => mapping.grid_no);
+      setExistingGrids([...new Set(existingNumbers)]);
+    }
+  }, [gridMappings]);
+
+  const handleSubmit = async () => {
+    if (!source || !destination || !gridNumber.trim()) {
+      toast.error('Please fill in all fields');
       return;
     }
 
-    if (newMapping.source_name === newMapping.destination_name) {
-      toast.error("Source and destination cannot be the same");
+    // Validate grid number format (alphanumeric)
+    if (!/^[a-zA-Z0-9-]+$/.test(gridNumber)) {
+      toast.error('Grid number must contain only letters, numbers and hyphens');
       return;
     }
 
-    // Check if grid number is already in use
-    const duplicateGrid = gridMappings.find(m => m.grid_no === newMapping.grid_no);
-    if (duplicateGrid) {
-      toast.error(`Grid number ${newMapping.grid_no} is already in use`);
+    const selectedSource = facilities.find(f => f.id === source);
+    const selectedDestination = facilities.find(f => f.id === destination);
+
+    if (!selectedSource || !selectedDestination) {
+      toast.error('Please select valid source and destination facilities');
+      return;
+    }
+
+    // Prevent creating a grid mapping to the same facility
+    if (selectedSource.name === selectedDestination.name) {
+      toast.error('Source and destination cannot be the same facility');
       return;
     }
 
     try {
       setIsSubmitting(true);
       
-      // Insert new grid mapping into the database
+      // Check if this exact mapping already exists
+      const existingMapping = gridMappings.find(
+        mapping => 
+          mapping.source_name === selectedSource.name && 
+          mapping.destination_name === selectedDestination.name && 
+          mapping.grid_no === gridNumber
+      );
+      
+      if (existingMapping) {
+        toast.error('This exact grid mapping already exists');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('grid_master')
-        .insert(newMapping)
-        .select('*')
+        .insert({
+          source_name: selectedSource.name,
+          destination_name: selectedDestination.name,
+          grid_no: gridNumber
+        })
+        .select()
         .single();
       
       if (error) {
-        throw error;
+        console.error('Error adding grid mapping:', error);
+        toast.error('Failed to add grid mapping');
+        return;
       }
       
-      // Call the parent component's callback
       onGridAssigned(data);
-      
-      // Close the dialog and reset the form
-      resetAndClose();
+      resetForm();
+      onOpenChange(false);
+      toast.success('Grid mapping added successfully');
     } catch (error) {
       console.error('Error adding grid mapping:', error);
       toast.error('Failed to add grid mapping');
@@ -96,85 +144,80 @@ const AddGridMappingDialog: React.FC<AddGridMappingDialogProps> = ({
     }
   };
 
-  const resetAndClose = () => {
-    setNewMapping({
-      source_name: '',
-      destination_name: '',
-      grid_no: ''
-    });
-    onOpenChange(false);
-  }
+  const resetForm = () => {
+    setSource('');
+    setDestination('');
+    setGridNumber('');
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) resetForm();
+      onOpenChange(open);
+    }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Assign Grid Number</DialogTitle>
           <DialogDescription>
-            Create a grid number mapping between source and destination facilities
+            Create a new grid mapping between source and destination facilities.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="source-facility">Source Facility</Label>
+            <Label htmlFor="source">Source Facility</Label>
             <Select
-              value={newMapping.source_name}
-              onValueChange={(value) => setNewMapping({...newMapping, source_name: value})}
+              value={source}
+              onValueChange={setSource}
             >
-              <SelectTrigger id="source-facility">
+              <SelectTrigger id="source">
                 <SelectValue placeholder="Select source facility" />
               </SelectTrigger>
               <SelectContent>
-                {facilities.map((facility) => (
-                  <SelectItem key={facility.id} value={facility.name}>
+                {availableSources.map((facility) => (
+                  <SelectItem key={facility.id} value={facility.id}>
                     {facility.name} ({facility.type})
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          
           <div className="grid gap-2">
-            <Label htmlFor="destination-facility">Destination Facility</Label>
+            <Label htmlFor="destination">Destination Facility</Label>
             <Select
-              value={newMapping.destination_name}
-              onValueChange={(value) => setNewMapping({...newMapping, destination_name: value})}
-              disabled={!newMapping.source_name}
+              value={destination}
+              onValueChange={setDestination}
+              disabled={!source}
             >
-              <SelectTrigger id="destination-facility">
-                <SelectValue placeholder="Select destination facility" />
+              <SelectTrigger id="destination">
+                <SelectValue placeholder={source ? "Select destination facility" : "Select source first"} />
               </SelectTrigger>
               <SelectContent>
-                {facilities
-                  .filter(f => f.name !== newMapping.source_name)
-                  .map((facility) => (
-                    <SelectItem key={facility.id} value={facility.name}>
-                      {facility.name} ({facility.type})
-                    </SelectItem>
-                  ))}
+                {availableDestinations.map((facility) => (
+                  <SelectItem key={facility.id} value={facility.id}>
+                    {facility.name} ({facility.type})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          
           <div className="grid gap-2">
-            <Label htmlFor="grid-number">Grid Number</Label>
+            <Label htmlFor="gridNumber">Grid Number</Label>
             <Input
-              id="grid-number"
-              value={newMapping.grid_no}
-              onChange={(e) => setNewMapping({...newMapping, grid_no: e.target.value})}
-              placeholder="Enter grid number"
-              disabled={!newMapping.destination_name}
+              id="gridNumber"
+              value={gridNumber}
+              onChange={(e) => setGridNumber(e.target.value)}
+              placeholder="e.g. G-123"
             />
+            <p className="text-xs text-muted-foreground">
+              Use a unique identifier for this source-destination pair
+            </p>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={resetAndClose}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleAddMapping} 
-            disabled={isSubmitting || !newMapping.source_name || !newMapping.destination_name || !newMapping.grid_no}
-          >
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Assigning...' : 'Assign Grid'}
           </Button>
         </DialogFooter>

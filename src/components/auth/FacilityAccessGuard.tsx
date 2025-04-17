@@ -31,6 +31,10 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   // For managers, check if they are accessing their own facility's data
   const isManagerAccessingOwnFacility = isManager && hasSpecificFacility;
   
+  // Special case for grid-master path - allow managers to access
+  const isGridMasterPath = window.location.pathname === '/grid-master';
+  const isManagerAccessingGridMaster = isManager && isGridMasterPath;
+  
   // If component requires admin access, check that first
   if (requiresAdmin && !isAdmin) {
     console.log('Access denied: Admin role required');
@@ -41,6 +45,7 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   // Allow manager access to their facility only
   const hasAccess = user && (
     isAdmin || 
+    isManagerAccessingGridMaster ||
     (isManager && (hasAllFacilities || hasSpecificFacility || allowedFacility === 'All')) ||
     hasAllFacilities || 
     hasSpecificFacility
@@ -54,6 +59,7 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   console.log('FacilityAccessGuard - Is Manager:', isManager);
   console.log('FacilityAccessGuard - Has Access:', hasAccess);
   console.log('FacilityAccessGuard - Is Manager Accessing Own Facility:', isManagerAccessingOwnFacility);
+  console.log('FacilityAccessGuard - Is Manager Accessing Grid Master:', isManagerAccessingGridMaster);
   
   if (!user) {
     return <Navigate to="/" replace />;

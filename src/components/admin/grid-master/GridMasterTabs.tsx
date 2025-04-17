@@ -31,20 +31,32 @@ const GridMasterTabs: React.FC<GridMasterTabsProps> = ({
   onGridAssigned,
   onGridDeleted
 }) => {
+  // Get user role from localStorage
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  
+  // For managers, default to grid assignment tab
+  const defaultTab = isAdmin ? "facilities" : "grid-assignment";
+  
   return (
-    <Tabs defaultValue="facilities" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="facilities">Facility Master</TabsTrigger>
+    <Tabs defaultValue={defaultTab} className="w-full">
+      <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {isAdmin && <TabsTrigger value="facilities">Facility Master</TabsTrigger>}
         <TabsTrigger value="grid-assignment">Grid Assignment</TabsTrigger>
       </TabsList>
-      <TabsContent value="facilities" className="mt-6">
-        <FacilityMaster 
-          facilities={facilities} 
-          onFacilityAdded={onFacilityAdded} 
-          onFacilityDeleted={onFacilityDeleted}
-          isLoading={isLoading}
-        />
-      </TabsContent>
+      
+      {isAdmin && (
+        <TabsContent value="facilities" className="mt-6">
+          <FacilityMaster 
+            facilities={facilities} 
+            onFacilityAdded={onFacilityAdded} 
+            onFacilityDeleted={onFacilityDeleted}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+      )}
+      
       <TabsContent value="grid-assignment" className="mt-6">
         <GridAssignment 
           facilities={facilities} 
