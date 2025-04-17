@@ -157,35 +157,74 @@ const UserManagementTable = () => {
     try {
       setIsLoading(true);
       
-      // Generate a new UUID for the user_id
-      const newUserId = crypto.randomUUID();
-      
-      const { data, error } = await supabase
-        .from('users_log')
-        .insert({
-          user_id: newUserId,
-          username: userData.username,
-          password: userData.password,
-          role: userData.role,
-          facility: userData.facility,
-          status: 'active',
-          created_at: new Date().toISOString()
-        })
-        .select();
+      // Call stored function instead of direct table insertion
+      // This function needs to be created in your Supabase database
+      const { data, error } = await supabase.rpc(
+        'add_user',
+        {
+          p_username: userData.username,
+          p_password: userData.password,
+          p_role: userData.role,
+          p_facility: userData.facility
+        }
+      );
       
       if (error) {
         console.error('Error adding user:', error);
         toast.error('Failed to add user: ' + error.message);
+        
+        // Fallback to direct insert for testing purposes
+        if (error.message.includes('function "add_user" does not exist')) {
+          toast.warning('RPC function not found, attempting direct insert (may fail due to RLS)');
+          
+          // Generate a new UUID for the user_id
+          const newUserId = crypto.randomUUID();
+          
+          const { data: insertData, error: insertError } = await supabase
+            .from('users_log')
+            .insert({
+              user_id: newUserId,
+              username: userData.username,
+              password: userData.password,
+              role: userData.role,
+              facility: userData.facility,
+              status: 'active',
+              created_at: new Date().toISOString()
+            })
+            .select();
+          
+          if (insertError) {
+            console.error('Direct insert error:', insertError);
+            toast.error('Failed to add user: ' + insertError.message);
+            return;
+          }
+          
+          if (insertData && insertData[0]) {
+            const newUser: User = {
+              id: insertData[0].user_id,
+              username: insertData[0].username,
+              role: insertData[0].role,
+              facility: insertData[0].facility || 'Unknown',
+              lastLogin: 'Never'
+            };
+            
+            setUsers([...users, newUser]);
+            toast.success("User added successfully");
+          }
+          
+          return;
+        }
+        
         return;
       }
 
       // Add the new user to the local state
-      if (data && data[0]) {
+      if (data) {
         const newUser: User = {
-          id: data[0].user_id,
-          username: data[0].username,
-          role: data[0].role,
-          facility: data[0].facility || 'Unknown',
+          id: data.user_id,
+          username: data.username,
+          role: data.role,
+          facility: data.facility || 'Unknown',
           lastLogin: 'Never'
         };
         
@@ -207,16 +246,32 @@ const UserManagementTable = () => {
         return;
       }
       
-      const { error } = await supabase
-        .from('users_log')
-        .update({ 
-          password: newPassword,
-          modified_at: new Date().toISOString()
-        })
-        .eq('user_id', selectedUser.id);
+      // Using RPC function for reset password to bypass RLS
+      const { error } = await supabase.rpc(
+        'reset_user_password',
+        {
+          p_user_id: selectedUser.id,
+          p_new_password: newPassword
+        }
+      );
       
       if (error) {
-        throw error;
+        if (error.message.includes('function "reset_user_password" does not exist')) {
+          // Fallback to direct update
+          const { error: updateError } = await supabase
+            .from('users_log')
+            .update({ 
+              password: newPassword,
+              modified_at: new Date().toISOString()
+            })
+            .eq('user_id', selectedUser.id);
+          
+          if (updateError) {
+            throw updateError;
+          }
+        } else {
+          throw error;
+        }
       }
       
       toast.success(`Password reset for ${selectedUser.username}`);
@@ -233,14 +288,27 @@ const UserManagementTable = () => {
   };
 
   const handleDeleteUser = async (user: User) => {
-    try {      
-      const { error } = await supabase
-        .from('users_log')
-        .delete()
-        .eq('user_id', user.id);
+    try {
+      // Use RPC function for delete to bypass RLS
+      const { error } = await supabase.rpc(
+        'delete_user',
+        { p_user_id: user.id }
+      );
       
       if (error) {
-        throw error;
+        if (error.message.includes('function "delete_user" does not exist')) {
+          // Fallback to direct delete
+          const { error: deleteError } = await supabase
+            .from('users_log')
+            .delete()
+            .eq('user_id', user.id);
+          
+          if (deleteError) {
+            throw deleteError;
+          }
+        } else {
+          throw error;
+        }
       }
       
       setUsers(users.filter(u => u.id !== user.id));
