@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -19,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddUserDialogProps {
   facilities: string[];
@@ -35,9 +38,32 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
   const [isOpen, setIsOpen] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('operator');
+  const [role, setRole] = useState('user');
   const [facility, setFacility] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Get current user when component mounts
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setCurrentUser(user);
+        
+        // If current user is not an admin, set role to user by default
+        if (user.role?.toLowerCase() !== 'admin') {
+          setRole('user');
+          // Set facility to current user's facility if not admin
+          if (user.facility && user.facility !== 'All') {
+            setFacility(user.facility);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Set initial facility value if facilities are loaded
   useEffect(() => {
@@ -86,12 +112,20 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
       return;
     }
     
-    onAddUser({
+    const userData = {
       username: username.trim(),
       password: password.trim(),
       role,
-      facility
-    });
+      facility: currentUser?.role?.toLowerCase() === 'admin' ? facility : currentUser?.facility || facility
+    };
+    
+    // If the current user is not an admin, they can only create users for their facility
+    if (currentUser?.role?.toLowerCase() !== 'admin' && currentUser?.facility !== 'All') {
+      userData.facility = currentUser.facility;
+      userData.role = 'user'; // Non-admins can only create users, not admins
+    }
+    
+    onAddUser(userData);
     
     // Reset form and close dialog
     resetForm();
@@ -101,10 +135,16 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
   const resetForm = () => {
     setUsername('');
     setPassword('');
-    setRole('operator');
+    setRole('user');
     setFacility(facilities.length > 0 ? facilities[0] : '');
     setErrors({});
   };
+
+  // Check if user can modify role (only admins can)
+  const canModifyRole = currentUser?.role?.toLowerCase() === 'admin';
+  
+  // Check if user can modify facility (only admins can choose any facility)
+  const canModifyFacility = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.facility === 'All';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -173,15 +213,23 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                 Role
               </Label>
               <div className="col-span-3">
-                <Select value={role} onValueChange={setRole}>
+                <Select 
+                  value={role} 
+                  onValueChange={setRole}
+                  disabled={!canModifyRole}
+                >
                   <SelectTrigger className={errors.role ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="user">User</SelectItem>
                   </SelectContent>
                 </Select>
+                {!canModifyRole && (
+                  <p className="text-gray-500 text-xs mt-1">Only admins can assign roles</p>
+                )}
                 {errors.role && (
                   <p className="text-red-500 text-sm mt-1">{errors.role}</p>
                 )}
@@ -192,7 +240,11 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                 Facility
               </Label>
               <div className="col-span-3">
-                <Select value={facility} onValueChange={setFacility}>
+                <Select 
+                  value={facility} 
+                  onValueChange={setFacility}
+                  disabled={!canModifyFacility}
+                >
                   <SelectTrigger className={errors.facility ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select a facility" />
                   </SelectTrigger>
@@ -202,14 +254,20 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                         No facilities available
                       </SelectItem>
                     ) : (
-                      facilities.map((facilityName) => (
-                        <SelectItem key={facilityName} value={facilityName}>
-                          {facilityName}
-                        </SelectItem>
-                      ))
+                      <>
+                        {canModifyFacility && <SelectItem value="All">All Facilities</SelectItem>}
+                        {facilities.map((facilityName) => (
+                          <SelectItem key={facilityName} value={facilityName}>
+                            {facilityName}
+                          </SelectItem>
+                        ))}
+                      </>
                     )}
                   </SelectContent>
                 </Select>
+                {!canModifyFacility && (
+                  <p className="text-gray-500 text-xs mt-1">Users can only be assigned to your facility</p>
+                )}
                 {errors.facility && (
                   <p className="text-red-500 text-sm mt-1">{errors.facility}</p>
                 )}

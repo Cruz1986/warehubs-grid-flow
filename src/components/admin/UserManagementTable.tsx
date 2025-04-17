@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -32,9 +33,8 @@ const UserManagementTable = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   useEffect(() => {
-    // TEMPORARY FIX: Skip complex permission checks and directly set permission to true
     try {
-      // Get and log the user directly from localStorage for debugging
+      // Get and log the user directly from localStorage
       const userStr = localStorage.getItem('user');
       console.log('Raw user string from localStorage:', userStr);
       
@@ -43,24 +43,28 @@ const UserManagementTable = () => {
         console.log('Parsed user object:', user);
         setCurrentUser(user);
         
-        // Force permission to true
-        setHasPermission(true);
+        // Set permission based on role
+        const isAdmin = user.role?.toLowerCase() === 'admin';
+        const isManager = user.role?.toLowerCase() === 'manager';
         
-        // Log role comparison for debugging
+        setHasPermission(isAdmin || isManager);
+        
+        // Log role for debugging
         if (user.role) {
           console.log('User role:', user.role);
-          console.log('Role lowercase check:', user.role.toLowerCase() === 'admin');
-          console.log('Role exact "Admin" check:', user.role === 'Admin');
-          console.log('Role exact "admin" check:', user.role === 'admin');
+          console.log('User facility:', user.facility);
+          console.log('Has permission:', isAdmin || isManager);
         }
       } else {
         console.log('No user found in localStorage');
+        setHasPermission(false);
       }
     } catch (error) {
       console.error('Error parsing user from localStorage:', error);
+      setHasPermission(false);
     }
     
-    // Proceed to fetch data regardless of permission check
+    // Proceed to fetch data
     fetchFacilities();
     fetchUsers();
   }, []);
@@ -95,9 +99,17 @@ const UserManagementTable = () => {
       
       console.log('Fetching users with current user:', currentUser);
       
-      const { data, error } = await supabase
+      // If current user is a manager, only fetch users from their facility
+      let query = supabase
         .from('users_log')
         .select('user_id, username, role, facility, last_login');
+      
+      // If user is a manager, only show users from their facility
+      if (currentUser?.role?.toLowerCase() === 'manager' && currentUser?.facility !== 'All') {
+        query = query.eq('facility', currentUser.facility);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error details from user fetch:', error);
@@ -144,8 +156,9 @@ const UserManagementTable = () => {
     facility: string;
   }) => {
     try {
-      // TEMPORARY FIX: Get the user data directly from localStorage again
-      // This ensures we have the freshest user data
+      setIsLoading(true);
+      
+      // Get the current user for audit trail
       const userStr = localStorage.getItem('user');
       const currentUserData = userStr ? JSON.parse(userStr) : null;
       
@@ -158,6 +171,17 @@ const UserManagementTable = () => {
       console.log('Adding user with data:', {...userData, password: '[REDACTED]'});
       console.log('Current user for operation:', currentUserData);
       
+      // Check if user has permission to add this user
+      const canAddUser = currentUserData.role?.toLowerCase() === 'admin' || 
+        (currentUserData.role?.toLowerCase() === 'manager' && 
+         userData.role.toLowerCase() === 'user' && 
+         userData.facility === currentUserData.facility);
+      
+      if (!canAddUser) {
+        toast.error('You do not have permission to add this type of user');
+        return;
+      }
+      
       // Generate a new UUID for the user_id
       const newUserId = crypto.randomUUID();
       
@@ -166,19 +190,15 @@ const UserManagementTable = () => {
         .insert({
           user_id: newUserId,
           username: userData.username,
-          password: userData.password, // In production, this should be hashed
+          password: userData.password,
           role: userData.role,
           facility: userData.facility,
           status: 'active',
+          created_at: new Date().toISOString()
         })
         .select();
       
       if (error) {
-        if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
-          console.error('Database permission denied:', error);
-          toast.error('You do not have permission to add users in the database');
-          return;
-        }
         console.error('Error adding user:', error);
         toast.error('Failed to add user: ' + error.message);
         return;
@@ -200,6 +220,8 @@ const UserManagementTable = () => {
     } catch (error: any) {
       console.error('Error adding user:', error);
       toast.error('Failed to add user: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -210,12 +232,24 @@ const UserManagementTable = () => {
         return;
       }
       
-      // TEMPORARY FIX: Get the user data directly from localStorage again
+      // Get current user for audit trail
       const userStr = localStorage.getItem('user');
       const currentUserData = userStr ? JSON.parse(userStr) : null;
       
       if (!currentUserData) {
         toast.error('You must be logged in to reset passwords');
+        return;
+      }
+      
+      // Check if user has permission to reset this password
+      const canResetPassword = 
+        currentUserData.role?.toLowerCase() === 'admin' || 
+        (currentUserData.role?.toLowerCase() === 'manager' && 
+         selectedUser.role.toLowerCase() === 'user' && 
+         selectedUser.facility === currentUserData.facility);
+      
+      if (!canResetPassword) {
+        toast.error('You do not have permission to reset this user\'s password');
         return;
       }
       
@@ -229,10 +263,6 @@ const UserManagementTable = () => {
         .eq('user_id', selectedUser.id);
       
       if (error) {
-        if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
-          toast.error('Database permission denied: You cannot reset passwords');
-          return;
-        }
         throw error;
       }
       
@@ -251,12 +281,24 @@ const UserManagementTable = () => {
 
   const handleDeleteUser = async (user: User) => {
     try {
-      // TEMPORARY FIX: Get the user data directly from localStorage again
+      // Get current user for permission check
       const userStr = localStorage.getItem('user');
       const currentUserData = userStr ? JSON.parse(userStr) : null;
       
       if (!currentUserData) {
         toast.error('You must be logged in to delete users');
+        return;
+      }
+      
+      // Check if user has permission to delete this user
+      const canDeleteUser = 
+        currentUserData.role?.toLowerCase() === 'admin' || 
+        (currentUserData.role?.toLowerCase() === 'manager' && 
+         user.role.toLowerCase() === 'user' && 
+         user.facility === currentUserData.facility);
+      
+      if (!canDeleteUser) {
+        toast.error('You do not have permission to delete this user');
         return;
       }
       
@@ -266,10 +308,6 @@ const UserManagementTable = () => {
         .eq('user_id', user.id);
       
       if (error) {
-        if (error.message.includes('row-level security') || error.message.includes('permission denied')) {
-          toast.error('Database permission denied: You cannot delete users');
-          return;
-        }
         throw error;
       }
       
@@ -281,7 +319,19 @@ const UserManagementTable = () => {
     }
   };
 
-  // Always render the user management UI with this temporary fix
+  // Only show the user management UI if user has permission
+  if (!hasPermission) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-lg">
+        <h2 className="text-xl font-semibold text-yellow-800 mb-2">Access Restricted</h2>
+        <p className="text-yellow-700">
+          You do not have permission to manage users. 
+          Only Admins and Managers can access this page.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">

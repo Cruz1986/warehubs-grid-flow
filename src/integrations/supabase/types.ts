@@ -201,7 +201,7 @@ export type Database = {
     }
     Functions: {
       check_is_admin: {
-        Args: { user_uid: string }
+        Args: { user_uid: string } | { username: string }
         Returns: boolean
       }
       create_admin_user: {

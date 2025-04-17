@@ -69,7 +69,7 @@ const Login = () => {
       // Check if the user exists in the users_log table
       const { data, error } = await supabase
         .from('users_log')
-        .select('user_id, username, role, status, password')
+        .select('user_id, username, role, status, password, facility')
         .eq('username', username)
         .single();
       
@@ -91,27 +91,32 @@ const Login = () => {
       }
       
       // Prepare user data to store in localStorage
-      // For this simple implementation we'll handle user data in localStorage
-      // In a production app, you'd implement proper token-based auth
       const userData = {
         id: data.user_id,
         username: data.username,
         role: data.role,
-        facility: 'All', // We'll assume All for simplicity, but you would get this from your database
+        facility: data.facility || (data.role.toLowerCase() === 'admin' ? 'All' : 'Unknown'),
       };
       
       // Store user info in localStorage
       localStorage.setItem('user', JSON.stringify(userData));
       
-      toast.success(`Welcome back, ${data.username}!`);
-      
       // Update last login time
-      await supabase
+      const currentTime = new Date().toISOString();
+      const { error: updateError } = await supabase
         .from('users_log')
         .update({
-          last_login: new Date().toISOString(),
+          last_login: currentTime,
         })
         .eq('user_id', data.user_id);
+      
+      if (updateError) {
+        console.error('Error updating last login time:', updateError);
+      } else {
+        console.log('Successfully updated last login time to:', currentTime);
+      }
+      
+      toast.success(`Welcome back, ${data.username}!`);
       
       // Redirect to appropriate page based on role
       if (data.role.toLowerCase() === 'admin') {
