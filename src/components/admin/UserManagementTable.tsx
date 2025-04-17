@@ -157,8 +157,12 @@ const UserManagementTable = () => {
     try {
       setIsLoading(true);
       
+      console.log("Adding user with data:", {
+        ...userData,
+        password: "[REDACTED]" // Don't log actual password
+      });
+      
       // Call stored function instead of direct table insertion
-      // This function needs to be created in your Supabase database
       const { data, error } = await supabase.rpc(
         'add_user',
         {
@@ -210,6 +214,7 @@ const UserManagementTable = () => {
             
             setUsers([...users, newUser]);
             toast.success("User added successfully");
+            return;
           }
           
           return;
@@ -217,6 +222,8 @@ const UserManagementTable = () => {
         
         return;
       }
+
+      console.log("User created successfully, data returned:", data);
 
       // Add the new user to the local state
       if (data) {
@@ -230,6 +237,9 @@ const UserManagementTable = () => {
         
         setUsers([...users, newUser]);
         toast.success("User added successfully");
+      } else {
+        console.error("No data returned from add_user RPC");
+        toast.error("User may have been created but no data was returned");
       }
     } catch (error: any) {
       console.error('Error adding user:', error);
@@ -246,8 +256,11 @@ const UserManagementTable = () => {
         return;
       }
       
+      console.log(`Resetting password for user ${selectedUser.id} (${selectedUser.username})`);
+      console.log(`New password length: ${newPassword.length}`);
+      
       // Using RPC function for reset password to bypass RLS
-      const { error } = await supabase.rpc(
+      const { data, error } = await supabase.rpc(
         'reset_user_password',
         {
           p_user_id: selectedUser.id,
@@ -255,8 +268,11 @@ const UserManagementTable = () => {
         }
       );
       
+      console.log("Reset password result:", { data, error });
+      
       if (error) {
         if (error.message.includes('function "reset_user_password" does not exist')) {
+          console.log("Falling back to direct update for password reset");
           // Fallback to direct update
           const { error: updateError } = await supabase
             .from('users_log')
@@ -267,36 +283,48 @@ const UserManagementTable = () => {
             .eq('user_id', selectedUser.id);
           
           if (updateError) {
+            console.error("Direct update failed:", updateError);
             throw updateError;
+          } else {
+            console.log("Direct update succeeded");
           }
         } else {
+          console.error("RPC error:", error);
           throw error;
         }
+      } else {
+        console.log("RPC reset_user_password succeeded");
       }
       
       toast.success(`Password reset for ${selectedUser.username}`);
       setIsResetPasswordOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resetting password:', error);
-      toast.error('Failed to reset password');
+      toast.error('Failed to reset password: ' + error.message);
     }
   };
 
   const handleEditUser = (user: User) => {
+    console.log("Edit user selected:", user);
     setSelectedUser(user);
     setIsResetPasswordOpen(true);
   };
 
   const handleDeleteUser = async (user: User) => {
     try {
+      console.log(`Attempting to delete user ${user.id} (${user.username})`);
+      
       // Use RPC function for delete to bypass RLS
-      const { error } = await supabase.rpc(
+      const { data, error } = await supabase.rpc(
         'delete_user',
         { p_user_id: user.id }
       );
       
+      console.log("Delete user result:", { data, error });
+      
       if (error) {
         if (error.message.includes('function "delete_user" does not exist')) {
+          console.log("Falling back to direct delete");
           // Fallback to direct delete
           const { error: deleteError } = await supabase
             .from('users_log')
@@ -304,18 +332,24 @@ const UserManagementTable = () => {
             .eq('user_id', user.id);
           
           if (deleteError) {
+            console.error("Direct delete failed:", deleteError);
             throw deleteError;
+          } else {
+            console.log("Direct delete succeeded");
           }
         } else {
+          console.error("RPC error:", error);
           throw error;
         }
+      } else {
+        console.log("RPC delete_user succeeded");
       }
       
       setUsers(users.filter(u => u.id !== user.id));
       toast.success(`User ${user.username} deleted`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      toast.error('Failed to delete user: ' + error.message);
     }
   };
 
