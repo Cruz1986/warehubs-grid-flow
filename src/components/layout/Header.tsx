@@ -43,9 +43,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         <div className="flex flex-1 items-center justify-between md:justify-end">
           <div className="flex items-center">
             {children}
-            <span className="text-xl font-bold ml-4 hidden md:block">
-              Warehouse Hub Management System
-            </span>
           </div>
           
           <div className="flex items-center gap-2">
