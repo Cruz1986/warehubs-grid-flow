@@ -114,16 +114,16 @@ export const useToteSearch = () => {
       
       if (!currentData && toteExistsInAnyTable) {
         // Create a synthetic record from the available data with all required properties
-        currentData = {
+        let syntheticData: ToteRegisterData = {
           tote_id: toteId,
           current_status: 'unknown',
           current_facility: null,
           source_facility: null,
           destination: null,
           grid_no: null,
-          activity: null,
+          activity: 'Unknown activity', // Set a default value for activity
           consignment_no: null,
-          created_at: null,
+          created_at: new Date().toISOString(),
           ib_timestamp: null,
           ob_timestamp: null,
           outbound_by: null,
@@ -131,57 +131,51 @@ export const useToteSearch = () => {
           staged_by: null,
           staged_destination: null,
           stagged_timestamp: null,
-          updated_at: null
-        } as ToteRegisterData;
+          updated_at: new Date().toISOString()
+        };
         
         // Try to populate from inbound
         if (inboundData.data && inboundData.data.length > 0) {
           const latest = inboundData.data[0];
-          currentData.current_status = latest.status;
-          currentData.current_facility = latest.current_facility;
-          currentData.source_facility = latest.source;
-          currentData.ib_timestamp = latest.timestamp_in;
-          currentData.received_by = latest.operator_name;
-          currentData.activity = `Inbound at ${latest.current_facility || 'Unknown'}`;
+          syntheticData.current_status = latest.status;
+          syntheticData.current_facility = latest.current_facility;
+          syntheticData.source_facility = latest.source;
+          syntheticData.ib_timestamp = latest.timestamp_in;
+          syntheticData.received_by = latest.operator_name;
+          syntheticData.activity = `Inbound at ${latest.current_facility || 'Unknown'}`;
         }
         
         // Try to populate from outbound
         if (outboundData.data && outboundData.data.length > 0) {
           const latest = outboundData.data[0];
-          currentData.destination = latest.destination;
-          currentData.staged_destination = latest.destination; // Ensure staged_destination is set
-          currentData.ob_timestamp = latest.timestamp_out;
-          currentData.outbound_by = latest.operator_name;
-          currentData.consignment_no = latest.consignment_id;
+          syntheticData.destination = latest.destination;
+          syntheticData.staged_destination = latest.destination; // Ensure staged_destination is set
+          syntheticData.ob_timestamp = latest.timestamp_out;
+          syntheticData.outbound_by = latest.operator_name;
+          syntheticData.consignment_no = latest.consignment_id;
           // Only update activity if it's more recent than inbound
-          if (!currentData.ib_timestamp || (currentData.ob_timestamp && new Date(currentData.ob_timestamp) > new Date(currentData.ib_timestamp))) {
-            currentData.activity = `Outbound to ${latest.destination}`;
+          if (!syntheticData.ib_timestamp || (syntheticData.ob_timestamp && new Date(syntheticData.ob_timestamp) > new Date(syntheticData.ib_timestamp))) {
+            syntheticData.activity = `Outbound to ${latest.destination}`;
           }
         }
         
         // Try to populate from staging
         if (stagingData.data && stagingData.data.length > 0) {
           const latest = stagingData.data[0];
-          currentData.grid_no = latest.grid_no;
-          currentData.stagged_timestamp = latest.grid_timestamp;
-          currentData.staged_by = latest.operator_name;
-          currentData.staged_destination = latest.destination;
+          syntheticData.grid_no = latest.grid_no;
+          syntheticData.stagged_timestamp = latest.grid_timestamp;
+          syntheticData.staged_by = latest.operator_name;
+          syntheticData.staged_destination = latest.destination;
           // Only update activity if it's the most recent
           const stagingDate = new Date(latest.grid_timestamp);
-          const inboundDate = currentData.ib_timestamp ? new Date(currentData.ib_timestamp) : null;
-          const outboundDate = currentData.ob_timestamp ? new Date(currentData.ob_timestamp) : null;
+          const inboundDate = syntheticData.ib_timestamp ? new Date(syntheticData.ib_timestamp) : null;
+          const outboundDate = syntheticData.ob_timestamp ? new Date(syntheticData.ob_timestamp) : null;
           if ((!inboundDate || stagingDate > inboundDate) && (!outboundDate || stagingDate > outboundDate)) {
-            currentData.activity = `Staged at grid ${latest.grid_no}`;
+            syntheticData.activity = `Staged at grid ${latest.grid_no}`;
           }
         }
         
-        // Ensure we have created_at and updated_at timestamps
-        if (!currentData.created_at) {
-          currentData.created_at = new Date().toISOString();
-        }
-        if (!currentData.updated_at) {
-          currentData.updated_at = new Date().toISOString();
-        }
+        currentData = syntheticData;
         
         // Try to save this synthetic record to tote_register for future reference
         try {

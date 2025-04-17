@@ -1,25 +1,26 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export type ToteRegisterData = {
   tote_id: string;
-  current_facility?: string;
-  current_status?: string;
-  activity?: string;
-  ib_timestamp?: string;
-  received_by?: string;
-  grid_no?: string;
-  destination?: string;
-  stagged_timestamp?: string;
-  staged_by?: string;
-  outbound_by?: string;
-  ob_timestamp?: string;
-  consignment_no?: string;
-  source_facility?: string;
-  created_at?: string;
-  updated_at?: string;
-  staged_destination?: string;
+  current_facility?: string | null;
+  current_status?: string | null;
+  activity?: string | null;
+  ib_timestamp?: string | null;
+  received_by?: string | null;
+  grid_no?: string | null;
+  destination?: string | null;
+  stagged_timestamp?: string | null;
+  staged_by?: string | null;
+  outbound_by?: string | null;
+  ob_timestamp?: string | null;
+  consignment_no?: string | null;
+  source_facility?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  staged_destination?: string | null;
 }
 
 export type ToteRegisterUpdateData = Omit<Partial<ToteRegisterData>, 'tote_id'>;
@@ -303,10 +304,8 @@ export const useToteRegister = () => {
     if (currentData) {
       return await updateToteRegister(toteId, updateData);
     } else {
-      return await createToteRegister(toteId, {
-        ...updateData,
-        tote_id: toteId
-      });
+      // Removed the tote_id from updateData as it's handled by createToteRegister
+      return await createToteRegister(toteId, updateData);
     }
   };
 
