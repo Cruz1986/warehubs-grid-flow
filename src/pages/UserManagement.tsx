@@ -1,7 +1,9 @@
+// Update file: src/pages/UserManagement.tsx
 
 import React from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import UserManagementTable from '../components/admin/UserManagementTable';
+import { AuthProvider } from '../contexts/AuthContext';
 
 const UserManagement = () => {
   return (
@@ -12,7 +14,9 @@ const UserManagement = () => {
         Each user can be assigned to a specific facility.
       </p>
       
-      <UserManagementTable />
+      <AuthProvider>
+        <UserManagementTable />
+      </AuthProvider>
     </DashboardLayout>
   );
 };
