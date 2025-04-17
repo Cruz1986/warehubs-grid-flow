@@ -88,14 +88,27 @@ export const useToteSearch = () => {
       
       if (!currentData && toteExistsInAnyTable) {
         // Create a synthetic record from the available data
+        // Fix: Make sure all required properties of ToteRegisterData are included with appropriate defaults
         currentData = {
           tote_id: toteId,
           current_status: 'unknown',
           current_facility: null,
           source_facility: null,
           destination: null,
-          grid_no: null
-        };
+          grid_no: null,
+          // Add all the missing properties with appropriate default values
+          activity: null,
+          consignment_no: null,
+          created_at: null,
+          ib_timestamp: null,
+          ob_timestamp: null,
+          outbound_by: null,
+          received_by: null,
+          staged_by: null,
+          staged_destination: null,
+          stagged_timestamp: null,
+          updated_at: null
+        } as ToteRegisterData; // Use type assertion to ensure TypeScript treats this as complete
         
         // Try to populate from inbound
         if (inboundData.data && inboundData.data.length > 0) {
@@ -104,6 +117,8 @@ export const useToteSearch = () => {
           currentData.current_facility = latest.current_facility;
           currentData.source_facility = latest.source;
           currentData.ib_timestamp = latest.timestamp_in;
+          currentData.received_by = latest.operator_name;
+          currentData.activity = `Inbound at ${latest.current_facility || 'Unknown'}`;
         }
         
         // Try to populate from outbound
@@ -111,7 +126,12 @@ export const useToteSearch = () => {
           const latest = outboundData.data[0];
           currentData.destination = latest.destination;
           currentData.ob_timestamp = latest.timestamp_out;
+          currentData.outbound_by = latest.operator_name;
           currentData.consignment_no = latest.consignment_id;
+          // Only update activity if it's more recent than inbound
+          if (!currentData.ib_timestamp || (currentData.ob_timestamp && new Date(currentData.ob_timestamp) > new Date(currentData.ib_timestamp))) {
+            currentData.activity = `Outbound to ${latest.destination}`;
+          }
         }
         
         // Try to populate from staging
@@ -119,6 +139,15 @@ export const useToteSearch = () => {
           const latest = stagingData.data[0];
           currentData.grid_no = latest.grid_no;
           currentData.stagged_timestamp = latest.grid_timestamp;
+          currentData.staged_by = latest.operator_name;
+          currentData.staged_destination = latest.destination;
+          // Only update activity if it's the most recent
+          const stagingDate = new Date(latest.grid_timestamp);
+          const inboundDate = currentData.ib_timestamp ? new Date(currentData.ib_timestamp) : null;
+          const outboundDate = currentData.ob_timestamp ? new Date(currentData.ob_timestamp) : null;
+          if ((!inboundDate || stagingDate > inboundDate) && (!outboundDate || stagingDate > outboundDate)) {
+            currentData.activity = `Staged at grid ${latest.grid_no}`;
+          }
         }
       }
 
