@@ -76,3 +76,4 @@ export const useFetchConsignments = (currentFacility: string) => {
     fetchConsignments
   };
 };
+
