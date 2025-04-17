@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -76,7 +77,7 @@ export const useConsignmentActions = (
       for (const toteId of toteIds) {
         await updateToteRegister(toteId, {
           current_status: 'intransit',
-          staged_destination: selectedDestination
+          destination: selectedDestination
         });
       }
       

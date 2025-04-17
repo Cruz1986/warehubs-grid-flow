@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,8 +142,8 @@ export const useConsignmentReceiver = (currentFacility: string) => {
           await updateToteRegister(toteId, {
             current_status: 'inbound',
             current_facility: currentFacility,
-            inbound_timestamp: timestamp,
-            inbound_operator: username
+            ib_timestamp: timestamp,
+            received_by: username
           });
         } else {
           console.log(`Tote ${toteId} already exists in inbound at ${currentFacility}, skipping insert`);
