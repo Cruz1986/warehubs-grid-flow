@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -68,51 +67,6 @@ export const useConsignmentActions = (
         
       if (updateError) {
         throw updateError;
-      }
-      
-      // Enhanced: Update tote_register records to track movement centrally
-      for (const toteId of toteIds) {
-        // First check if the tote exists in the register
-        const { data: existingTote } = await supabase
-          .from('tote_register')
-          .select('*')
-          .eq('tote_id', toteId)
-          .maybeSingle();
-        
-        if (existingTote) {
-          // Update existing record - improved status tracking
-          const { error: registerError } = await supabase
-            .from('tote_register')
-            .update({
-              current_status: 'intransit',
-              outbound_timestamp: new Date().toISOString(),
-              outbound_operator: localStorage.getItem('username') || 'unknown',
-              staged_destination: selectedDestination,
-              current_facility: 'in-transit', // Mark as in-transit for better tracking
-            })
-            .eq('tote_id', toteId);
-            
-          if (registerError) {
-            console.error(`Error updating tote_register for ${toteId}:`, registerError);
-          }
-        } else {
-          // Create new record if it doesn't exist (direct outbound without prior inbound)
-          const { error: createError } = await supabase
-            .from('tote_register')
-            .insert({
-              tote_id: toteId,
-              source_facility: userFacility,
-              current_facility: 'in-transit', // Mark as in-transit for better tracking
-              current_status: 'intransit',
-              outbound_timestamp: new Date().toISOString(),
-              outbound_operator: localStorage.getItem('username') || 'unknown',
-              staged_destination: selectedDestination
-            });
-            
-          if (createError) {
-            console.error(`Error creating tote_register for ${toteId}:`, createError);
-          }
-        }
       }
       
       // Log the consignment creation to audit trail with intransit status

@@ -75,85 +75,10 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     
     setIsProcessing(true);
     
-    try {
-      // First check if the tote exists in tote_register
-      const { data: registerData, error: registerError } = await supabase
-        .from('tote_register')
-        .select('*')
-        .eq('tote_id', toteId)
-        .maybeSingle();
-        
-      if (registerError) {
-        console.error('Error checking tote_register:', registerError);
-      }
-      
-      // Check if the tote is already in transit via a different consignment
-      if (registerData && registerData.current_status === 'intransit' && registerData.staged_destination !== selectedDestination) {
-        const warningMsg = `Tote ${toteId} is already in transit to ${registerData.staged_destination}`;
-        await logError(toteId, warningMsg);
-        toast.warning(warningMsg);
-        setIsProcessing(false);
-        return;
-      }
-      
-      // Improved checking for duplicate totes based on the CURRENT facility
-      if (registerData && registerData.current_facility === userFacility) {
-        // Only check duplicates if tote is currently at this facility
-        // This allows for totes to be reused across different facilities
-        console.log(`Tote ${toteId} exists at current facility ${userFacility}, checking for duplicates`);
-      }
-      
+    try {      
       // Get the username from localStorage
       const username = localStorage.getItem('username') || 'unknown';
-      
-      // Prepare source information - can be from register or current facility for direct outbound
-      let originalSource = registerData?.source_facility || userFacility;
-      
-      // Determine if we need to check staging status or allow direct outbound
-      let canProceed = true;
-      let gridNumber = undefined;
-      
-      // Only check staging status if the tote is currently at this facility and has been staged
-      if (registerData && registerData.current_facility === userFacility && registerData.current_status === 'staged') {
-        // Check if the tote is staged for the selected destination
-        const { data: stagedTotes, error: stagedError } = await supabase
-          .from('tote_staging')
-          .select('*')
-          .eq('tote_id', toteId)
-          .eq('status', 'staged')
-          .maybeSingle();
-          
-        if (stagedError) {
-          console.error('Error verifying tote staging status:', stagedError);
-        }
-        
-        if (stagedTotes) {
-          // Only proceed if staged for the correct destination
-          if (stagedTotes.destination !== selectedDestination) {
-            const errorMsg = `Tote ${toteId} is staged for ${stagedTotes.destination}, not ${selectedDestination}`;
-            await logError(toteId, errorMsg);
-            toast.error(errorMsg);
-            canProceed = false;
-          } else {
-            gridNumber = stagedTotes.grid_no;
-            // Update staging status
-            const { error: updateError } = await supabase
-              .from('tote_staging')
-              .update({ status: 'shipped' })
-              .eq('tote_id', toteId);
-              
-            if (updateError) {
-              console.error('Error updating staging status:', updateError);
-            }
-          }
-        }
-      }
-      
-      if (!canProceed) {
-        setIsProcessing(false);
-        return;
-      }
-      
+            
       // Insert into outbound
       const insertData = {
         tote_id: toteId,
@@ -173,51 +98,15 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         return;
       }
       
-      // Update or create tote_register record - centralized tracking
-      if (registerData) {
-        // Update existing record
-        const { error: updateRegisterError } = await supabase
-          .from('tote_register')
-          .update({
-            current_status: 'outbound',
-            outbound_timestamp: new Date().toISOString(),
-            outbound_operator: username,
-            staged_destination: selectedDestination
-          })
-          .eq('tote_id', toteId);
-          
-        if (updateRegisterError) {
-          console.error('Error updating tote_register:', updateRegisterError);
-        }
-      } else {
-        // Create a new tote_register record for direct outbound
-        const { error: createRegisterError } = await supabase
-          .from('tote_register')
-          .insert({
-            tote_id: toteId,
-            current_status: 'outbound',
-            current_facility: userFacility,
-            source_facility: userFacility, // Source is current facility for direct outbound
-            outbound_timestamp: new Date().toISOString(),
-            outbound_operator: username,
-            staged_destination: selectedDestination
-          });
-          
-        if (createRegisterError) {
-          console.error('Error creating tote_register:', createRegisterError);
-        }
-      }
-      
       // Add to local state
       const newTote: Tote = {
         id: toteId,
         status: 'outbound' as 'outbound',
-        source: originalSource,
+        source: userFacility,
         destination: selectedDestination,
         timestamp: new Date().toISOString(),
         user: username,
-        currentFacility: userFacility,
-        grid: gridNumber
+        currentFacility: userFacility
       };
       
       setRecentScans(prevScans => [newTote, ...prevScans]);

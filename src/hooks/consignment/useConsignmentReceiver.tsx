@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ConsignmentLog } from '@/types/consignment';
-import { useToteRegister } from '@/hooks/useToteRegister';
 
 export interface Consignment {
   id: string;
@@ -21,7 +20,6 @@ export const useConsignmentReceiver = (currentFacility: string) => {
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { createToteRegister, updateToteRegister } = useToteRegister();
 
   const fetchConsignments = async () => {
     setIsLoading(true);
@@ -148,33 +146,6 @@ export const useConsignmentReceiver = (currentFacility: string) => {
           }
         } else {
           console.log(`Tote ${toteId} already exists in inbound at ${currentFacility}, skipping insert`);
-        }
-        
-        // Update tote_register to reflect the new location and status
-        // First check if the tote exists in the register
-        const { data: registerData } = await supabase
-          .from('tote_register')
-          .select('*')
-          .eq('tote_id', toteId)
-          .maybeSingle();
-          
-        if (registerData) {
-          // Update existing tote register record
-          await updateToteRegister(toteId, {
-            current_status: 'inbound',
-            current_facility: currentFacility,
-            inbound_timestamp: timestamp,
-            inbound_operator: username
-          });
-        } else {
-          // Create new tote register record
-          await createToteRegister(toteId, {
-            current_status: 'inbound',
-            current_facility: currentFacility,
-            source_facility: sourceFacility,
-            inbound_timestamp: timestamp,
-            inbound_operator: username
-          });
         }
       }
       
