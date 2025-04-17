@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InboundProcessingForm from '@/components/operations/InboundProcessingForm';
@@ -6,6 +7,7 @@ import ToteSearch from '@/components/operations/ToteSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FacilityType } from '@/components/admin/GridMasterComponent';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 // Type definition for Facility
 interface Facility {
@@ -62,36 +64,38 @@ const Inbound = () => {
   const facilityNames = facilities.map(facility => facility.name);
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Inbound Operations</h1>
-      
-      <Tabs defaultValue="inbound" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="inbound">Inbound Processing</TabsTrigger>
-          <TabsTrigger value="consignments">Consignments</TabsTrigger>
-          <TabsTrigger value="search">Tote Search</TabsTrigger>
-        </TabsList>
+    <DashboardLayout>
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">Inbound Operations</h1>
+        
+        <Tabs defaultValue="inbound" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="inbound">Inbound Processing</TabsTrigger>
+            <TabsTrigger value="consignments">Consignments</TabsTrigger>
+            <TabsTrigger value="search">Tote Search</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="inbound">
-          <InboundProcessingForm 
-            facilities={facilityNames}
-            userFacility={currentFacility}
-            isLoading={isLoading}
-          />
-        </TabsContent>
+          <TabsContent value="inbound">
+            <InboundProcessingForm 
+              facilities={facilityNames}
+              userFacility={currentFacility}
+              isLoading={isLoading}
+            />
+          </TabsContent>
 
-        <TabsContent value="consignments">
-          <ConsignmentReceiver 
-            currentFacility={currentFacility} 
-            isAdmin={isAdmin}
-          />
-        </TabsContent>
+          <TabsContent value="consignments">
+            <ConsignmentReceiver 
+              currentFacility={currentFacility} 
+              isAdmin={isAdmin}
+            />
+          </TabsContent>
 
-        <TabsContent value="search">
-          <ToteSearch />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="search">
+            <ToteSearch />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </DashboardLayout>
   );
 };
 
