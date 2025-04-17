@@ -34,7 +34,7 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
           .from('consignment_log')
           .select('consignment_id, source_facility, tote_count, created_at')
           .eq('destination_facility', currentFacility)
-          .eq('status', 'intransit')
+          .in('status', ['intransit', 'pending'])
           .order('created_at', { ascending: false });
           
         if (error) {
@@ -68,7 +68,10 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
       .channel('consignment-updates')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'consignment_log' }, 
-        () => fetchConsignments()
+        (payload) => {
+          console.log('Consignment update detected:', payload);
+          fetchConsignments();
+        }
       )
       .subscribe();
       

@@ -32,7 +32,7 @@ export const useFetchConsignments = (currentFacility: string) => {
       
       // Map ConsignmentLog to Consignment
       const mappedConsignments = (data || []).map((log: ConsignmentLog) => ({
-        id: log.id,
+        id: log.consignment_id,
         source: log.source_facility,
         destination: log.destination_facility,
         status: log.status,
@@ -76,4 +76,3 @@ export const useFetchConsignments = (currentFacility: string) => {
     fetchConsignments
   };
 };
-

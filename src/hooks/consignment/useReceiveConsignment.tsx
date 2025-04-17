@@ -14,6 +14,26 @@ export const useReceiveConsignment = (currentFacility: string) => {
     const username = localStorage.getItem('username') || 'unknown';
 
     try {
+      console.log(`Starting to receive consignment: ${consignmentId} at facility: ${currentFacility}`);
+      
+      // First, get consignment details to verify it exists and is valid
+      const { data: consignmentDetails, error: consignmentError } = await supabase
+        .from('consignment_log')
+        .select('*')
+        .eq('consignment_id', consignmentId)
+        .eq('destination_facility', currentFacility)
+        .in('status', ['intransit', 'pending'])
+        .single();
+        
+      if (consignmentError || !consignmentDetails) {
+        console.error('Error fetching consignment details:', consignmentError);
+        toast.error('Failed to verify consignment details');
+        setIsProcessing(false);
+        return;
+      }
+      
+      console.log('Found consignment details:', consignmentDetails);
+
       const { data: toteData, error: toteError } = await supabase
         .from('tote_outbound')
         .select('tote_id')
@@ -22,6 +42,7 @@ export const useReceiveConsignment = (currentFacility: string) => {
       if (toteError) {
         console.error('Error fetching totes for consignment:', toteError);
         toast.error('Failed to fetch totes for consignment');
+        setIsProcessing(false);
         return;
       }
       
@@ -85,6 +106,7 @@ export const useReceiveConsignment = (currentFacility: string) => {
       if (error) {
         console.error('Error updating consignment status:', error);
         toast.error('Failed to update consignment status');
+        setIsProcessing(false);
         return;
       }
 
