@@ -48,6 +48,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
       try {
         const user = JSON.parse(userStr);
         setCurrentUser(user);
+        console.log("Current user in AddUserDialog:", user);
         
         // If current user is manager, set default facility to their facility
         if (user.role?.toLowerCase() === 'manager' && user.facility && user.facility !== 'All') {
@@ -122,10 +123,10 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
     setErrors({});
   };
 
-  // Check if user can modify role (only admins can)
-  const canModifyRole = currentUser?.role?.toLowerCase() === 'admin';
+  // Allow managers to modify roles, but restrict them from creating admins
+  const canCreateAdmin = currentUser?.role?.toLowerCase() === 'admin';
   
-  // Check if user can modify facility (only admins can choose any facility)
+  // Check if user can modify facility (admins can choose any, managers restricted to their facility)
   const canModifyFacility = currentUser?.role?.toLowerCase() === 'admin' || currentUser?.facility === 'All';
 
   return (
@@ -198,20 +199,16 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ facilities, onAddUser, is
                 <Select 
                   value={role} 
                   onValueChange={setRole}
-                  disabled={!canModifyRole}
                 >
                   <SelectTrigger className={errors.role ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    {canCreateAdmin && <SelectItem value="admin">Admin</SelectItem>}
                     <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="user">User</SelectItem>
                   </SelectContent>
                 </Select>
-                {!canModifyRole && (
-                  <p className="text-gray-500 text-xs mt-1">Only admins can assign roles</p>
-                )}
                 {errors.role && (
                   <p className="text-red-500 text-sm mt-1">{errors.role}</p>
                 )}
