@@ -28,7 +28,7 @@ export const useConsignmentReceiver = (currentFacility: string) => {
     setCurrentConsignment(consignment);
     const result = await receiveConsignment(consignmentId);
     
-    if (result && result.receivedCount !== consignment.toteCount) {
+    if (result && result.received_count !== consignment.toteCount) {
       setShowDiscrepancy(true);
     } else {
       setCurrentConsignment(null);
