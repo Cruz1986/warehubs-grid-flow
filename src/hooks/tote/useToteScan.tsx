@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +16,8 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     trackToteFacilityTransfer, 
     updateToteRegister,
     updateToteConsignment,
-    getToteRegisterInfo 
+    getToteRegisterInfo,
+    logToteRegisterError
   } = useToteRegister();
 
   const startScanning = () => {
@@ -57,7 +59,8 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
           scan_data: { 
             tote_id: toteId, 
             destination: selectedDestination,
-            facility: userFacility
+            facility: userFacility,
+            timestamp: new Date().toISOString()
           }
         });
         
@@ -78,6 +81,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     // Check if tote already scanned in this session
     if (recentScans.some(tote => tote.id === toteId)) {
       toast.error(`Tote ${toteId} has already been scanned in this session`);
+      await logError(toteId, `Duplicate scan: Tote already scanned in this session`);
       return;
     }
     
@@ -119,7 +123,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
       }
       
       // Track the tote transfer between facilities
-      await trackToteFacilityTransfer(
+      const transferResult = await trackToteFacilityTransfer(
         toteId,
         sourceFacility,
         selectedDestination,
@@ -127,15 +131,24 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         'outbound'
       );
       
+      if (!transferResult) {
+        await logError(toteId, `Failed to track facility transfer`);
+      }
+      
       // Also update the tote register directly to ensure it's in sync
-      await updateToteRegister(toteId, {
+      const registerResult = await updateToteRegister(toteId, {
         current_status: 'outbound',
         current_facility: sourceFacility,
         destination: selectedDestination,
+        staged_destination: selectedDestination, // Ensure staged_destination is set
         ob_timestamp: timestamp,
         outbound_by: username,
         activity: `Outbound scan from ${sourceFacility} to ${selectedDestination}`
       });
+      
+      if (!registerResult) {
+        await logError(toteId, `Failed to update tote register`);
+      }
       
       // Add to local state
       const newTote: Tote = {

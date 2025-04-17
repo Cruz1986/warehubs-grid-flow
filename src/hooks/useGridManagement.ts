@@ -19,13 +19,38 @@ export const useGridManagement = () => {
   const [gridError, setGridError] = useState('');
   
   // Use the improved tote register hook
-  const { updateToteGrid, trackToteFacilityTransfer } = useToteRegister();
+  const { updateToteGrid, trackToteFacilityTransfer, logToteRegisterError } = useToteRegister();
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   const currentFacility = user?.facility || 'Unknown';
   const username = user?.username || 'unknown';
+  
+  const logGridError = async (toteId: string, errorMessage: string) => {
+    try {
+      const { error } = await supabase
+        .from('scan_error_logs')
+        .insert({
+          tote_id: toteId,
+          error_message: errorMessage,
+          operator: username,
+          operation_type: 'grid_staging',
+          scan_data: { 
+            tote_id: toteId,
+            grid_id: gridId,
+            facility: currentFacility,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+      if (error) {
+        console.error('Error logging grid error:', error);
+      }
+    } catch (err) {
+      console.error('Exception logging grid error:', err);
+    }
+  };
   
   // Fetch valid grid mappings from Supabase
   useEffect(() => {
@@ -127,6 +152,7 @@ export const useGridManagement = () => {
       const destination = gridDestinations[gridId];
       if (!destination) {
         setGridError(`Grid ${gridId} is not a valid grid number`);
+        await logGridError(scannedTote, `Invalid grid number: ${gridId}`);
         return;
       }
       
@@ -134,6 +160,7 @@ export const useGridManagement = () => {
       await addToStagedTotes(destination);
     } else {
       setGridError("No valid grids available. Please add grid mappings in the Grid Master section.");
+      await logGridError(scannedTote, "No valid grids available");
       return;
     }
   };
@@ -149,6 +176,11 @@ export const useGridManagement = () => {
         .eq('tote_id', scannedTote)
         .eq('status', 'inbound')
         .single();
+      
+      if (inboundError && inboundError.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('Error checking inbound data:', inboundError);
+        await logGridError(scannedTote, `Error checking inbound: ${inboundError.message}`);
+      }
       
       // Get the original source from inbound record, or use current facility as fallback
       const originalSource = inboundData?.source || currentFacility;
@@ -175,6 +207,8 @@ export const useGridManagement = () => {
       if (error) {
         console.error('Error adding tote to grid:', error);
         toast.error(`Failed to add tote to grid: ${error.message}`);
+        await logGridError(scannedTote, `Failed to insert staging: ${error.message}`);
+        setIsLoading(false);
         return;
       }
       
@@ -188,6 +222,7 @@ export const useGridManagement = () => {
       
       if (!registerUpdated) {
         console.warn(`Tote ${scannedTote} was staged but register update failed - attempting fallback`);
+        await logGridError(scannedTote, "Register update failed, using fallback");
         
         // Fallback - try to track as a facility transfer with staged status
         await trackToteFacilityTransfer(
@@ -222,6 +257,7 @@ export const useGridManagement = () => {
     } catch (error: any) {
       console.error('Error staging tote:', error);
       toast.error(`Error staging tote: ${error.message}`);
+      await logGridError(scannedTote, `Exception staging tote: ${error.message}`);
     } finally {
       setIsLoading(false);
     }

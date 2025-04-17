@@ -20,6 +20,32 @@ export const useToteSearch = () => {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
 
+  const logSearchError = async (toteId: string, errorMessage: string) => {
+    try {
+      const username = localStorage.getItem('username') || 'unknown';
+      
+      const { error } = await supabase
+        .from('scan_error_logs')
+        .insert({
+          tote_id: toteId,
+          error_message: errorMessage,
+          operator: username,
+          operation_type: 'search',
+          scan_data: { 
+            tote_id: toteId,
+            operation: 'search',
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+      if (error) {
+        console.error('Error logging search error:', error);
+      }
+    } catch (err) {
+      console.error('Exception logging search error:', err);
+    }
+  };
+
   const searchTote = async (toteId: string) => {
     if (!toteId || toteId.trim() === '') {
       toast.error('Please enter a valid tote ID');
@@ -87,8 +113,7 @@ export const useToteSearch = () => {
       let currentData = registerData.data;
       
       if (!currentData && toteExistsInAnyTable) {
-        // Create a synthetic record from the available data
-        // Fix: Make sure all required properties of ToteRegisterData are included with appropriate defaults
+        // Create a synthetic record from the available data with all required properties
         currentData = {
           tote_id: toteId,
           current_status: 'unknown',
@@ -96,7 +121,6 @@ export const useToteSearch = () => {
           source_facility: null,
           destination: null,
           grid_no: null,
-          // Add all the missing properties with appropriate default values
           activity: null,
           consignment_no: null,
           created_at: null,
@@ -108,7 +132,7 @@ export const useToteSearch = () => {
           staged_destination: null,
           stagged_timestamp: null,
           updated_at: null
-        } as ToteRegisterData; // Use type assertion to ensure TypeScript treats this as complete
+        } as ToteRegisterData;
         
         // Try to populate from inbound
         if (inboundData.data && inboundData.data.length > 0) {
@@ -125,6 +149,7 @@ export const useToteSearch = () => {
         if (outboundData.data && outboundData.data.length > 0) {
           const latest = outboundData.data[0];
           currentData.destination = latest.destination;
+          currentData.staged_destination = latest.destination; // Ensure staged_destination is set
           currentData.ob_timestamp = latest.timestamp_out;
           currentData.outbound_by = latest.operator_name;
           currentData.consignment_no = latest.consignment_id;
@@ -148,6 +173,29 @@ export const useToteSearch = () => {
           if ((!inboundDate || stagingDate > inboundDate) && (!outboundDate || stagingDate > outboundDate)) {
             currentData.activity = `Staged at grid ${latest.grid_no}`;
           }
+        }
+        
+        // Ensure we have created_at and updated_at timestamps
+        if (!currentData.created_at) {
+          currentData.created_at = new Date().toISOString();
+        }
+        if (!currentData.updated_at) {
+          currentData.updated_at = new Date().toISOString();
+        }
+        
+        // Try to save this synthetic record to tote_register for future reference
+        try {
+          const { error: registerError } = await supabase
+            .from('tote_register')
+            .insert(currentData);
+            
+          if (registerError) {
+            console.warn('Could not create tote register entry:', registerError);
+            await logSearchError(toteId, `Failed to create register entry: ${registerError.message}`);
+          }
+        } catch (registerErr) {
+          console.error('Exception creating register entry:', registerErr);
+          await logSearchError(toteId, `Exception creating register: ${String(registerErr)}`);
         }
       }
 
@@ -186,6 +234,7 @@ export const useToteSearch = () => {
       console.error('Error in tote search:', err);
       setError('An unexpected error occurred');
       toast.error('Failed to search for tote');
+      await logSearchError(toteId, `Search exception: ${String(err)}`);
       return null;
     } finally {
       setIsLoading(false);

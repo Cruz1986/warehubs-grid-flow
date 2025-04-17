@@ -19,6 +19,7 @@ export type ToteRegisterData = {
   source_facility?: string;
   created_at?: string;
   updated_at?: string;
+  staged_destination?: string;
 }
 
 export type ToteRegisterUpdateData = Omit<Partial<ToteRegisterData>, 'tote_id'>;
@@ -230,23 +231,59 @@ export const useToteRegister = () => {
    * Update a tote's grid location
    */
   const updateToteGrid = async (toteId: string, gridNumber: string, facility: string, operator: string) => {
-    // Get current tote data
-    const currentData = await getToteRegisterInfo(toteId);
-    
-    // Update with grid information
-    const updateData: ToteRegisterUpdateData = {
-      grid_no: gridNumber,
-      current_status: 'staged',
-      current_facility: facility,
-      stagged_timestamp: new Date().toISOString(),
-      staged_by: operator,
-      activity: `Staged at grid ${gridNumber} in ${facility}`
-    };
-    
-    if (currentData) {
-      return await updateToteRegister(toteId, updateData);
-    } else {
-      return await createToteRegister(toteId, updateData);
+    try {
+      // Get current tote data
+      const currentData = await getToteRegisterInfo(toteId);
+      
+      // Update with grid information
+      const updateData: ToteRegisterUpdateData = {
+        grid_no: gridNumber,
+        current_status: 'staged',
+        current_facility: facility,
+        stagged_timestamp: new Date().toISOString(),
+        staged_by: operator,
+        activity: `Staged at grid ${gridNumber} in ${facility}`,
+        staged_destination: facility
+      };
+      
+      if (currentData) {
+        return await updateToteRegister(toteId, updateData);
+      } else {
+        return await createToteRegister(toteId, updateData);
+      }
+    } catch (err) {
+      console.error('Error updating tote grid:', err);
+      await logToteRegisterError(toteId, 'updateToteGrid', String(err));
+      return false;
+    }
+  };
+
+  /**
+   * Log errors related to tote register operations
+   */
+  const logToteRegisterError = async (toteId: string, operation: string, errorMessage: string) => {
+    try {
+      const username = localStorage.getItem('username') || 'unknown';
+      
+      const { error } = await supabase
+        .from('scan_error_logs')
+        .insert({
+          tote_id: toteId,
+          error_message: errorMessage,
+          operator: username,
+          operation_type: operation,
+          scan_data: { 
+            tote_id: toteId,
+            operation: operation,
+            timestamp: new Date().toISOString()
+          }
+        });
+      
+      if (error) {
+        console.error('Failed to log tote register error:', error);
+      }
+    } catch (err) {
+      console.error('Exception logging tote register error:', err);
     }
   };
 
@@ -281,6 +318,7 @@ export const useToteRegister = () => {
     updateToteRegister,
     trackToteFacilityTransfer,
     updateToteGrid,
-    updateToteConsignment
+    updateToteConsignment,
+    logToteRegisterError
   };
 };
