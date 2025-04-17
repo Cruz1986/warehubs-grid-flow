@@ -82,6 +82,16 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     try {      
       // Get the username from localStorage
       const username = localStorage.getItem('username') || 'unknown';
+      
+      // Check if tote exists in register
+      const { data: existingTote } = await supabase
+        .from('tote_register')
+        .select('tote_id, current_facility, current_status')
+        .eq('tote_id', toteId)
+        .maybeSingle();
+        
+      // If tote doesn't exist in the register, it's a new tote being added to the system
+      const isNewTote = !existingTote;
             
       // Insert into outbound
       const insertData = {
@@ -98,6 +108,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
       if (insertError) {
         console.error('Error saving outbound tote:', insertError);
         toast.error(`Failed to save outbound tote: ${insertError.message}`);
+        await logError(toteId, `Failed to save outbound: ${insertError.message}`);
         setIsProcessing(false);
         return;
       }
@@ -119,11 +130,17 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         destination: selectedDestination,
         timestamp: new Date().toISOString(),
         user: username,
-        currentFacility: userFacility
+        currentFacility: userFacility,
+        isNewTote: isNewTote
       };
       
       setRecentScans(prevScans => [newTote, ...prevScans]);
-      toast.success(`Tote ${toteId} has been added to outbound batch for ${selectedDestination}`);
+      
+      if (isNewTote) {
+        toast.success(`New tote ${toteId} added to outbound batch for ${selectedDestination}`);
+      } else {
+        toast.success(`Tote ${toteId} has been added to outbound batch for ${selectedDestination}`);
+      }
       
       // Refocus on tote input for continuous scanning
       if (toteInputRef.current) {
@@ -133,6 +150,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     } catch (err) {
       console.error('Exception processing outbound tote:', err);
       toast.error('An unexpected error occurred while processing the tote');
+      await logError(toteId, `Exception: ${String(err)}`);
     } finally {
       setIsProcessing(false);
     }

@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react';
 import { useToteScan } from './tote/useToteScan';
 import { useConsignmentManagement } from './consignment/useConsignmentManagement';
 import { Tote } from '@/components/operations/ToteTable';
+import { toast } from 'sonner';
 
 export const useOutboundProcessing = (userFacility: string) => {
   const [selectedDestination, setSelectedDestination] = useState('');
+  const [showCompletedMessage, setShowCompletedMessage] = useState(false);
   
   const { 
     isScanningActive,
@@ -25,7 +27,9 @@ export const useOutboundProcessing = (userFacility: string) => {
     receivedToteCount,
     isProcessing: isConsignmentProcessing,
     generateConsignment,
-    completeOutbound: finalizeOutbound
+    completeOutbound: finalizeOutbound,
+    showConsignmentPopup,
+    setShowConsignmentPopup
   } = useConsignmentManagement(recentScans, userFacility, selectedDestination);
 
   // Auto-update all totes with consignment info when available
@@ -46,10 +50,14 @@ export const useOutboundProcessing = (userFacility: string) => {
     const success = await finalizeOutbound();
     
     if (success) {
+      setShowCompletedMessage(true);
+      
+      // Auto-reset after displaying completion message
       setTimeout(() => {
+        setShowCompletedMessage(false);
         resetScans();
         setSelectedDestination('');
-      }, 5000);
+      }, 8000);
     }
   };
 
@@ -66,8 +74,11 @@ export const useOutboundProcessing = (userFacility: string) => {
     consignmentStatus,
     expectedToteCount,
     receivedToteCount,
+    showCompletedMessage,
+    showConsignmentPopup,
     startScanning,
     completeOutbound,
-    handleToteScan
+    handleToteScan,
+    setShowConsignmentPopup
   };
 };

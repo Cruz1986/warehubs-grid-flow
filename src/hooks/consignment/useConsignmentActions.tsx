@@ -10,6 +10,8 @@ export const useConsignmentActions = (
   selectedDestination: string
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConsignmentPopup, setShowConsignmentPopup] = useState(false);
+  const [currentConsignmentId, setCurrentConsignmentId] = useState<string | null>(null);
   const { updateToteRegister } = useToteRegister();
 
   const fetchConsignmentDetails = async (consignmentId: string) => {
@@ -95,6 +97,15 @@ export const useConsignmentActions = (
         console.error('Error logging consignment:', logError);
       }
       
+      // Set current consignment ID for popup
+      setCurrentConsignmentId(newConsignmentId);
+      setShowConsignmentPopup(true);
+      
+      // Auto-hide the popup after 8 seconds
+      setTimeout(() => {
+        setShowConsignmentPopup(false);
+      }, 8000);
+      
       toast.success(`Consignment ${newConsignmentId} has been generated for ${toteIds.length} totes`);
       return {
         consignmentId: newConsignmentId,
@@ -119,26 +130,26 @@ export const useConsignmentActions = (
     
     try {
       // If there's no consignment yet, generate one - This makes it automatic
-      let currentConsignmentId = consignmentId;
-      if (!currentConsignmentId) {
+      let finalConsignmentId = consignmentId;
+      if (!finalConsignmentId) {
         const result = await generateConsignment();
         if (!result) {
           setIsProcessing(false);
           return false;
         }
-        currentConsignmentId = result.consignmentId;
+        finalConsignmentId = result.consignmentId;
       }
       
       // Mark the consignment as completed but keep status as intransit
       // so it appears in the destination's receive list
-      if (currentConsignmentId) {
+      if (finalConsignmentId) {
         const { error: consignmentError } = await supabase
           .from('consignment_log')
           .update({ 
             completed_time: new Date().toISOString(),
             completed_by: localStorage.getItem('username') || 'unknown'
           })
-          .eq('consignment_id', currentConsignmentId);
+          .eq('consignment_id', finalConsignmentId);
           
         if (consignmentError) {
           console.error('Error updating consignment:', consignmentError);
@@ -163,6 +174,9 @@ export const useConsignmentActions = (
     isProcessing,
     generateConsignment,
     completeOutbound,
-    fetchConsignmentDetails
+    fetchConsignmentDetails,
+    showConsignmentPopup,
+    currentConsignmentId,
+    setShowConsignmentPopup
   };
 };

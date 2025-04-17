@@ -105,7 +105,7 @@ export const useToteRegister = () => {
     }
   };
 
-  // New method to track tote movement between facilities
+  // Method to track tote movement between facilities
   const trackToteFacilityTransfer = async (
     toteId: string, 
     sourceFacility: string, 
@@ -121,6 +121,16 @@ export const useToteRegister = () => {
       const existingTote = await getToteRegisterInfo(toteId);
       const timestamp = new Date().toISOString();
       
+      // Determine if the destination facility is a staging hub
+      const { data: facilityData } = await supabase
+        .from('facility_master')
+        .select('type')
+        .eq('name', destinationFacility)
+        .maybeSingle();
+        
+      const destinationType = facilityData?.type || 'Unknown';
+      const requiresStaging = destinationType === 'FC' || destinationType === 'SH';
+      
       if (existingTote) {
         // Update existing tote with new facility and status
         return await updateToteRegister(toteId, {
@@ -128,7 +138,13 @@ export const useToteRegister = () => {
           current_facility: status === 'inbound' ? destinationFacility : sourceFacility,
           source_facility: sourceFacility,
           ...(status === 'inbound' ? { inbound_timestamp: timestamp, inbound_operator: operator } : {}),
-          ...(status === 'outbound' ? { outbound_timestamp: timestamp, outbound_operator: operator, staged_destination: destinationFacility } : {})
+          ...(status === 'outbound' ? { 
+            outbound_timestamp: timestamp, 
+            outbound_operator: operator, 
+            staged_destination: destinationFacility,
+            // Flag if staging will be required at destination
+            staged_grid_no: requiresStaging ? 'Pending' : 'N/A'
+          } : {})
         });
       } else {
         // Create new tote register entry
@@ -137,7 +153,13 @@ export const useToteRegister = () => {
           current_facility: status === 'inbound' ? destinationFacility : sourceFacility,
           source_facility: sourceFacility,
           ...(status === 'inbound' ? { inbound_timestamp: timestamp, inbound_operator: operator } : {}),
-          ...(status === 'outbound' ? { outbound_timestamp: timestamp, outbound_operator: operator, staged_destination: destinationFacility } : {})
+          ...(status === 'outbound' ? { 
+            outbound_timestamp: timestamp, 
+            outbound_operator: operator, 
+            staged_destination: destinationFacility,
+            // Flag if staging will be required at destination
+            staged_grid_no: requiresStaging ? 'Pending' : 'N/A'
+          } : {})
         });
       }
     } catch (err) {
