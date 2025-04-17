@@ -113,12 +113,12 @@ export const useOutboundProcessing = (userFacility: string) => {
       setConsignmentId(newConsignmentId);
       setConsignmentStatus('In Transit');
       
-      // Update local state
+      // Update local state with proper type casting
       const updatedScans = recentScans.map(tote => ({
         ...tote,
         consignmentId: newConsignmentId,
         consignmentStatus: 'In Transit',
-        status: 'intransit'
+        status: 'intransit' as 'intransit' // Type assertion to match Tote interface
       }));
       
       setRecentScans(updatedScans);
