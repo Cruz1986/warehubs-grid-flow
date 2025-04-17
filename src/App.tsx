@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,7 +32,7 @@ function App() {
             <Route path="/outbound" element={<Outbound />} />
             <Route path="/status" element={<Status />} />
             <Route path="/admin-dashboard" element={
-              <FacilityAccessGuard allowedFacility="All">
+              <FacilityAccessGuard allowedFacility="All" requiresAdmin={true}>
                 <AdminDashboard />
               </FacilityAccessGuard>
             } />
