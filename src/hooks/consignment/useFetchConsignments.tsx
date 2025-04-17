@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ConsignmentLog, Consignment } from '@/types/consignment';
@@ -9,7 +9,7 @@ export const useFetchConsignments = (currentFacility: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchConsignments = async () => {
+  const fetchConsignments = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -30,7 +30,6 @@ export const useFetchConsignments = (currentFacility: string) => {
 
       console.log('Fetched consignments for facility:', currentFacility, data);
       
-      // Map ConsignmentLog to Consignment
       const mappedConsignments = (data || []).map((log: ConsignmentLog) => ({
         id: log.consignment_id,
         source: log.source_facility,
@@ -51,7 +50,7 @@ export const useFetchConsignments = (currentFacility: string) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentFacility]);
 
   useEffect(() => {
     fetchConsignments();
@@ -67,12 +66,12 @@ export const useFetchConsignments = (currentFacility: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentFacility]);
+  }, [currentFacility, fetchConsignments]);
 
   return {
     consignments,
     isLoading,
     error,
-    fetchConsignments
+    refetchConsignments: fetchConsignments
   };
 };

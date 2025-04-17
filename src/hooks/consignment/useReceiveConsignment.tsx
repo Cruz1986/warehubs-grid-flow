@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +28,7 @@ export const useReceiveConsignment = (currentFacility: string) => {
         console.error('Error fetching consignment details:', consignmentError);
         toast.error('Failed to verify consignment details');
         setIsProcessing(false);
-        return;
+        return null;
       }
       
       console.log('Found consignment details:', consignmentDetails);
@@ -43,7 +42,7 @@ export const useReceiveConsignment = (currentFacility: string) => {
         console.error('Error fetching totes for consignment:', toteError);
         toast.error('Failed to fetch totes for consignment');
         setIsProcessing(false);
-        return;
+        return null;
       }
       
       const toteIds = toteData.map(tote => tote.tote_id);
@@ -93,27 +92,34 @@ export const useReceiveConsignment = (currentFacility: string) => {
         }
       }
       
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('consignment_log')
         .update({
           status: 'received',
           received_time: timestamp,
           received_by: username,
-          received_count: toteIds.length
+          received_count: toteIds.length,
+          notes: toteIds.length !== consignmentDetails.tote_count ? 
+            `Discrepancy detected: Expected ${consignmentDetails.tote_count} totes, received ${toteIds.length}` : 
+            null
         })
-        .eq('consignment_id', consignmentId);
+        .eq('consignment_id', consignmentId)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error updating consignment status:', error);
         toast.error('Failed to update consignment status');
         setIsProcessing(false);
-        return;
+        return null;
       }
 
       toast.success(`Consignment ${consignmentId} with ${toteIds.length} totes has been received`);
+      return data;
     } catch (err) {
       console.error('Error receiving consignment:', err);
       toast.error('Failed to receive consignment');
+      return null;
     } finally {
       setIsProcessing(false);
     }
