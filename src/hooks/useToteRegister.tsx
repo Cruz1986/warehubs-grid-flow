@@ -7,15 +7,17 @@ export type ToteRegisterData = {
   tote_id: string;
   current_facility?: string;
   current_status?: string;
+  activity?: string;
+  ib_timestamp?: string;
+  received_by?: string;
+  grid_no?: string;
+  destination?: string;
+  stagged_timestamp?: string;
+  staged_by?: string;
+  outbound_by?: string;
+  ob_timestamp?: string;
+  consignment_no?: string;
   source_facility?: string;
-  inbound_timestamp?: string;
-  inbound_operator?: string;
-  outbound_timestamp?: string;
-  outbound_operator?: string;
-  staged_destination?: string;
-  staged_grid_no?: string;
-  staged_operator?: string;
-  staged_timestamp?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -105,7 +107,6 @@ export const useToteRegister = () => {
     }
   };
 
-  // Method to track tote movement between facilities
   const trackToteFacilityTransfer = async (
     toteId: string, 
     sourceFacility: string, 
@@ -117,48 +118,43 @@ export const useToteRegister = () => {
     setError(null);
     
     try {
-      // First, check if tote exists in register
       const existingTote = await getToteRegisterInfo(toteId);
       const timestamp = new Date().toISOString();
       
-      // Determine if the destination facility is a staging hub
-      const { data: facilityData } = await supabase
-        .from('facility_master')
-        .select('type')
-        .eq('name', destinationFacility)
-        .maybeSingle();
-        
-      const destinationType = facilityData?.type || 'Unknown';
-      const requiresStaging = destinationType === 'FC' || destinationType === 'SH';
-      
       if (existingTote) {
         // Update existing tote with new facility and status
-        return await updateToteRegister(toteId, {
+        const updateData: ToteRegisterUpdateData = {
           current_status: status,
           current_facility: status === 'inbound' ? destinationFacility : sourceFacility,
           source_facility: sourceFacility,
-          ...(status === 'inbound' ? { inbound_timestamp: timestamp, inbound_operator: operator } : {}),
+          activity: `${status} at ${status === 'inbound' ? destinationFacility : sourceFacility}`,
+          ...(status === 'inbound' ? { 
+            ib_timestamp: timestamp, 
+            received_by: operator 
+          } : {}),
           ...(status === 'outbound' ? { 
-            outbound_timestamp: timestamp, 
-            outbound_operator: operator, 
-            staged_destination: destinationFacility,
-            // Flag if staging will be required at destination
-            staged_grid_no: requiresStaging ? 'Pending' : 'N/A'
+            ob_timestamp: timestamp, 
+            outbound_by: operator,
+            destination: destinationFacility
           } : {})
-        });
+        };
+
+        return await updateToteRegister(toteId, updateData);
       } else {
         // Create new tote register entry
         return await createToteRegister(toteId, {
           current_status: status,
           current_facility: status === 'inbound' ? destinationFacility : sourceFacility,
           source_facility: sourceFacility,
-          ...(status === 'inbound' ? { inbound_timestamp: timestamp, inbound_operator: operator } : {}),
+          activity: `${status} at ${status === 'inbound' ? destinationFacility : sourceFacility}`,
+          ...(status === 'inbound' ? { 
+            ib_timestamp: timestamp, 
+            received_by: operator 
+          } : {}),
           ...(status === 'outbound' ? { 
-            outbound_timestamp: timestamp, 
-            outbound_operator: operator, 
-            staged_destination: destinationFacility,
-            // Flag if staging will be required at destination
-            staged_grid_no: requiresStaging ? 'Pending' : 'N/A'
+            ob_timestamp: timestamp, 
+            outbound_by: operator,
+            destination: destinationFacility
           } : {})
         });
       }

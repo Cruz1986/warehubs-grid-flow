@@ -209,50 +209,59 @@ export type Database = {
       }
       tote_register: {
         Row: {
+          activity: string | null
+          consignment_no: string | null
           created_at: string | null
           current_facility: string | null
           current_status: string | null
-          inbound_operator: string | null
-          inbound_timestamp: string | null
-          outbound_operator: string | null
-          outbound_timestamp: string | null
+          destination: string | null
+          grid_no: string | null
+          ib_timestamp: string | null
+          ob_timestamp: string | null
+          outbound_by: string | null
+          received_by: string | null
           source_facility: string | null
+          staged_by: string | null
           staged_destination: string | null
-          staged_grid_no: string | null
-          staged_operator: string | null
-          staged_timestamp: string | null
+          stagged_timestamp: string | null
           tote_id: string
           updated_at: string | null
         }
         Insert: {
+          activity?: string | null
+          consignment_no?: string | null
           created_at?: string | null
           current_facility?: string | null
           current_status?: string | null
-          inbound_operator?: string | null
-          inbound_timestamp?: string | null
-          outbound_operator?: string | null
-          outbound_timestamp?: string | null
+          destination?: string | null
+          grid_no?: string | null
+          ib_timestamp?: string | null
+          ob_timestamp?: string | null
+          outbound_by?: string | null
+          received_by?: string | null
           source_facility?: string | null
+          staged_by?: string | null
           staged_destination?: string | null
-          staged_grid_no?: string | null
-          staged_operator?: string | null
-          staged_timestamp?: string | null
+          stagged_timestamp?: string | null
           tote_id: string
           updated_at?: string | null
         }
         Update: {
+          activity?: string | null
+          consignment_no?: string | null
           created_at?: string | null
           current_facility?: string | null
           current_status?: string | null
-          inbound_operator?: string | null
-          inbound_timestamp?: string | null
-          outbound_operator?: string | null
-          outbound_timestamp?: string | null
+          destination?: string | null
+          grid_no?: string | null
+          ib_timestamp?: string | null
+          ob_timestamp?: string | null
+          outbound_by?: string | null
+          received_by?: string | null
           source_facility?: string | null
+          staged_by?: string | null
           staged_destination?: string | null
-          staged_grid_no?: string | null
-          staged_operator?: string | null
-          staged_timestamp?: string | null
+          stagged_timestamp?: string | null
           tote_id?: string
           updated_at?: string | null
         }
