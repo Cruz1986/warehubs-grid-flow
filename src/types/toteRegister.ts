@@ -3,7 +3,7 @@ export type ToteRegisterData = {
   tote_id: string;
   current_facility?: string | null;
   current_status?: string | null;
-  activity: string;
+  activity: string;  // Activity is required for UI display purposes
   ib_timestamp?: string | null;
   received_by?: string | null;
   grid_no?: string | null;

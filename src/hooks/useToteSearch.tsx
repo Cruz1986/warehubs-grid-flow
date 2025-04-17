@@ -114,15 +114,16 @@ export const useToteSearch = () => {
       
       if (!currentData && toteExistsInAnyTable) {
         // Create a synthetic record from the available data with all required properties
+        // Fixed: All properties are properly marked as optional with default values where needed
         let syntheticData: ToteRegisterData = {
-          tote_id: toteId,
+          tote_id: toteId,  // Only tote_id is required by the type
           current_status: 'unknown',
+          activity: 'Unknown activity',  // Provide a default for activity
           current_facility: null,
           source_facility: null,
           destination: null,
           grid_no: null,
-          activity: 'Unknown activity', // Set a default value for activity
-          consignment_no: null,
+          consignment_no: null,  // Fixed: Initialize as null since it's optional
           created_at: new Date().toISOString(),
           ib_timestamp: null,
           ob_timestamp: null,
