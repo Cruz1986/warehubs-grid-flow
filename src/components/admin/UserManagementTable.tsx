@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -43,7 +42,7 @@ const UserManagementTable = () => {
         console.log('Parsed user object:', user);
         setCurrentUser(user);
         
-        // Set permission based on role
+        // Set permission based on role - case insensitive comparison
         const isAdmin = user.role?.toLowerCase() === 'admin';
         const isManager = user.role?.toLowerCase() === 'manager';
         
@@ -99,7 +98,7 @@ const UserManagementTable = () => {
       
       console.log('Fetching users with current user:', currentUser);
       
-      // If current user is a manager, only fetch users from their facility
+      // Start with a basic query to get all users
       let query = supabase
         .from('users_log')
         .select('user_id, username, role, facility, last_login');
@@ -158,30 +157,6 @@ const UserManagementTable = () => {
     try {
       setIsLoading(true);
       
-      // Get the current user for audit trail
-      const userStr = localStorage.getItem('user');
-      const currentUserData = userStr ? JSON.parse(userStr) : null;
-      
-      if (!currentUserData) {
-        console.error('No user found in localStorage when trying to add user');
-        toast.error('You must be logged in to add users');
-        return;
-      }
-      
-      console.log('Adding user with data:', {...userData, password: '[REDACTED]'});
-      console.log('Current user for operation:', currentUserData);
-      
-      // Check if user has permission to add this user
-      const canAddUser = currentUserData.role?.toLowerCase() === 'admin' || 
-        (currentUserData.role?.toLowerCase() === 'manager' && 
-         userData.role.toLowerCase() === 'user' && 
-         userData.facility === currentUserData.facility);
-      
-      if (!canAddUser) {
-        toast.error('You do not have permission to add this type of user');
-        return;
-      }
-      
       // Generate a new UUID for the user_id
       const newUserId = crypto.randomUUID();
       
@@ -232,32 +207,10 @@ const UserManagementTable = () => {
         return;
       }
       
-      // Get current user for audit trail
-      const userStr = localStorage.getItem('user');
-      const currentUserData = userStr ? JSON.parse(userStr) : null;
-      
-      if (!currentUserData) {
-        toast.error('You must be logged in to reset passwords');
-        return;
-      }
-      
-      // Check if user has permission to reset this password
-      const canResetPassword = 
-        currentUserData.role?.toLowerCase() === 'admin' || 
-        (currentUserData.role?.toLowerCase() === 'manager' && 
-         selectedUser.role.toLowerCase() === 'user' && 
-         selectedUser.facility === currentUserData.facility);
-      
-      if (!canResetPassword) {
-        toast.error('You do not have permission to reset this user\'s password');
-        return;
-      }
-      
       const { error } = await supabase
         .from('users_log')
         .update({ 
           password: newPassword,
-          modified_by: currentUserData.username || 'system',
           modified_at: new Date().toISOString()
         })
         .eq('user_id', selectedUser.id);
@@ -280,28 +233,7 @@ const UserManagementTable = () => {
   };
 
   const handleDeleteUser = async (user: User) => {
-    try {
-      // Get current user for permission check
-      const userStr = localStorage.getItem('user');
-      const currentUserData = userStr ? JSON.parse(userStr) : null;
-      
-      if (!currentUserData) {
-        toast.error('You must be logged in to delete users');
-        return;
-      }
-      
-      // Check if user has permission to delete this user
-      const canDeleteUser = 
-        currentUserData.role?.toLowerCase() === 'admin' || 
-        (currentUserData.role?.toLowerCase() === 'manager' && 
-         user.role.toLowerCase() === 'user' && 
-         user.facility === currentUserData.facility);
-      
-      if (!canDeleteUser) {
-        toast.error('You do not have permission to delete this user');
-        return;
-      }
-      
+    try {      
       const { error } = await supabase
         .from('users_log')
         .delete()
