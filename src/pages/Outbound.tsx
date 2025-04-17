@@ -7,7 +7,7 @@ import { FacilityType } from '@/components/admin/GridMasterComponent';
 import OutboundProcessingForm from '@/components/operations/OutboundProcessingForm';
 import CurrentFacilityDisplay from '@/components/operations/CurrentFacilityDisplay';
 import FacilityAccessGuard from '@/components/auth/FacilityAccessGuard';
-import ConsignmentReceiver from '@/components/operations/ConsignmentReceiver';
+import ConsignmentReceiver from '@/components/operations/consignment/ConsignmentReceiver';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Type definition for Facility

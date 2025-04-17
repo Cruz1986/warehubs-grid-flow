@@ -29,3 +29,15 @@ export interface ToteTransaction {
   grid?: string;
   notes?: string;
 }
+
+export interface Consignment {
+  id: string;
+  source: string;
+  destination: string;
+  status: string;
+  toteCount: number;
+  createdAt: string;
+  receivedCount?: number;
+  receivedTime?: string;
+  notes?: string;
+}
