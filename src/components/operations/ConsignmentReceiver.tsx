@@ -43,6 +43,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
       setError(null);
 
       try {
+        // Modified query to get consignments for the current facility that are in transit or pending
         const { data, error } = await supabase
           .from('consignment_log')
           .select('*')
@@ -57,6 +58,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
           return;
         }
 
+        console.log('Fetched consignments for facility:', currentFacility, data);
         const consignmentData = data as ConsignmentLog[] || [];
 
         const formattedConsignments: Consignment[] = consignmentData.map(consignment => ({
@@ -132,19 +134,33 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
           
         const sourceFacility = consignmentData?.source_facility || 'Unknown';
           
-        // Insert tote into inbound at the destination
-        const { error: inboundError } = await supabase
+        // Check if tote already exists in inbound at this facility
+        const { data: existingInbound } = await supabase
           .from('tote_inbound')
-          .insert({
-            tote_id: toteId,
-            source: sourceFacility,
-            current_facility: currentFacility,
-            operator_name: username,
-            timestamp_in: timestamp
-          });
-          
-        if (inboundError) {
-          console.error(`Error creating inbound record for tote ${toteId}:`, inboundError);
+          .select('*')
+          .eq('tote_id', toteId)
+          .eq('current_facility', currentFacility)
+          .eq('status', 'inbound')
+          .maybeSingle();
+        
+        // Only insert if this is a new inbound for this facility
+        if (!existingInbound) {
+          // Insert tote into inbound at the destination
+          const { error: inboundError } = await supabase
+            .from('tote_inbound')
+            .insert({
+              tote_id: toteId,
+              source: sourceFacility,
+              current_facility: currentFacility,
+              operator_name: username,
+              timestamp_in: timestamp
+            });
+            
+          if (inboundError) {
+            console.error(`Error creating inbound record for tote ${toteId}:`, inboundError);
+          }
+        } else {
+          console.log(`Tote ${toteId} already exists in inbound at ${currentFacility}, skipping insert`);
         }
         
         // Update tote_register to reflect the new location and status
@@ -156,19 +172,21 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
           .maybeSingle();
           
         if (registerData) {
-          // Update existing record
-          const { error: updateError } = await supabase
-            .from('tote_register')
-            .update({
-              current_status: 'inbound',
-              current_facility: currentFacility,
-              inbound_timestamp: timestamp,
-              inbound_operator: username
-            })
-            .eq('tote_id', toteId);
-            
-          if (updateError) {
-            console.error(`Error updating tote_register for ${toteId}:`, updateError);
+          // Update existing record only if the current_facility is different or status needs updating
+          if (registerData.current_facility !== currentFacility || registerData.current_status !== 'inbound') {
+            const { error: updateError } = await supabase
+              .from('tote_register')
+              .update({
+                current_status: 'inbound',
+                current_facility: currentFacility,
+                inbound_timestamp: timestamp,
+                inbound_operator: username
+              })
+              .eq('tote_id', toteId);
+              
+            if (updateError) {
+              console.error(`Error updating tote_register for ${toteId}:`, updateError);
+            }
           }
         } else {
           // Create new register record if it doesn't exist

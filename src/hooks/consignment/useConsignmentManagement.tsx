@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -31,8 +30,8 @@ export const useConsignmentManagement = (recentScans: Tote[], userFacility: stri
     setIsProcessing(true);
     
     try {
-      // Create a unique consignment ID
-      const newConsignmentId = `CS-${userFacility.substring(0, 3)}-${Date.now().toString().substring(7)}`;
+      // Create a unique consignment ID with facility prefixes for better tracking
+      const newConsignmentId = `CS-${userFacility.substring(0, 3)}-${selectedDestination.substring(0, 3)}-${Date.now().toString().substring(7)}`;
       
       // Update all scanned totes with the consignment ID
       const toteIds = recentScans.map(tote => tote.id);
@@ -94,7 +93,7 @@ export const useConsignmentManagement = (recentScans: Tote[], userFacility: stri
         }
       }
       
-      // Log the consignment creation to audit trail
+      // Log the consignment creation to audit trail with intransit status
       const { error: logError } = await supabase
         .from('consignment_log')
         .insert({
@@ -102,11 +101,11 @@ export const useConsignmentManagement = (recentScans: Tote[], userFacility: stri
           source_facility: userFacility,
           destination_facility: selectedDestination,
           tote_count: toteIds.length,
-          status: 'intransit',
+          status: 'intransit',  // Critical: Set to 'intransit' so it appears for receiving
           created_by: localStorage.getItem('username') || 'unknown'
         });
         
-      if (logError && logError.code !== '42P01') { // Ignore error if table doesn't exist yet
+      if (logError) {
         console.error('Error logging consignment:', logError);
       }
       
@@ -147,18 +146,18 @@ export const useConsignmentManagement = (recentScans: Tote[], userFacility: stri
         currentConsignmentId = result.consignmentId;
       }
       
-      // Mark the consignment as completed
+      // Mark the consignment as completed but keep status as intransit
+      // so it appears in the destination's receive list
       if (currentConsignmentId) {
         const { error: consignmentError } = await supabase
           .from('consignment_log')
           .update({ 
-            status: 'completed',
             completed_time: new Date().toISOString(),
             completed_by: localStorage.getItem('username') || 'unknown'
           })
           .eq('consignment_id', currentConsignmentId);
           
-        if (consignmentError && consignmentError.code !== '42P01') { // Ignore error if table doesn't exist yet
+        if (consignmentError) {
           console.error('Error updating consignment:', consignmentError);
           toast.error(`Failed to update consignment status: ${consignmentError.message}`);
           setIsProcessing(false);
@@ -167,7 +166,7 @@ export const useConsignmentManagement = (recentScans: Tote[], userFacility: stri
       }
       
       toast.success(`Completed outbound process to ${selectedDestination}`);
-      setConsignmentStatus('completed');
+      setConsignmentStatus('intransit');
       return true;
     } catch (err: any) {
       console.error('Error completing outbound process:', err);
