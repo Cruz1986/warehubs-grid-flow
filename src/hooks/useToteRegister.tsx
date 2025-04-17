@@ -87,6 +87,7 @@ export const useToteRegister = () => {
       inbound_operator?: string;
       outbound_timestamp?: string;
       outbound_operator?: string;
+      staged_destination?: string;
     }
   ) => {
     setIsLoading(true);
