@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ConsignmentLog, Consignment } from '@/types/consignment';
 
-export const useFetchConsignments = (currentFacility: string) => {
+export const useFetchConsignments = (currentFacility: string, isAdmin: boolean = false) => {
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,12 +14,18 @@ export const useFetchConsignments = (currentFacility: string) => {
     setError(null);
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('consignment_log')
         .select('*')
-        .eq('destination_facility', currentFacility)
         .in('status', ['intransit', 'pending'])
         .order('created_at', { ascending: false });
+        
+      // Only filter by facility if not admin
+      if (!isAdmin) {
+        query = query.eq('destination_facility', currentFacility);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching consignments:', error);
@@ -37,7 +43,7 @@ export const useFetchConsignments = (currentFacility: string) => {
         status: log.status,
         toteCount: log.tote_count,
         createdAt: log.created_at || '',
-        receivedCount: log.received_count,
+        received_count: log.received_count,
         receivedTime: log.received_time,
         notes: log.notes
       }));
@@ -50,7 +56,7 @@ export const useFetchConsignments = (currentFacility: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentFacility]);
+  }, [currentFacility, isAdmin]);
 
   useEffect(() => {
     fetchConsignments();
@@ -66,7 +72,7 @@ export const useFetchConsignments = (currentFacility: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentFacility, fetchConsignments]);
+  }, [currentFacility, fetchConsignments, isAdmin]);
 
   return {
     consignments,

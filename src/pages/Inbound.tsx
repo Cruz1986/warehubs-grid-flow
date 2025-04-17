@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InboundProcessingForm from '@/components/operations/InboundProcessingForm';
@@ -24,6 +23,7 @@ const Inbound = () => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   const currentFacility = user?.facility || 'Unknown';
+  const isAdmin = user?.role === 'Admin';
   
   // Fetch facilities from Supabase
   useEffect(() => {
@@ -81,7 +81,10 @@ const Inbound = () => {
         </TabsContent>
 
         <TabsContent value="consignments">
-          <ConsignmentReceiver currentFacility="Yelahanka" />
+          <ConsignmentReceiver 
+            currentFacility={currentFacility} 
+            isAdmin={isAdmin}
+          />
         </TabsContent>
 
         <TabsContent value="search">

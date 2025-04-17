@@ -7,9 +7,13 @@ import DiscrepancyAlert from '../inbound/DiscrepancyAlert';
 
 interface ConsignmentReceiverProps {
   currentFacility: string;
+  isAdmin?: boolean;
 }
 
-const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacility }) => {
+const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ 
+  currentFacility,
+  isAdmin = false
+}) => {
   const {
     consignments,
     isLoading,
@@ -20,7 +24,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
     handleDiscrepancyConfirm,
     handleDiscrepancyClose,
     formatDate
-  } = useConsignmentReceiver(currentFacility);
+  } = useConsignmentReceiver(currentFacility, isAdmin);
 
   return (
     <div>
@@ -45,7 +49,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({ currentFacili
           onClose={handleDiscrepancyClose}
           onConfirm={handleDiscrepancyConfirm}
           expectedCount={currentConsignment.toteCount}
-          actualCount={currentConsignment.receivedCount || 0}
+          actualCount={currentConsignment.received_count || 0}
         />
       )}
     </div>

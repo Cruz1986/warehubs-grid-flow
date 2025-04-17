@@ -1,12 +1,12 @@
-
 import { useState } from 'react';
 import { useFetchConsignments } from './useFetchConsignments';
 import { useReceiveConsignment } from './useReceiveConsignment';
 import { Consignment } from '@/types/consignment';
 
-export const useConsignmentReceiver = (currentFacility: string) => {
-  const { consignments, isLoading, error, refetchConsignments } = useFetchConsignments(currentFacility);
+export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean = false) => {
+  const { consignments, isLoading, error, refetchConsignments } = useFetchConsignments(currentFacility, isAdmin);
   const { handleReceiveConsignment: receiveConsignment, isProcessing } = useReceiveConsignment(currentFacility);
+
   const [currentConsignment, setCurrentConsignment] = useState<Consignment | null>(null);
   const [showDiscrepancy, setShowDiscrepancy] = useState(false);
 
