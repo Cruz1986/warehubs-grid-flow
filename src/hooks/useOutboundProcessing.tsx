@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useToteScan } from './tote/useToteScan';
 import { useConsignmentManagement } from './consignment/useConsignmentManagement';
-import { toast } from "sonner";
 import { Tote } from '@/components/operations/ToteTable';
 
 export const useOutboundProcessing = (userFacility: string) => {
@@ -27,7 +25,6 @@ export const useOutboundProcessing = (userFacility: string) => {
     completeOutbound: finalizeOutbound
   } = useConsignmentManagement(recentScans, userFacility, selectedDestination);
 
-  // Update scans with consignment info when consignment changes
   useEffect(() => {
     if (consignmentId && recentScans.length > 0) {
       const updatedScans = recentScans.map(tote => ({
@@ -44,15 +41,13 @@ export const useOutboundProcessing = (userFacility: string) => {
     const success = await finalizeOutbound();
     
     if (success) {
-      // Reset the form after a delay
       setTimeout(() => {
         resetScans();
         setSelectedDestination('');
-      }, 5000); // Give users time to see the completion message
+      }, 5000);
     }
   };
 
-  // Combined isProcessing state
   const isProcessing = isScanningProcessing || isConsignmentProcessing;
 
   return {
