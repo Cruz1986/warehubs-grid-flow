@@ -57,8 +57,8 @@ const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (newPassword.length < 4) {
+      setError('Password must be at least 4 characters');
       return;
     }
 
@@ -69,6 +69,9 @@ const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
 
     try {
       setLoading(true);
+      console.log('Sending password reset request for user:', selectedUser?.id);
+      console.log('New password length:', newPassword.length);
+      
       await onResetPassword(newPassword);
       // The parent component will close the dialog if successful
     } catch (err) {
@@ -138,6 +141,6 @@ const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
 
 export default ResetPasswordDialog;
