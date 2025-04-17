@@ -117,35 +117,32 @@ const Login = () => {
       // Store user info in localStorage
       localStorage.setItem('user', JSON.stringify(userData));
       
-      // Update last login time - improved with more stable approach
+      // Update last login time using the RPC function to bypass RLS
       try {
         const currentTime = new Date().toISOString();
         console.log('Updating last login time for user:', data.user_id, 'to', currentTime);
         
-        const { error: updateError } = await supabase
-          .from('users_log')
-          .update({ last_login: currentTime })
-          .eq('user_id', data.user_id);
-        
-        if (updateError) {
-          console.error('Error updating last login time:', updateError);
-          
-          // Try an alternative update if the first one fails
-          const { error: alternativeUpdateError } = await supabase.rpc(
-            'update_last_login',
-            { user_id: data.user_id, login_time: currentTime }
-          ).catch(e => {
-            console.log('RPC update_last_login not available:', e);
-            return { error: e };
-          });
-          
-          if (alternativeUpdateError) {
-            console.error('Alternative update failed too:', alternativeUpdateError);
-          } else {
-            console.log('Alternative update succeeded');
+        // Try RPC function first (recommended approach)
+        const { error: rpcError } = await supabase.rpc(
+          'update_last_login',
+          { 
+            p_user_id: data.user_id, 
+            p_login_time: currentTime 
           }
-        } else {
-          console.log('Successfully updated last login time');
+        );
+        
+        if (rpcError) {
+          console.log('RPC update_last_login failed or not available:', rpcError);
+          
+          // Fall back to direct update if RPC fails
+          const { error: updateError } = await supabase
+            .from('users_log')
+            .update({ last_login: currentTime })
+            .eq('user_id', data.user_id);
+          
+          if (updateError) {
+            console.error('Direct update also failed:', updateError);
+          }
         }
       } catch (updateError) {
         console.error('Exception in last login update:', updateError);
