@@ -16,12 +16,13 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   const user = userString ? JSON.parse(userString) : null;
   
   // Check if user has access to this facility
-  // Fix: Make role check case-insensitive and properly check admin access
   const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isManager = user?.role?.toLowerCase() === 'manager';
   const hasAllFacilities = user?.facility === 'All';
   const hasSpecificFacility = user?.facility === allowedFacility;
   
-  const hasAccess = user && (isAdmin || hasAllFacilities || hasSpecificFacility);
+  const hasAccess = user && (isAdmin || hasAllFacilities || hasSpecificFacility || 
+    (isManager && hasSpecificFacility)); // Added manager check
   
   if (!user) {
     // User is not logged in, redirect to login page

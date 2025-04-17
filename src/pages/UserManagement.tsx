@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import UserManagementTable from '../components/admin/UserManagementTable';
 
@@ -7,6 +8,8 @@ const UserManagement = () => {
   // Get current user from localStorage
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isManager, setIsManager] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
   
   useEffect(() => {
     const userString = localStorage.getItem('user');
@@ -15,16 +18,25 @@ const UserManagement = () => {
         const userData = JSON.parse(userString);
         setUser(userData);
         
-        // Fix: make role check case-insensitive
-        setIsAdmin(userData?.role?.toLowerCase() === 'admin');
+        // Make role checks case-insensitive
+        const userRole = userData?.role?.toLowerCase();
+        setIsAdmin(userRole === 'admin');
+        setIsManager(userRole === 'manager');
+        setHasAccess(userRole === 'admin' || userRole === 'manager');
         
         console.log('User management page - Current user:', userData);
-        console.log('Is admin:', userData?.role?.toLowerCase() === 'admin');
+        console.log('User role:', userRole);
+        console.log('Has access:', userRole === 'admin' || userRole === 'manager');
       } catch (error) {
         console.error('Error parsing user data:', error);
       }
     }
   }, []);
+  
+  // If no user is logged in, redirect to login
+  if (!user) {
+    return <Navigate to="/" />;
+  }
   
   return (
     <DashboardLayout>
@@ -34,7 +46,7 @@ const UserManagement = () => {
         Each user can be assigned to a specific facility.
       </p>
       
-      {isAdmin ? (
+      {hasAccess ? (
         <UserManagementTable />
       ) : (
         <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-lg text-center">
