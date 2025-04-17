@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,37 @@ export const useConsignmentActions = (
   selectedDestination: string
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const fetchConsignmentDetails = async (consignmentId: string) => {
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase
+        .from('consignment_log')
+        .select('*')
+        .eq('consignment_id', consignmentId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching consignment details:', error);
+        toast.error(`Failed to fetch consignment details: ${error.message}`);
+        return null;
+      }
+      
+      return {
+        consignmentId: data.consignment_id,
+        status: data.status,
+        toteCount: data.tote_count,
+        source: data.source_facility,
+        destination: data.destination_facility
+      };
+    } catch (err: any) {
+      console.error('Error fetching consignment details:', err);
+      toast.error(`Failed to fetch consignment details: ${err.message}`);
+      return null;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const generateConsignment = async () => {
     if (recentScans.length === 0) {
@@ -90,7 +122,7 @@ export const useConsignmentActions = (
           source_facility: userFacility,
           destination_facility: selectedDestination,
           tote_count: toteIds.length,
-          status: 'intransit',  // Critical: Set to 'intransit' so it appears for receiving
+          status: 'intransit',
           created_by: localStorage.getItem('username') || 'unknown'
         });
         
@@ -165,6 +197,7 @@ export const useConsignmentActions = (
   return {
     isProcessing,
     generateConsignment,
-    completeOutbound
+    completeOutbound,
+    fetchConsignmentDetails
   };
 };

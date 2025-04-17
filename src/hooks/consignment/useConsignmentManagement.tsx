@@ -11,14 +11,19 @@ export const useConsignmentManagement = (
   const {
     consignmentId,
     consignmentStatus,
+    expectedToteCount,
+    receivedToteCount,
     setConsignmentId,
-    setConsignmentStatus
+    setConsignmentStatus,
+    setExpectedToteCount,
+    setReceivedToteCount
   } = useConsignmentState(recentScans);
 
   const {
     isProcessing,
     generateConsignment,
-    completeOutbound: finalizeOutbound
+    completeOutbound: finalizeOutbound,
+    fetchConsignmentDetails
   } = useConsignmentActions(recentScans, userFacility, selectedDestination);
 
   const handleGenerateConsignment = async () => {
@@ -35,11 +40,25 @@ export const useConsignmentManagement = (
     return finalizeOutbound(consignmentId);
   };
 
+  const loadConsignmentDetails = async (selectedConsignmentId: string) => {
+    const details = await fetchConsignmentDetails(selectedConsignmentId);
+    if (details) {
+      setConsignmentId(details.consignmentId);
+      setConsignmentStatus(details.status);
+      setExpectedToteCount(details.toteCount);
+      return details;
+    }
+    return null;
+  };
+
   return {
     consignmentId,
     consignmentStatus,
+    expectedToteCount,
+    receivedToteCount,
     isProcessing,
     generateConsignment: handleGenerateConsignment,
-    completeOutbound
+    completeOutbound,
+    loadConsignmentDetails
   };
 };
