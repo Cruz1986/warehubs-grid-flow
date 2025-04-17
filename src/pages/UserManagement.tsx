@@ -1,10 +1,6 @@
-// Update file: src/pages/UserManagement.tsx
-
 import React from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import UserManagementTable from '../components/admin/UserManagementTable';
-import { AuthProvider } from '../contexts/AuthContext';
-
 const UserManagement = () => {
   return (
     <DashboardLayout>
@@ -13,12 +9,9 @@ const UserManagement = () => {
         Create and manage users for the warehouse management system. 
         Each user can be assigned to a specific facility.
       </p>
-      
-      <AuthProvider>
-        <UserManagementTable />
-      </AuthProvider>
+
+      <UserManagementTable />
     </DashboardLayout>
   );
 };
-
 export default UserManagement;
