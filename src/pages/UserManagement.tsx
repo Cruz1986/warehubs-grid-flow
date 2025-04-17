@@ -1,18 +1,33 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import UserManagementTable from '../components/admin/UserManagementTable';
 
 const UserManagement = () => {
   // Get current user from localStorage
-  const userString = localStorage.getItem('user');
-  const user = userString ? JSON.parse(userString) : null;
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
-  // Fix: make role check case-insensitive
-  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  useEffect(() => {
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        const userData = JSON.parse(userString);
+        setUser(userData);
+        
+        // Fix: make role check case-insensitive
+        setIsAdmin(userData?.role?.toLowerCase() === 'admin');
+        
+        console.log('User management page - Current user:', userData);
+        console.log('Is admin:', userData?.role?.toLowerCase() === 'admin');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
   
   return (
-    <DashboardLayout requireAdmin={true}>
+    <DashboardLayout>
       <h1 className="text-2xl font-bold mb-6">User Management</h1>
       <p className="text-gray-600 mb-4">
         Create and manage users for the warehouse management system. 

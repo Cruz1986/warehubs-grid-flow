@@ -53,7 +53,24 @@ const Login = () => {
     };
     
     checkAdminExists();
-  }, []);
+    
+    // Check if user is already logged in
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        // Redirect to appropriate page based on role
+        if (user.role?.toLowerCase() === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/inbound');
+        }
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error);
+        localStorage.removeItem('user');
+      }
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
