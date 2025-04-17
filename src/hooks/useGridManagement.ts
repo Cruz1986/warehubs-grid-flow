@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Tote } from '@/components/operations/ToteTable';
+import { useToteRegister } from '@/hooks/useToteRegister';
 
 interface GridMappingData {
   grid_no: string;
@@ -17,6 +17,9 @@ export const useGridManagement = () => {
   const [gridDestinations, setGridDestinations] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [gridError, setGridError] = useState('');
+  
+  // Use the improved tote register hook
+  const { updateToteGrid, trackToteFacilityTransfer } = useToteRegister();
   
   // Get current user from localStorage
   const userString = localStorage.getItem('user');
@@ -64,6 +67,39 @@ export const useGridManagement = () => {
     fetchGridData();
   }, []);
 
+  // Fetch initial staged totes
+  useEffect(() => {
+    const fetchStagedTotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tote_staging')
+          .select('*')
+          .eq('status', 'staged')
+          .order('grid_timestamp', { ascending: false })
+          .limit(5);
+          
+        if (error) throw error;
+        
+        const formattedStaged = data.map(tote => ({
+          id: tote.tote_id,
+          status: 'staged' as const,
+          source: tote.staging_facility || 'Unknown',
+          destination: tote.destination || 'Unknown',
+          timestamp: tote.grid_timestamp ? new Date(tote.grid_timestamp).toISOString() : new Date().toISOString(),
+          user: tote.staging_user || 'Unknown',
+          grid: tote.grid_no,
+          currentFacility: tote.staging_facility || 'Unknown',
+        }));
+        
+        setStagedTotes(formattedStaged);
+      } catch (error) {
+        console.error('Error fetching staged totes:', error);
+      }
+    };
+    
+    fetchStagedTotes();
+  }, []);
+
   const handleToteScan = (toteId: string) => {
     setScannedTote(toteId);
     setGridError('');
@@ -75,7 +111,7 @@ export const useGridManagement = () => {
     setGridError('');
   };
   
-  const handleGridScan = () => {
+  const handleGridScan = async () => {
     if (!scannedTote) {
       toast.error("Please scan a tote first");
       return;
@@ -95,7 +131,7 @@ export const useGridManagement = () => {
       }
       
       // Grid is valid, proceed with staging
-      addToStagedTotes(destination);
+      await addToStagedTotes(destination);
     } else {
       setGridError("No valid grids available. Please add grid mappings in the Grid Master section.");
       return;
@@ -119,8 +155,9 @@ export const useGridManagement = () => {
       
       // Get current timestamp
       const now = new Date();
+      const timestamp = now.toISOString();
       
-      // Insert to Supabase
+      // Insert to tote_staging table
       const { data, error } = await supabase
         .from('tote_staging')
         .insert({
@@ -130,7 +167,8 @@ export const useGridManagement = () => {
           destination: destination,
           operator_name: username,
           staging_facility: currentFacility,
-          staging_user: username
+          staging_user: username,
+          grid_timestamp: timestamp
         })
         .select();
       
@@ -140,14 +178,35 @@ export const useGridManagement = () => {
         return;
       }
       
+      // Update tote register with the grid information
+      const registerUpdated = await updateToteGrid(
+        scannedTote, 
+        gridId, 
+        currentFacility, 
+        username
+      );
+      
+      if (!registerUpdated) {
+        console.warn(`Tote ${scannedTote} was staged but register update failed - attempting fallback`);
+        
+        // Fallback - try to track as a facility transfer with staged status
+        await trackToteFacilityTransfer(
+          scannedTote,
+          originalSource,
+          destination,
+          username,
+          'staged'
+        );
+      }
+      
       // Create new tote record with staged status
       const newTote: Tote = {
         id: scannedTote,
         status: 'staged',
-        source: originalSource, // Use original source from inbound record
+        source: originalSource,
         destination,
         grid: gridId,
-        timestamp: now.toISOString(),
+        timestamp: timestamp,
         user: username,
         currentFacility: currentFacility,
       };
