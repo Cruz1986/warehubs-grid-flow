@@ -42,7 +42,11 @@ function App() {
                 <UserManagement />
               </FacilityAccessGuard>
             } />
-            <Route path="/grid-master" element={<GridMaster />} />
+            <Route path="/grid-master" element={
+              <FacilityAccessGuard allowedFacility="All">
+                <GridMaster />
+              </FacilityAccessGuard>
+            } />
             <Route path="/dashboard" element={<Navigate to="/inbound" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

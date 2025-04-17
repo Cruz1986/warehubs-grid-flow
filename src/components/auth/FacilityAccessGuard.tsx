@@ -25,9 +25,9 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   // Enhanced access check - ensures both Supabase users and local users work
   const hasAccess = user && (
     isAdmin || 
+    (isManager && (hasAllFacilities || hasSpecificFacility)) ||
     hasAllFacilities || 
-    hasSpecificFacility || 
-    (isManager && hasSpecificFacility)
+    hasSpecificFacility
   );
   
   // Special case handling for users created directly in Supabase
@@ -41,7 +41,7 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
           const supabaseUser = {
             id: data.session.user.id,
             username: data.session.user.email || 'supabase-user',
-            role: 'admin', // Default role for Supabase users
+            role: 'Admin', // Default role for Supabase users
             facility: 'All', // Grant all facility access
           };
           
@@ -65,8 +65,28 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
     return <Navigate to="/" replace />;
   }
   
+  // Debug logging to help troubleshoot the access issues
+  console.log('FacilityAccessGuard - Current path:', window.location.pathname);
+  console.log('FacilityAccessGuard - User:', user);
+  console.log('FacilityAccessGuard - User role:', user?.role);
+  console.log('FacilityAccessGuard - User facility:', user?.facility);
+  console.log('FacilityAccessGuard - Is Admin:', isAdmin);
+  console.log('FacilityAccessGuard - Is Manager:', isManager);
+  console.log('FacilityAccessGuard - Has All Facilities:', hasAllFacilities);
+  console.log('FacilityAccessGuard - Has Specific Facility:', hasSpecificFacility);
+  console.log('FacilityAccessGuard - Has Access:', hasAccess);
+  
   if (!hasAccess) {
     // User doesn't have access to this facility
+    console.log('FacilityAccessGuard - Access denied, redirecting to dashboard');
+    
+    // For admin routes, redirect to inbound instead of showing a message
+    if (window.location.pathname === '/user-management' || 
+        window.location.pathname === '/admin-dashboard' ||
+        window.location.pathname === '/grid-master') {
+      return <Navigate to="/inbound" replace />;
+    }
+    
     return (
       <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-lg">
         <h2 className="text-xl font-semibold text-yellow-800 mb-2">Access Restricted</h2>
