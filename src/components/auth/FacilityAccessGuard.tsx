@@ -35,9 +35,10 @@ const FacilityAccessGuard: React.FC<FacilityAccessGuardProps> = ({
   }
   
   // Check regular facility access
+  // Allow manager access to the management pages, but we'll filter content within those pages
   const hasAccess = user && (
     isAdmin || 
-    (isManager && (hasAllFacilities || hasSpecificFacility)) ||
+    (isManager && (hasAllFacilities || hasSpecificFacility || allowedFacility === 'All')) ||
     hasAllFacilities || 
     hasSpecificFacility
   );
