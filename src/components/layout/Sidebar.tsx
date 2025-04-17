@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ const Sidebar = () => {
     return null;
   }
 
+  // Standard menu items for all users
   const menuItems = [
     { name: 'Inbound', path: '/inbound', icon: <PackageOpen size={20} /> },
     { name: 'Grid Management', path: '/grid-management', icon: <Grid2X2 size={20} /> },
@@ -32,9 +32,17 @@ const Sidebar = () => {
     { name: 'Status Dashboard', path: '/status', icon: <Activity size={20} /> },
   ];
 
-  // Fix: make role check case-insensitive
-  const adminMenuItems = user?.role?.toLowerCase() === 'admin' ? [
+  // Determine admin/manager menu items based on role
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isManager = user?.role?.toLowerCase() === 'manager';
+  
+  // Admin-specific items
+  const adminMenuItems = isAdmin ? [
     { name: 'Admin Dashboard', path: '/admin-dashboard', icon: <LayoutDashboard size={20} /> },
+  ] : [];
+  
+  // Items for both admins and managers
+  const managementMenuItems = (isAdmin || isManager) ? [
     { name: 'User Management', path: '/user-management', icon: <Users size={20} /> },
     { name: 'Grid Master', path: '/grid-master', icon: <Grid size={20} /> },
   ] : [];
@@ -63,14 +71,32 @@ const Sidebar = () => {
             </li>
           ))}
           
-          {adminMenuItems.length > 0 && (
+          {(adminMenuItems.length > 0 || managementMenuItems.length > 0) && (
             <>
               <li className="pt-2">
                 <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Admin
+                  {isAdmin ? 'Admin' : 'Management'}
                 </div>
               </li>
+              
               {adminMenuItems.map((item) => (
+                <li key={item.path}>
+                  <Link to={item.path}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start",
+                        location.pathname === item.path ? "bg-blue-50 text-blue-700" : ""
+                      )}
+                    >
+                      <span className="mr-2">{item.icon}</span>
+                      {item.name}
+                    </Button>
+                  </Link>
+                </li>
+              ))}
+              
+              {managementMenuItems.map((item) => (
                 <li key={item.path}>
                   <Link to={item.path}>
                     <Button
