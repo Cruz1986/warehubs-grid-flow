@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useConsignmentState } from './useConsignmentState';
 import { useConsignmentActions } from './useConsignmentActions';
 import { Tote } from '@/components/operations/ToteTable';
@@ -8,6 +9,8 @@ export const useConsignmentManagement = (
   userFacility: string, 
   selectedDestination: string
 ) => {
+  const [showConsignmentPopup, setShowConsignmentPopup] = useState(false);
+  
   const {
     consignmentId,
     consignmentStatus,
@@ -31,6 +34,13 @@ export const useConsignmentManagement = (
     if (result) {
       setConsignmentId(result.consignmentId);
       setConsignmentStatus(result.status);
+      setShowConsignmentPopup(true);
+      
+      // Auto-hide the popup after 8 seconds
+      setTimeout(() => {
+        setShowConsignmentPopup(false);
+      }, 8000);
+      
       return result;
     }
     return null;
@@ -59,6 +69,8 @@ export const useConsignmentManagement = (
     isProcessing,
     generateConsignment: handleGenerateConsignment,
     completeOutbound,
-    loadConsignmentDetails
+    loadConsignmentDetails,
+    showConsignmentPopup,
+    setShowConsignmentPopup
   };
 };

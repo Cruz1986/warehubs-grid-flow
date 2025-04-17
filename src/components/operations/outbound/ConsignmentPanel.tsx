@@ -35,7 +35,7 @@ const ConsignmentPanel: React.FC<ConsignmentPanelProps> = ({
                 {isPopup ? "Consignment Created" : "Consignment Details"}
               </h3>
             </div>
-            <Badge variant={status === 'intransit' ? "warning" : "success"}>
+            <Badge variant={status === 'intransit' ? "outline" : "success"}>
               {status === 'intransit' ? 'In Transit' : status}
             </Badge>
           </div>

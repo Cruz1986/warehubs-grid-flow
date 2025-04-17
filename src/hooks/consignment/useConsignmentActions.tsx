@@ -10,7 +10,6 @@ export const useConsignmentActions = (
   selectedDestination: string
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showConsignmentPopup, setShowConsignmentPopup] = useState(false);
   const [currentConsignmentId, setCurrentConsignmentId] = useState<string | null>(null);
   const { updateToteRegister } = useToteRegister();
 
@@ -97,14 +96,8 @@ export const useConsignmentActions = (
         console.error('Error logging consignment:', logError);
       }
       
-      // Set current consignment ID for popup
+      // Set current consignment ID
       setCurrentConsignmentId(newConsignmentId);
-      setShowConsignmentPopup(true);
-      
-      // Auto-hide the popup after 8 seconds
-      setTimeout(() => {
-        setShowConsignmentPopup(false);
-      }, 8000);
       
       toast.success(`Consignment ${newConsignmentId} has been generated for ${toteIds.length} totes`);
       return {
@@ -175,8 +168,6 @@ export const useConsignmentActions = (
     generateConsignment,
     completeOutbound,
     fetchConsignmentDetails,
-    showConsignmentPopup,
-    currentConsignmentId,
-    setShowConsignmentPopup
+    currentConsignmentId
   };
 };

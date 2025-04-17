@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
@@ -25,6 +24,7 @@ export interface Tote {
   completedTime?: string;
   consignmentId?: string;
   consignmentStatus?: string;
+  isNewTote?: boolean;
 }
 
 interface ToteTableProps {
@@ -37,7 +37,6 @@ interface ToteTableProps {
   hideSource?: boolean;
   hideCurrentFacility?: boolean;
   hideConsignment?: boolean;
-  // New prop to specifically hide destination for inbound totes
   alwaysHideDestinationForInbound?: boolean;
 }
 
