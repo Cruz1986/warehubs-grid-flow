@@ -30,36 +30,53 @@ export const useOutboundTotes = () => {
         
         console.log('Outbound data fetched:', outboundData);
         
-        // Fetch related staging data to get source information for each tote
+        // Fetch original source information from inbound and staging tables
         const formattedOutbound = await Promise.all(outboundData.map(async (tote) => {
-          // Try to get source information from the staging table
+          // Variables to store source and grid
           let source = "Unknown";
           let grid = undefined;
+          let currentFacility = "Unknown";
           
           try {
+            // First check inbound table for original source
+            const { data: inboundData } = await supabase
+              .from('tote_inbound')
+              .select('source, current_facility')
+              .eq('tote_id', tote.tote_id)
+              .maybeSingle();
+              
+            if (inboundData) {
+              // Get original source from inbound table
+              source = inboundData.source || "Unknown";
+              // Current facility may have changed since inbound
+              currentFacility = inboundData.current_facility || "Unknown";
+            }
+            
+            // Then check staging for grid information
             const { data: stagingData } = await supabase
               .from('tote_staging')
-              .select('staging_facility, grid_no')
+              .select('grid_no, staging_facility')
               .eq('tote_id', tote.tote_id)
               .maybeSingle();
               
             if (stagingData) {
-              source = stagingData.staging_facility || "Unknown";
               grid = stagingData.grid_no;
+              // Update current facility with staging facility if available
+              currentFacility = stagingData.staging_facility || currentFacility;
             }
           } catch (error) {
-            console.error(`Error fetching staging data for tote ${tote.tote_id}:`, error);
+            console.error(`Error fetching data for tote ${tote.tote_id}:`, error);
           }
           
           return {
             id: tote.tote_id,
-            status: 'outbound' as const, // Fix: use 'outbound' status instead of 'completed'
-            source: source,
+            status: 'outbound' as const,
+            source: source, // Original source from inbound
             destination: tote.destination || 'Unknown',
             timestamp: new Date(tote.timestamp_out || Date.now()).toISOString(),
             user: tote.operator_name || 'Unknown',
             grid: grid,
-            currentFacility: source, // Use source as current facility
+            currentFacility: currentFacility, // Current facility where the tote is now
             completedTime: tote.completed_time ? new Date(tote.completed_time).toISOString() : undefined
           };
         }));
