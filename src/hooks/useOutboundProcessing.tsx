@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToteScan } from './tote/useToteScan';
 import { useConsignmentManagement } from './consignment/useConsignmentManagement';
@@ -20,11 +21,14 @@ export const useOutboundProcessing = (userFacility: string) => {
   const {
     consignmentId,
     consignmentStatus,
+    expectedToteCount,
+    receivedToteCount,
     isProcessing: isConsignmentProcessing,
     generateConsignment,
     completeOutbound: finalizeOutbound
   } = useConsignmentManagement(recentScans, userFacility, selectedDestination);
 
+  // Auto-update all totes with consignment info when available
   useEffect(() => {
     if (consignmentId && recentScans.length > 0) {
       const updatedScans = recentScans.map(tote => ({
@@ -38,6 +42,7 @@ export const useOutboundProcessing = (userFacility: string) => {
   }, [consignmentId, consignmentStatus]);
 
   const completeOutbound = async () => {
+    // Always handle consignment generation automatically during outbound completion
     const success = await finalizeOutbound();
     
     if (success) {
@@ -59,9 +64,10 @@ export const useOutboundProcessing = (userFacility: string) => {
     toteInputRef,
     consignmentId,
     consignmentStatus,
+    expectedToteCount,
+    receivedToteCount,
     startScanning,
     completeOutbound,
-    handleToteScan,
-    generateConsignment
+    handleToteScan
   };
 };

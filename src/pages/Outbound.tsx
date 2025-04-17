@@ -7,8 +7,6 @@ import { FacilityType } from '@/components/admin/GridMasterComponent';
 import OutboundProcessingForm from '@/components/operations/OutboundProcessingForm';
 import CurrentFacilityDisplay from '@/components/operations/CurrentFacilityDisplay';
 import FacilityAccessGuard from '@/components/auth/FacilityAccessGuard';
-import ConsignmentReceiver from '@/components/operations/consignment/ConsignmentReceiver';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Type definition for Facility
 interface Facility {
@@ -70,24 +68,11 @@ const Outbound = () => {
       <FacilityAccessGuard allowedFacility={currentFacility}>
         <CurrentFacilityDisplay facilityName={currentFacility} />
         
-        <Tabs defaultValue="outbound" className="mt-6">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="outbound">Outbound Processing</TabsTrigger>
-            <TabsTrigger value="receiving">Receive Consignments</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="outbound">
-            <OutboundProcessingForm 
-              facilities={facilityNames}
-              userFacility={currentFacility}
-              isLoading={isLoading}
-            />
-          </TabsContent>
-          
-          <TabsContent value="receiving">
-            <ConsignmentReceiver currentFacility={currentFacility} />
-          </TabsContent>
-        </Tabs>
+        <OutboundProcessingForm 
+          facilities={facilityNames}
+          userFacility={currentFacility}
+          isLoading={isLoading}
+        />
       </FacilityAccessGuard>
     </DashboardLayout>
   );

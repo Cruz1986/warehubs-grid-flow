@@ -42,6 +42,8 @@ const ConsignmentSelector: React.FC<ConsignmentSelectorProps> = ({
           return;
         }
         
+        console.log("Fetched consignments for inbound:", data);
+        
         const formattedConsignments = data.map(item => ({
           id: item.consignment_id,
           source: item.source_facility

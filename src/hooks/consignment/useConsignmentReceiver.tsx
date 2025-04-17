@@ -137,7 +137,8 @@ export const useConsignmentReceiver = (currentFacility: string) => {
               source: sourceFacility,
               current_facility: currentFacility,
               operator_name: username,
-              timestamp_in: timestamp
+              timestamp_in: timestamp,
+              consignment_id: consignmentId // Added consignment ID to inbound record
             });
             
           if (inboundError) {

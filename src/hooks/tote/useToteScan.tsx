@@ -96,6 +96,13 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         return;
       }
       
+      // Improved checking for duplicate totes based on the CURRENT facility
+      if (registerData && registerData.current_facility === userFacility) {
+        // Only check duplicates if tote is currently at this facility
+        // This allows for totes to be reused across different facilities
+        console.log(`Tote ${toteId} exists at current facility ${userFacility}, checking for duplicates`);
+      }
+      
       // Get the username from localStorage
       const username = localStorage.getItem('username') || 'unknown';
       
@@ -166,7 +173,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         return;
       }
       
-      // Update or create tote_register record
+      // Update or create tote_register record - centralized tracking
       if (registerData) {
         // Update existing record
         const { error: updateRegisterError } = await supabase

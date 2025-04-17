@@ -70,7 +70,7 @@ export const useConsignmentActions = (
         throw updateError;
       }
       
-      // Update tote_register records to track movement centrally
+      // Enhanced: Update tote_register records to track movement centrally
       for (const toteId of toteIds) {
         // First check if the tote exists in the register
         const { data: existingTote } = await supabase
@@ -80,14 +80,15 @@ export const useConsignmentActions = (
           .maybeSingle();
         
         if (existingTote) {
-          // Update existing record
+          // Update existing record - improved status tracking
           const { error: registerError } = await supabase
             .from('tote_register')
             .update({
               current_status: 'intransit',
               outbound_timestamp: new Date().toISOString(),
               outbound_operator: localStorage.getItem('username') || 'unknown',
-              staged_destination: selectedDestination
+              staged_destination: selectedDestination,
+              current_facility: 'in-transit', // Mark as in-transit for better tracking
             })
             .eq('tote_id', toteId);
             
@@ -101,7 +102,7 @@ export const useConsignmentActions = (
             .insert({
               tote_id: toteId,
               source_facility: userFacility,
-              current_facility: userFacility,
+              current_facility: 'in-transit', // Mark as in-transit for better tracking
               current_status: 'intransit',
               outbound_timestamp: new Date().toISOString(),
               outbound_operator: localStorage.getItem('username') || 'unknown',
@@ -153,7 +154,7 @@ export const useConsignmentActions = (
     setIsProcessing(true);
     
     try {
-      // If there's no consignment yet, generate one
+      // If there's no consignment yet, generate one - This makes it automatic
       let currentConsignmentId = consignmentId;
       if (!currentConsignmentId) {
         const result = await generateConsignment();

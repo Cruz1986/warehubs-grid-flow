@@ -29,8 +29,7 @@ const OutboundProcessingForm: React.FC<OutboundProcessingFormProps> = ({
     consignmentStatus,
     startScanning,
     completeOutbound,
-    handleToteScan,
-    generateConsignment
+    handleToteScan
   } = useOutboundProcessing(userFacility);
 
   // Filter out current facility from destinations
@@ -80,18 +79,6 @@ const OutboundProcessingForm: React.FC<OutboundProcessingFormProps> = ({
         hideDestination={false}
         hideConsignment={false}
       />
-
-      {recentScans.length > 0 && !consignmentId && (
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={generateConsignment}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-            disabled={isProcessing}
-          >
-            Generate Consignment ID
-          </button>
-        </div>
-      )}
     </div>
   );
 };
