@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,19 +117,39 @@ const Login = () => {
       // Store user info in localStorage
       localStorage.setItem('user', JSON.stringify(userData));
       
-      // Update last login time
-      const currentTime = new Date().toISOString();
-      const { error: updateError } = await supabase
-        .from('users_log')
-        .update({
-          last_login: currentTime,
-        })
-        .eq('user_id', data.user_id);
-      
-      if (updateError) {
-        console.error('Error updating last login time:', updateError);
-      } else {
-        console.log('Successfully updated last login time to:', currentTime);
+      // Update last login time - improved with more stable approach
+      try {
+        const currentTime = new Date().toISOString();
+        console.log('Updating last login time for user:', data.user_id, 'to', currentTime);
+        
+        const { error: updateError } = await supabase
+          .from('users_log')
+          .update({ last_login: currentTime })
+          .eq('user_id', data.user_id);
+        
+        if (updateError) {
+          console.error('Error updating last login time:', updateError);
+          
+          // Try an alternative update if the first one fails
+          const { error: alternativeUpdateError } = await supabase.rpc(
+            'update_last_login',
+            { user_id: data.user_id, login_time: currentTime }
+          ).catch(e => {
+            console.log('RPC update_last_login not available:', e);
+            return { error: e };
+          });
+          
+          if (alternativeUpdateError) {
+            console.error('Alternative update failed too:', alternativeUpdateError);
+          } else {
+            console.log('Alternative update succeeded');
+          }
+        } else {
+          console.log('Successfully updated last login time');
+        }
+      } catch (updateError) {
+        console.error('Exception in last login update:', updateError);
+        // Don't fail the login if only the timestamp update fails
       }
       
       toast.success(`Welcome back, ${data.username}!`);
