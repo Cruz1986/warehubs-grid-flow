@@ -1,8 +1,8 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ToteRegisterData } from './useToteRegister';
+import { AlertTriangle } from 'lucide-react';
 
 export interface ToteHistory {
   activity: string;
@@ -17,10 +17,12 @@ export const useToteSearch = () => {
   const [toteHistory, setToteHistory] = useState<ToteHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   const searchTote = async (toteId: string) => {
     setIsLoading(true);
     setError(null);
+    setNotFound(false);
     
     try {
       // Fetch current tote data
@@ -34,6 +36,13 @@ export const useToteSearch = () => {
         console.error('Error searching tote:', currentError);
         setError('Failed to search for tote');
         toast.error('Failed to search for tote');
+        return null;
+      }
+
+      if (!currentData) {
+        setNotFound(true);
+        setSearchResult(null);
+        setToteHistory([]);
         return null;
       }
 
@@ -100,6 +109,7 @@ export const useToteSearch = () => {
     toteHistory,
     isLoading,
     error,
+    notFound,
     searchTote
   };
 };
