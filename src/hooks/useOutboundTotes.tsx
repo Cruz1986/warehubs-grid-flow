@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tote } from '@/components/operations/ToteTable';
@@ -15,7 +14,7 @@ export const useOutboundTotes = () => {
         setIsLoading(true);
         setError(null);
         
-        // Fetch Outbound Totes
+        // Query to get more detailed outbound information
         const { data: outboundData, error: outboundError } = await supabase
           .from('tote_outbound')
           .select('*')
@@ -31,16 +30,38 @@ export const useOutboundTotes = () => {
         
         console.log('Outbound data fetched:', outboundData);
         
-        const formattedOutbound = outboundData.map(tote => ({
-          id: tote.tote_id,
-          status: 'completed' as const,
-          source: 'Current Facility', // Fixed: use a default value since source doesn't exist
-          destination: tote.destination || 'Unknown',
-          timestamp: new Date(tote.timestamp_out || Date.now()).toISOString(),
-          user: tote.operator_name || 'Unknown',
-          grid: undefined,
-          currentFacility: 'Unknown', // Fixed: use a default value since source doesn't exist
-          completedTime: tote.completed_time ? new Date(tote.completed_time).toISOString() : undefined
+        // Fetch related staging data to get source information for each tote
+        const formattedOutbound = await Promise.all(outboundData.map(async (tote) => {
+          // Try to get source information from the staging table
+          let source = "Unknown";
+          let grid = undefined;
+          
+          try {
+            const { data: stagingData } = await supabase
+              .from('tote_staging')
+              .select('staging_facility, grid_no')
+              .eq('tote_id', tote.tote_id)
+              .maybeSingle();
+              
+            if (stagingData) {
+              source = stagingData.staging_facility || "Unknown";
+              grid = stagingData.grid_no;
+            }
+          } catch (error) {
+            console.error(`Error fetching staging data for tote ${tote.tote_id}:`, error);
+          }
+          
+          return {
+            id: tote.tote_id,
+            status: 'outbound' as const, // Fix: use 'outbound' status instead of 'completed'
+            source: source,
+            destination: tote.destination || 'Unknown',
+            timestamp: new Date(tote.timestamp_out || Date.now()).toISOString(),
+            user: tote.operator_name || 'Unknown',
+            grid: grid,
+            currentFacility: source, // Use source as current facility
+            completedTime: tote.completed_time ? new Date(tote.completed_time).toISOString() : undefined
+          };
         }));
         
         setOutboundTotes(formattedOutbound);
