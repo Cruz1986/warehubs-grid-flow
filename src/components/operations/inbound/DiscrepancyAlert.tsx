@@ -44,30 +44,22 @@ const DiscrepancyAlert: React.FC<DiscrepancyAlertProps> = ({
                 <p>There are <strong className="text-red-600">{difference} missing totes</strong> in this consignment.</p>
                 <p>Expected: {expectedCount} totes</p>
                 <p>Received: {actualCount} totes</p>
-                <div className="pt-2 bg-amber-50 p-3 rounded-md mt-2 border border-amber-200">
-                  <p className="font-semibold text-amber-800">Important:</p>
-                  <p className="text-amber-700">This discrepancy will be logged in the system. Please ensure you've scanned all totes before confirming.</p>
-                  <p className="text-amber-700 mt-1">Do you want to proceed with receiving this consignment despite the missing totes?</p>
-                </div>
+                <p className="pt-2">Do you want to proceed with inbound processing despite the missing totes?</p>
               </div>
             ) : (
               <div className="space-y-2">
                 <p>There are <strong className="text-orange-600">{difference} extra totes</strong> in this consignment.</p>
                 <p>Expected: {expectedCount} totes</p>
                 <p>Received: {actualCount} totes</p>
-                <div className="pt-2 bg-amber-50 p-3 rounded-md mt-2 border border-amber-200">
-                  <p className="font-semibold text-amber-800">Important:</p>
-                  <p className="text-amber-700">The extra totes will be included in this consignment's receipt. This discrepancy will be logged.</p>
-                  <p className="text-amber-700 mt-1">Do you want to proceed with receiving this consignment with these additional totes?</p>
-                </div>
+                <p className="pt-2">Do you want to proceed with inbound processing with these additional totes?</p>
               </div>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className={isMissing ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"}>
-            Confirm Receipt with {isMissing ? "Missing" : "Extra"} Totes
+          <AlertDialogAction onClick={onConfirm}>
+            Confirm Inbound
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
