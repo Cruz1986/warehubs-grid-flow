@@ -12,7 +12,11 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
   const [showDiscrepancy, setShowDiscrepancy] = useState(false);
 
   const formatDate = (dateString: string): string => {
+    if (!dateString) return 'N/A';
+    
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',

@@ -58,7 +58,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         status: log.status,
         toteCount: log.tote_count,
         createdAt: log.created_at || '',
-        received_count: log.received_count,
+        receivedCount: log.received_count,
         receivedTime: log.received_time,
         notes: log.notes
       }));
