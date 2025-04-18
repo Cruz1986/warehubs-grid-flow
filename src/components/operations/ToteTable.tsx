@@ -49,7 +49,7 @@ const ToteTable: React.FC<ToteTableProps> = ({
   hideGrid = false,
   hideSource = false,
   hideCurrentFacility = false,
-  hideConsignment = false, // Changed default to false to show consignment info
+  hideConsignment = true,
   alwaysHideDestinationForInbound = false
 }) => {
   const getStatusIcon = (status: string) => {
