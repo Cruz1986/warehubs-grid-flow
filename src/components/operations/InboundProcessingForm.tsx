@@ -212,23 +212,34 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         'inbound'
       );
       
-      if (selectedConsignmentId) {
+      // Check for existing consignment information
+      let consignmentId = selectedConsignmentId;
+      
+      if (!consignmentId && registerData?.consignment_no) {
+        // If this tote has a consignment in the register but we're not in consignment tab
+        consignmentId = registerData.consignment_no;
+      }
+      
+      if (consignmentId) {
         await updateToteRegister(toteId, {
-          consignment_no: selectedConsignmentId,
+          consignment_no: consignmentId,
           current_status: 'inbound',
           current_facility: userFacility,
-          activity: `Inbound from consignment ${selectedConsignmentId}`
+          activity: `Inbound from consignment ${consignmentId}`
         });
         
-        const { data: outboundData } = await supabase
-          .from('tote_outbound')
-          .select('*')
-          .eq('tote_id', toteId)
-          .eq('consignment_id', selectedConsignmentId)
-          .maybeSingle();
-          
-        if (!outboundData) {
-          console.warn(`Tote ${toteId} claimed to be in consignment ${selectedConsignmentId} but not found in outbound data`);
+        // If we're in direct tab but the tote has a consignment, check outbound
+        if (!selectedConsignmentId && consignmentId) {
+          const { data: outboundData } = await supabase
+            .from('tote_outbound')
+            .select('*')
+            .eq('tote_id', toteId)
+            .eq('consignment_id', consignmentId)
+            .maybeSingle();
+            
+          if (outboundData) {
+            toast.info(`Tote ${toteId} is part of consignment ${consignmentId}`);
+          }
         }
       }
       
@@ -240,7 +251,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         timestamp: timestamp,
         user: username,
         currentFacility: userFacility,
-        consignmentId: selectedConsignmentId || undefined
+        consignmentId: consignmentId || undefined
       };
       
       setRecentScans([newTote, ...recentScans]);
@@ -378,6 +389,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         isLoading={isLoading}
         hideDestination
         hideGrid
+        hideConsignment={false} // Show consignment column
       />
       
       <DiscrepancyAlert 
