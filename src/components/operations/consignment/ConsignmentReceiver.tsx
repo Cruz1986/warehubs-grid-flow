@@ -28,10 +28,19 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
     refetchConsignments
   } = useConsignmentReceiver(currentFacility, isAdmin);
 
-  // Force refresh consignments on mount
+  // Force refresh consignments on mount and log data for debugging
   useEffect(() => {
+    console.log('ConsignmentReceiver mounted - fetching consignments...');
     refetchConsignments();
   }, [refetchConsignments]);
+
+  // Add debug logging for component renders
+  console.info('ConsignmentReceiver render:', {
+    isLoading,
+    error,
+    consignmentsCount: consignments.length,
+    currentFacility
+  });
 
   return (
     <div>

@@ -14,36 +14,44 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     setError(null);
 
     try {
+      console.log(`Fetching consignments for facility: ${currentFacility}, isAdmin: ${isAdmin}`);
+      
       let query = supabase
         .from('consignment_log')
         .select('*')
-        .in('status', ['intransit', 'pending'])
-        .order('created_at', { ascending: false });
+        .in('status', ['intransit', 'pending']);
         
       // Only filter by facility if not admin
       if (!isAdmin) {
         query = query.eq('destination_facility', currentFacility);
       }
 
-      const { data, error } = await query;
+      const { data, error: fetchError } = await query.order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching consignments:', error);
+      if (fetchError) {
+        console.error('Error fetching consignments:', fetchError);
         setError('Failed to fetch consignments');
         toast.error('Failed to fetch consignments');
+        setConsignments([]);
         return;
       }
 
       console.log('Fetched consignments for facility:', currentFacility, data);
       
-      const mappedConsignments = (data || []).map((log: ConsignmentLog) => ({
+      if (!data || data.length === 0) {
+        console.log('No consignments found');
+        setConsignments([]);
+        return;
+      }
+      
+      const mappedConsignments = data.map((log: ConsignmentLog) => ({
         id: log.consignment_id,
         source: log.source_facility,
         destination: log.destination_facility,
         status: log.status,
         toteCount: log.tote_count,
         createdAt: log.created_at || '',
-        received_count: log.received_count,
+        receivedCount: log.received_count,
         receivedTime: log.received_time,
         notes: log.notes
       }));
@@ -53,26 +61,34 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
       console.error('Error processing consignments:', err);
       setError('Failed to process consignments');
       toast.error('Failed to process consignments');
+      setConsignments([]);
     } finally {
       setIsLoading(false);
     }
   }, [currentFacility, isAdmin]);
 
   useEffect(() => {
+    console.log('Setting up consignment fetching for facility:', currentFacility);
     fetchConsignments();
     
+    // Set up real-time subscription
     const channel = supabase
       .channel('consignment-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'consignment_log' }, payload => {
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'consignment_log' 
+      }, payload => {
         console.log('Consignment data changed:', payload);
         fetchConsignments();
       })
       .subscribe();
       
     return () => {
+      console.log('Cleaning up consignment subscription');
       supabase.removeChannel(channel);
     };
-  }, [currentFacility, fetchConsignments, isAdmin]);
+  }, [currentFacility, fetchConsignments]);
 
   return {
     consignments,

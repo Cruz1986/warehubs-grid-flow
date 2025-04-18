@@ -4,7 +4,7 @@ import { useFetchConsignments } from './useFetchConsignments';
 import { useReceiveConsignment } from './useReceiveConsignment';
 import { Consignment } from '@/types/consignment';
 
-export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean = false) => {
+export function useConsignmentReceiver(currentFacility: string, isAdmin: boolean = false) {
   const { consignments, isLoading, error, refetchConsignments } = useFetchConsignments(currentFacility, isAdmin);
   const { handleReceiveConsignment: receiveConsignment, isProcessing } = useReceiveConsignment(currentFacility);
 
@@ -62,4 +62,4 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
     formatDate,
     refetchConsignments
   };
-};
+}
