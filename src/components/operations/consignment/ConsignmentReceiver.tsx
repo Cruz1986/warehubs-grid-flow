@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useConsignmentReceiver } from '@/hooks/consignment/useConsignmentReceiver';
@@ -30,14 +29,16 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
 
   // Force refresh consignments on mount
   useEffect(() => {
-    console.log('ConsignmentReceiver mounted, fetching consignments');
+    console.log("ConsignmentReceiver mounted - fetching consignments...");
     refetchConsignments();
   }, [refetchConsignments]);
 
-  console.log('ConsignmentReceiver rendering:', {
-    consignmentsCount: consignments?.length || 0,
-    isLoading,
-    hasError: !!error
+  // Debug output - add this to see what's happening
+  console.log("ConsignmentReceiver render:", { 
+    isLoading, 
+    error, 
+    consignmentsCount: consignments?.length,
+    currentFacility
   });
 
   return (
@@ -46,14 +47,13 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
 
       {error && (
         <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4 mr-2" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {isLoading && consignments.length === 0 ? (
-        <div className="py-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+      {isLoading ? (
+        <div className="text-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading consignments...</p>
         </div>
       ) : consignments.length === 0 ? (
