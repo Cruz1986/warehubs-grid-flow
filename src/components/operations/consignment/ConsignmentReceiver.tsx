@@ -39,7 +39,8 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
     isLoading,
     error,
     consignmentsCount: consignments.length,
-    currentFacility
+    currentFacility,
+    isAdmin
   });
 
   return (

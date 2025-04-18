@@ -16,14 +16,27 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     try {
       console.log(`Fetching consignments for facility: ${currentFacility}, isAdmin: ${isAdmin}`);
       
-      let query = supabase
+      // First, check all consignments for debugging
+      const { data: allConsignments, error: allConsError } = await supabase
         .from('consignment_log')
         .select('*')
-        .in('status', ['intransit', 'pending']);
+        .order('created_at', { ascending: false });
         
+      console.log('All consignments in database:', allConsignments);
+      
+      // Then perform the filtered query
+      let query = supabase
+        .from('consignment_log')
+        .select('*');
+        
+      // Filter by status
+      query = query.in('status', ['intransit', 'pending']);
+      
       // Only filter by facility if not admin
       if (!isAdmin) {
-        query = query.eq('destination_facility', currentFacility);
+        // Convert facility names to lowercase for case-insensitive comparison
+        console.log(`Filtering by destination facility: ${currentFacility}`);
+        query = query.ilike('destination_facility', `%${currentFacility}%`);
       }
 
       const { data, error: fetchError } = await query.order('created_at', { ascending: false });
@@ -36,10 +49,10 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         return;
       }
 
-      console.log('Fetched consignments for facility:', currentFacility, data);
+      console.log('Fetched filtered consignments for facility:', currentFacility, data);
       
       if (!data || data.length === 0) {
-        console.log('No consignments found');
+        console.log('No consignments found after filtering');
         setConsignments([]);
         return;
       }

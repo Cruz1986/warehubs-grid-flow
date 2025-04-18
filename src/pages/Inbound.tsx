@@ -28,6 +28,7 @@ const Inbound = () => {
   const isAdmin = user?.role === 'Admin';
   
   console.log('Inbound page - Current facility:', currentFacility, 'isAdmin:', isAdmin);
+  console.log('User info:', user);
   
   // Fetch facilities from Supabase
   useEffect(() => {
@@ -51,6 +52,7 @@ const Inbound = () => {
         }));
         
         setFacilities(typedFacilities);
+        console.log('Fetched facilities:', typedFacilities);
       } catch (error) {
         console.error('Error fetching facilities:', error);
         toast.error('Failed to load facilities');
