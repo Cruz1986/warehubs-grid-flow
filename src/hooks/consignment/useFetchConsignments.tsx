@@ -14,36 +14,12 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     setError(null);
 
     try {
-      console.log(`Fetching consignments for facility: ${currentFacility}, isAdmin: ${isAdmin}`);
+      console.log('Fetching all consignments');
       
-      // First, check all consignments for debugging
-      const { data: allConsignments, error: allConsError } = await supabase
-        .from('consignment_log')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      console.log('All consignments in database:', allConsignments);
-      
-      if (allConsError) {
-        console.error('Error fetching all consignments:', allConsError);
-      }
-      
-      // Then perform the filtered query
       let query = supabase
         .from('consignment_log')
-        .select('*');
-        
-      // Filter by status - include 'created' status as well
-      query = query.in('status', ['intransit', 'pending', 'created']);
-      
-      // Only filter by facility if not admin
-      if (!isAdmin) {
-        // Convert facility names to lowercase for case-insensitive comparison
-        console.log(`Filtering by destination facility: ${currentFacility}`);
-        
-        // Try a more flexible approach - using ilike with both exact and substring match
-        query = query.or(`destination_facility.ilike.${currentFacility},destination_facility.ilike.%${currentFacility}%`);
-      }
+        .select('*')
+        .in('status', ['intransit', 'pending', 'created']);
 
       const { data, error: fetchError } = await query.order('created_at', { ascending: false });
 
@@ -55,20 +31,10 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         return;
       }
 
-      console.log('Fetched filtered consignments for facility:', currentFacility, data);
+      console.log('Fetched consignments:', data);
       
       if (!data || data.length === 0) {
-        console.log('No consignments found after filtering');
-        console.log('Current facility value used for filtering:', currentFacility);
-        
-        // Additional debug - check for any consignments that might be close matches
-        const { data: fuzzyData } = await supabase
-          .from('consignment_log')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-          
-        console.log('Latest 5 consignments in system (for debug):', fuzzyData);
+        console.log('No consignments found');
         setConsignments([]);
         return;
       }
@@ -95,10 +61,10 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     } finally {
       setIsLoading(false);
     }
-  }, [currentFacility, isAdmin]);
+  }, []);  // Removed currentFacility and isAdmin from dependencies since we're showing all
 
   useEffect(() => {
-    console.log('Setting up consignment fetching for facility:', currentFacility);
+    console.log('Setting up consignment fetching');
     fetchConsignments();
     
     // Set up real-time subscription
@@ -118,7 +84,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
       console.log('Cleaning up consignment subscription');
       supabase.removeChannel(channel);
     };
-  }, [currentFacility, fetchConsignments]);
+  }, [fetchConsignments]);
 
   return {
     consignments,
