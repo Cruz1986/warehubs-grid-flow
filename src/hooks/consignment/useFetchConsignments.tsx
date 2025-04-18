@@ -29,6 +29,8 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     setError(null);
 
     try {
+      console.log(`Fetching consignments for ${currentFacility}, isAdmin: ${isAdmin}`);
+      
       let query = supabase
         .from('consignment_log')
         .select('*')
@@ -51,18 +53,26 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
 
       console.log('Fetched consignments for facility:', currentFacility, data);
       
-      const mappedConsignments = (data || []).map((log: ConsignmentLog) => ({
+      if (!data || data.length === 0) {
+        console.log('No consignments found');
+        setConsignments([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      const mappedConsignments = data.map((log: ConsignmentLog) => ({
         id: log.consignment_id,
         source: log.source_facility,
         destination: log.destination_facility,
         status: log.status,
-        toteCount: log.tote_count,
+        toteCount: log.tote_count || 0,
         createdAt: log.created_at || '',
-        receivedCount: log.received_count,
-        receivedTime: log.received_time,
-        notes: log.notes
+        receivedCount: log.received_count || 0,
+        receivedTime: log.received_time || '',
+        notes: log.notes || ''
       }));
       
+      console.log('Mapped consignments:', mappedConsignments);
       setConsignments(mappedConsignments);
       setLastUpdated(new Date());
     } catch (err) {
@@ -75,6 +85,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
   }, [currentFacility, isAdmin, lastUpdated]);
 
   useEffect(() => {
+    console.log('Setting up consignment fetching for facility:', currentFacility);
     fetchConsignments();
     
     // Use a more careful approach with the real-time subscription

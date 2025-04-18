@@ -30,8 +30,15 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
 
   // Force refresh consignments on mount
   useEffect(() => {
+    console.log('ConsignmentReceiver mounted, fetching consignments');
     refetchConsignments();
   }, [refetchConsignments]);
+
+  console.log('ConsignmentReceiver rendering:', {
+    consignmentsCount: consignments?.length || 0,
+    isLoading,
+    hasError: !!error
+  });
 
   return (
     <div>
@@ -39,6 +46,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
 
       {error && (
         <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4 mr-2" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}

@@ -27,8 +27,12 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
   };
 
   const handleReceiveConsignment = async (consignmentId: string) => {
+    console.log(`Receiving consignment: ${consignmentId}`);
     const consignment = consignments.find(c => c.id === consignmentId);
-    if (!consignment) return;
+    if (!consignment) {
+      console.error('Consignment not found:', consignmentId);
+      return;
+    }
     
     setCurrentConsignment(consignment);
     const result = await receiveConsignment(consignmentId);
@@ -53,6 +57,13 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
     setCurrentConsignment(null);
     refetchConsignments();
   };
+
+  console.log('useConsignmentReceiver hook state:', {
+    consignmentsCount: consignments?.length || 0,
+    isLoading: isLoading || isProcessing,
+    hasError: !!error,
+    currentConsignment: currentConsignment?.id
+  });
 
   return {
     consignments,
