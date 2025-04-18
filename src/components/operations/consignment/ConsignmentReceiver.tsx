@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useConsignmentReceiver } from '@/hooks/consignment/useConsignmentReceiver';
@@ -33,7 +34,7 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
     refetchConsignments();
   }, [refetchConsignments]);
 
-  // Debug output - add this to see what's happening
+  // Debug output
   console.log("ConsignmentReceiver render:", { 
     isLoading, 
     error, 

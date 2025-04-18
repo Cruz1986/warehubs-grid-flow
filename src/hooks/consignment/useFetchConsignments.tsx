@@ -10,9 +10,21 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  // Define debounce function
+  const debounce = useCallback((func: Function, wait: number) => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    return function(...args: any[]) {
+      const context = this;
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        timeout = null;
+        func.apply(context, args);
+      }, wait);
+    };
+  }, []);
+
   // Debounced fetch to avoid excessive refreshes
   const debouncedFetch = useCallback(
-    // Add debounce logic with setTimeout
     debounce(async () => {
       await fetchConsignments();
     }, 500),
@@ -51,7 +63,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         return;
       }
 
-      console.log('Fetched consignments for facility:', currentFacility, data);
+      console.log('Fetched consignments:', data);
       
       if (!data || data.length === 0) {
         console.log('No consignments found');
@@ -115,16 +127,3 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     refetchConsignments: fetchConsignments
   };
 };
-
-// Simple debounce function
-function debounce(func: Function, wait: number) {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  return function(...args: any[]) {
-    const context = this;
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      timeout = null;
-      func.apply(context, args);
-    }, wait);
-  };
-}

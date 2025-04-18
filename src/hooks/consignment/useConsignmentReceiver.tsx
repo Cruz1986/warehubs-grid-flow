@@ -45,8 +45,7 @@ export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean
       
       setCurrentConsignment(consignment);
       
-      // For this simple implementation, assume all totes are received
-      // In a real system, you would scan each tote and count them
+      // For this implementation, assume all totes are received
       const receivedCount = consignment.toteCount;
       
       // Check for discrepancy between expected and actual tote count
