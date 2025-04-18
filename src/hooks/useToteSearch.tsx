@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ToteRegisterData } from './useToteRegister';
+import { ToteRegisterData } from '@/types/toteRegister';
 import { AlertTriangle } from 'lucide-react';
 
 export interface ToteHistory {
@@ -94,10 +95,10 @@ export const useToteSearch = () => {
         return null;
       }
       
-      // Construct the search result
+      // Construct the search result with all properties initialized
       const resultData: ToteSearchResult = {
         tote_id: toteId,
-        activity: '',
+        activity: 'Unknown',
         consignment_no: null,
         created_at: null,
         current_facility: null,
@@ -112,7 +113,19 @@ export const useToteSearch = () => {
       
       // Populate with register data if available
       if (registerData.data) {
-        Object.assign(resultData, registerData.data);
+        // Instead of directly assigning, manually copy each field to handle optional properties
+        const regData = registerData.data as ToteRegisterData;
+        resultData.current_status = regData.current_status || resultData.current_status;
+        resultData.current_facility = regData.current_facility || resultData.current_facility;
+        resultData.source_facility = regData.source_facility || resultData.source_facility;
+        resultData.destination = regData.destination || resultData.destination;
+        resultData.grid_no = regData.grid_no || resultData.grid_no;
+        resultData.ib_timestamp = regData.ib_timestamp || resultData.ib_timestamp;
+        resultData.ob_timestamp = regData.ob_timestamp || resultData.ob_timestamp;
+        resultData.consignment_no = regData.consignment_no || resultData.consignment_no;
+        resultData.created_at = regData.created_at || resultData.created_at;
+        resultData.updated_at = regData.updated_at || resultData.updated_at;
+        resultData.activity = regData.activity || resultData.activity;
       }
       
       // Priority order for populating fields

@@ -10,7 +10,20 @@ export const logToteError = async (
   try {
     const username = localStorage.getItem('username') || 'unknown';
     
-    const { error } = await supabase
+    console.log('Logging error:', {
+      tote_id: toteId,
+      error_message: errorMessage,
+      operator: username,
+      operation_type: operation,
+      scan_data: {
+        tote_id: toteId,
+        operation,
+        timestamp: new Date().toISOString(),
+        ...additionalData
+      }
+    });
+    
+    const { error, data } = await supabase
       .from('scan_error_logs')
       .insert({
         tote_id: toteId,
@@ -27,6 +40,8 @@ export const logToteError = async (
       
     if (error) {
       console.error('Failed to log error:', error);
+    } else {
+      console.log('Error logged successfully:', data);
     }
   } catch (err) {
     console.error('Exception logging error:', err);

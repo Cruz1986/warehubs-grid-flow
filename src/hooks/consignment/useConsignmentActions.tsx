@@ -1,130 +1,106 @@
 
 import { useState } from 'react';
-import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Tote } from '@/components/operations/ToteTable';
 import { useToteRegister } from '@/hooks/useToteRegister';
 
 export const useConsignmentActions = (
-  recentScans: Tote[],
-  userFacility: string,
+  recentScans: Tote[], 
+  userFacility: string, 
   selectedDestination: string
 ) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentConsignmentId, setCurrentConsignmentId] = useState<string | null>(null);
-  const { updateToteRegister } = useToteRegister();
+  const { updateToteConsignment } = useToteRegister();
 
-  const fetchConsignmentDetails = async (consignmentId: string) => {
-    setIsProcessing(true);
-    try {
-      const { data, error } = await supabase
-        .from('consignment_log')
-        .select('*')
-        .eq('consignment_id', consignmentId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching consignment details:', error);
-        toast.error(`Failed to fetch consignment details: ${error.message}`);
-        return null;
-      }
-      
-      return {
-        consignmentId: data.consignment_id,
-        status: data.status,
-        toteCount: data.tote_count,
-        source: data.source_facility,
-        destination: data.destination_facility
-      };
-    } catch (err: any) {
-      console.error('Error fetching consignment details:', err);
-      toast.error(`Failed to fetch consignment details: ${err.message}`);
-      return null;
-    } finally {
-      setIsProcessing(false);
-    }
+  const generateConsignmentId = () => {
+    // Generate a unique consignment ID based on source, destination, and timestamp
+    const timestamp = Date.now().toString(36);
+    const source = userFacility.substring(0, 3);
+    const destination = selectedDestination.substring(0, 3);
+    return `CS-${source}-${destination}-${timestamp}`;
   };
 
   const generateConsignment = async () => {
     if (recentScans.length === 0) {
-      toast.warning("No totes have been scanned yet");
+      toast.error('No totes have been scanned for the consignment');
       return null;
     }
-    
+
     setIsProcessing(true);
     
     try {
-      // Create a unique consignment ID with facility prefixes for better tracking
-      const newConsignmentId = `CS-${userFacility.substring(0, 3)}-${selectedDestination.substring(0, 3)}-${Date.now().toString().substring(7)}`;
+      const consignmentId = generateConsignmentId();
+      const timestamp = new Date().toISOString();
+      const username = localStorage.getItem('username') || 'unknown';
       
-      // Update all scanned totes with the consignment ID
-      const toteIds = recentScans.map(tote => tote.id);
-      
-      // Update tote_outbound records
-      const { error: updateError } = await supabase
-        .from('tote_outbound')
-        .update({ 
-          consignment_id: newConsignmentId,
-          status: 'intransit' 
-        })
-        .in('tote_id', toteIds);
+      // Update tote_outbound with consignment info
+      for (const tote of recentScans) {
+        const { error: updateError } = await supabase
+          .from('tote_outbound')
+          .update({ 
+            consignment_id: consignmentId,
+            status: 'intransit'
+          })
+          .eq('tote_id', tote.id);
+          
+        if (updateError) {
+          console.error(`Error updating tote ${tote.id} consignment:`, updateError);
+        }
         
-      if (updateError) {
-        throw updateError;
+        // Update tote register with consignment information
+        await updateToteConsignment(tote.id, consignmentId, 'intransit');
       }
       
-      // Update tote register entries for all totes to reflect the intransit status
-      for (const toteId of toteIds) {
-        await updateToteRegister(toteId, {
-          current_status: 'intransit',
-          destination: selectedDestination
-        });
-      }
-      
-      // Log the consignment creation to audit trail with intransit status
-      const { error: logError } = await supabase
+      // Create consignment log entry
+      const { error: consignmentError } = await supabase
         .from('consignment_log')
         .insert({
-          consignment_id: newConsignmentId,
+          consignment_id: consignmentId,
           source_facility: userFacility,
           destination_facility: selectedDestination,
-          tote_count: toteIds.length,
           status: 'intransit',
-          created_by: localStorage.getItem('username') || 'unknown'
+          created_at: timestamp,
+          created_by: username,
+          tote_count: recentScans.length
         });
         
-      if (logError) {
-        console.error('Error logging consignment:', logError);
+      if (consignmentError) {
+        console.error('Error creating consignment log:', consignmentError);
+        toast.error('Failed to create consignment log');
+        return null;
       }
       
-      // Set current consignment ID
-      setCurrentConsignmentId(newConsignmentId);
+      toast.success(`Consignment ${consignmentId} created successfully`);
       
-      toast.success(`Consignment ${newConsignmentId} has been generated for ${toteIds.length} totes`);
       return {
-        consignmentId: newConsignmentId,
-        status: 'intransit'
+        consignmentId,
+        status: 'intransit',
+        toteCount: recentScans.length
       };
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error generating consignment:', err);
-      toast.error(`Failed to generate consignment: ${err.message}`);
+      toast.error('An error occurred while generating the consignment');
       return null;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const completeOutbound = async (consignmentId: string | null) => {
+  const completeOutbound = async (consignmentId?: string) => {
     if (recentScans.length === 0) {
-      toast.warning("No totes have been scanned yet");
+      toast.error('No totes have been scanned for outbound');
       return false;
     }
-    
+
     setIsProcessing(true);
     
     try {
-      // If there's no consignment yet, generate one - This makes it automatic
+      const timestamp = new Date().toISOString();
+      const username = localStorage.getItem('username') || 'unknown';
       let finalConsignmentId = consignmentId;
+      
+      // If no consignment ID provided, generate one first
       if (!finalConsignmentId) {
         const result = await generateConsignment();
         if (!result) {
@@ -134,33 +110,56 @@ export const useConsignmentActions = (
         finalConsignmentId = result.consignmentId;
       }
       
-      // Mark the consignment as completed but keep status as intransit
-      // so it appears in the destination's receive list
-      if (finalConsignmentId) {
-        const { error: consignmentError } = await supabase
-          .from('consignment_log')
-          .update({ 
-            completed_time: new Date().toISOString(),
-            completed_by: localStorage.getItem('username') || 'unknown'
-          })
-          .eq('consignment_id', finalConsignmentId);
-          
-        if (consignmentError) {
-          console.error('Error updating consignment:', consignmentError);
-          toast.error(`Failed to update consignment status: ${consignmentError.message}`);
-          setIsProcessing(false);
-          return false;
-        }
+      // Update consignment status to completed
+      const { error: updateError } = await supabase
+        .from('consignment_log')
+        .update({ 
+          status: 'completed',
+          completed_time: timestamp,
+          completed_by: username
+        })
+        .eq('consignment_id', finalConsignmentId);
+        
+      if (updateError) {
+        console.error('Error updating consignment status:', updateError);
+        toast.error('Failed to complete consignment process');
+        return false;
       }
       
-      toast.success(`Completed outbound process to ${selectedDestination}`);
+      toast.success(`Outbound process completed successfully. Consignment ID: ${finalConsignmentId}`);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error completing outbound process:', err);
-      toast.error(`Failed to complete outbound: ${err.message}`);
+      toast.error('An error occurred while completing the outbound process');
       return false;
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const fetchConsignmentDetails = async (selectedConsignmentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('consignment_log')
+        .select('*, tote_count')
+        .eq('consignment_id', selectedConsignmentId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching consignment details:', error);
+        toast.error('Failed to fetch consignment details');
+        return null;
+      }
+      
+      return {
+        consignmentId: data.consignment_id,
+        status: data.status,
+        toteCount: data.tote_count || 0
+      };
+    } catch (err) {
+      console.error('Error fetching consignment details:', err);
+      toast.error('Failed to fetch consignment details');
+      return null;
     }
   };
 
@@ -168,7 +167,6 @@ export const useConsignmentActions = (
     isProcessing,
     generateConsignment,
     completeOutbound,
-    fetchConsignmentDetails,
-    currentConsignmentId
+    fetchConsignmentDetails
   };
 };

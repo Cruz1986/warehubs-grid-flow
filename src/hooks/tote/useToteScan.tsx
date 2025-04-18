@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { Tote } from '@/components/operations/ToteTable';
 import { useToteRegister } from '@/hooks/useToteRegister';
+import { logToteError } from '@/utils/errorLogging';
 
 export const useToteScan = (userFacility: string, selectedDestination: string) => {
   const [isScanningActive, setIsScanningActive] = useState(false);
@@ -43,35 +44,6 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     }, 100);
   };
 
-  const logError = async (toteId: string, errorMessage: string) => {
-    try {
-      // Get the username from localStorage
-      const username = localStorage.getItem('username') || 'unknown';
-      
-      // Log the error in scan_error_logs table
-      const { error } = await supabase
-        .from('scan_error_logs')
-        .insert({
-          tote_id: toteId,
-          error_message: errorMessage,
-          operator: username,
-          operation_type: 'outbound',
-          scan_data: { 
-            tote_id: toteId, 
-            destination: selectedDestination,
-            facility: userFacility,
-            timestamp: new Date().toISOString()
-          }
-        });
-        
-      if (error) {
-        console.error('Error logging scan error:', error);
-      }
-    } catch (err) {
-      console.error('Exception logging scan error:', err);
-    }
-  };
-
   const handleToteScan = async (toteId: string) => {
     if (!isScanningActive) {
       toast.error("Please start the scanning process first");
@@ -81,7 +53,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     // Check if tote already scanned in this session
     if (recentScans.some(tote => tote.id === toteId)) {
       toast.error(`Tote ${toteId} has already been scanned in this session`);
-      await logError(toteId, `Duplicate scan: Tote already scanned in this session`);
+      await logToteError(toteId, 'outbound', `Duplicate scan: Tote already scanned in this session`);
       return;
     }
     
@@ -117,7 +89,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
       if (insertError) {
         console.error('Error saving outbound tote:', insertError);
         toast.error(`Failed to save outbound tote: ${insertError.message}`);
-        await logError(toteId, `Failed to save outbound: ${insertError.message}`);
+        await logToteError(toteId, 'outbound', `Failed to save outbound: ${insertError.message}`);
         setIsProcessing(false);
         return;
       }
@@ -132,11 +104,11 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
       );
       
       if (!transferResult) {
-        await logError(toteId, `Failed to track facility transfer`);
+        await logToteError(toteId, 'outbound', `Failed to track facility transfer`);
       }
       
       // Also update the tote register directly to ensure it's in sync
-      const registerResult = await updateToteRegister(toteId, {
+      const updateData = {
         current_status: 'outbound',
         current_facility: sourceFacility,
         destination: selectedDestination,
@@ -144,10 +116,12 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         ob_timestamp: timestamp,
         outbound_by: username,
         activity: `Outbound scan from ${sourceFacility} to ${selectedDestination}`
-      });
+      };
+      
+      const registerResult = await updateToteRegister(toteId, updateData);
       
       if (!registerResult) {
-        await logError(toteId, `Failed to update tote register`);
+        await logToteError(toteId, 'outbound', `Failed to update tote register`);
       }
       
       // Add to local state
@@ -159,7 +133,8 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         timestamp: timestamp,
         user: username,
         currentFacility: sourceFacility,
-        isNewTote: isNewTote
+        isNewTote: isNewTote,
+        consignmentId: null // Initialize consignmentId to ensure it's present in the object
       };
       
       setRecentScans(prevScans => [newTote, ...prevScans]);
@@ -178,7 +153,7 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
     } catch (err) {
       console.error('Exception processing outbound tote:', err);
       toast.error('An unexpected error occurred while processing the tote');
-      await logError(toteId, `Exception: ${String(err)}`);
+      await logToteError(toteId, 'outbound', `Exception: ${String(err)}`);
     } finally {
       setIsProcessing(false);
     }

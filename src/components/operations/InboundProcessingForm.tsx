@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import ConsignmentDetailsPanel from './inbound/ConsignmentDetailsPanel';
 import DiscrepancyAlert from './inbound/DiscrepancyAlert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToteRegister } from '@/hooks/useToteRegister';
+import { logToteError } from '@/utils/errorLogging';
 
 interface InboundProcessingFormProps {
   facilities: string[];
@@ -163,6 +164,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     
     if (recentScans.some(tote => tote.id === toteId)) {
       toast.error(`Tote ${toteId} has already been scanned`);
+      await logToteError(toteId, 'inbound', `Duplicate scan: Tote already scanned in this session`);
       return;
     }
     
@@ -177,13 +179,19 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         console.log(`Tote ${toteId} exists in another facility, but allowing based on current facility rule`);
       }
       
+      const timestamp = new Date().toISOString();
       const insertData = {
         tote_id: toteId,
         status: 'inbound',
         source: selectedFacility,
         current_facility: userFacility,
-        operator_name: username
+        operator_name: username,
+        timestamp_in: timestamp
       };
+      
+      if (selectedConsignmentId) {
+        insertData['consignment_id'] = selectedConsignmentId;
+      }
       
       const { error } = await supabase
         .from('tote_inbound')
@@ -192,6 +200,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       if (error) {
         console.error('Error saving tote:', error);
         toast.error(`Failed to save tote: ${error.message}`);
+        await logToteError(toteId, 'inbound', `Failed to save tote: ${error.message}`);
         return;
       }
       
@@ -204,12 +213,23 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
       );
       
       if (selectedConsignmentId) {
+        await updateToteRegister(toteId, {
+          consignment_no: selectedConsignmentId,
+          current_status: 'inbound',
+          current_facility: userFacility,
+          activity: `Inbound from consignment ${selectedConsignmentId}`
+        });
+        
         const { data: outboundData } = await supabase
           .from('tote_outbound')
           .select('*')
           .eq('tote_id', toteId)
           .eq('consignment_id', selectedConsignmentId)
           .maybeSingle();
+          
+        if (!outboundData) {
+          console.warn(`Tote ${toteId} claimed to be in consignment ${selectedConsignmentId} but not found in outbound data`);
+        }
       }
       
       const newTote: Tote = {
@@ -217,7 +237,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
         status: 'inbound',
         source: selectedFacility,
         destination: userFacility,
-        timestamp: new Date().toISOString(),
+        timestamp: timestamp,
         user: username,
         currentFacility: userFacility,
         consignmentId: selectedConsignmentId || undefined
@@ -232,6 +252,7 @@ const InboundProcessingForm: React.FC<InboundProcessingFormProps> = ({
     } catch (err: any) {
       console.error('Exception saving tote:', err);
       toast.error('An unexpected error occurred while saving the tote');
+      await logToteError(toteId, 'inbound', `Exception: ${String(err)}`);
     } finally {
       setIsProcessing(false);
     }

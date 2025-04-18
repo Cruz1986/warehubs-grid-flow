@@ -67,6 +67,11 @@ export const useToteTracking = () => {
         };
       }
       
+      // Preserve the consignment number if it exists
+      if (existingTote?.consignment_no) {
+        updateData.consignment_no = existingTote.consignment_no;
+      }
+      
       return await updateToteRegister(toteId, updateData);
     } catch (err) {
       console.error('Error tracking tote facility transfer:', err);
@@ -92,11 +97,12 @@ export const useToteTracking = () => {
       
       const existingTote = await getToteRegisterInfo(toteId);
       
-      if (existingTote) {
-        return await updateToteRegister(toteId, updateData);
-      } else {
-        return await updateToteRegister(toteId, updateData);
+      // Preserve the consignment number if it exists
+      if (existingTote?.consignment_no) {
+        updateData.consignment_no = existingTote.consignment_no;
       }
+      
+      return await updateToteRegister(toteId, updateData);
     } catch (err) {
       console.error('Error updating tote grid:', err);
       await logToteError(toteId, 'update_grid', String(err));
@@ -105,12 +111,38 @@ export const useToteTracking = () => {
   };
 
   const updateToteConsignment = async (toteId: string, consignmentId: string, status: string = 'intransit') => {
-    const updateData: ToteRegisterUpdateData = {
-      consignment_no: consignmentId,
-      current_status: status
-    };
-    
-    return await updateToteRegister(toteId, updateData);
+    try {
+      console.log(`Updating tote ${toteId} with consignment ${consignmentId}`);
+      
+      // First get the existing tote data
+      const existingTote = await getToteRegisterInfo(toteId);
+      
+      const updateData: ToteRegisterUpdateData = {
+        consignment_no: consignmentId,
+        current_status: status
+      };
+      
+      // If there's existing data, maintain it
+      if (existingTote) {
+        // Update the activity to reflect the consignment
+        updateData.activity = `Consignment ${consignmentId} to ${existingTote.destination || 'Unknown'}`;
+      }
+      
+      const result = await updateToteRegister(toteId, updateData);
+      
+      if (result) {
+        console.log(`Successfully updated tote ${toteId} with consignment ${consignmentId}`);
+      } else {
+        console.error(`Failed to update tote ${toteId} with consignment ${consignmentId}`);
+        await logToteError(toteId, 'update_consignment', `Failed to update tote register with consignment ${consignmentId}`);
+      }
+      
+      return result;
+    } catch (err) {
+      console.error('Error updating tote consignment:', err);
+      await logToteError(toteId, 'update_consignment', String(err));
+      return false;
+    }
   };
 
   return {
