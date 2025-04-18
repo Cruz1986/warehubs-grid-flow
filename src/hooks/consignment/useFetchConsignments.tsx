@@ -32,6 +32,13 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
   );
 
   const fetchConsignments = useCallback(async () => {
+    if (!currentFacility) {
+      console.error("No facility provided to fetch consignments");
+      setError("No facility selected");
+      setIsLoading(false);
+      return;
+    }
+    
     if (Date.now() - lastUpdated.getTime() < 2000) {
       // Skip if last update was less than 2 seconds ago to prevent rapid fetching
       return;
@@ -59,7 +66,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
       if (error) {
         console.error('Error fetching consignments:', error);
         setError('Failed to fetch consignments');
-        toast.error('Failed to fetch consignments');
+        setIsLoading(false);
         return;
       }
 
@@ -69,6 +76,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         console.log('No consignments found');
         setConsignments([]);
         setIsLoading(false);
+        setLastUpdated(new Date());
         return;
       }
       
@@ -90,7 +98,6 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
     } catch (err) {
       console.error('Error processing consignments:', err);
       setError('Failed to process consignments');
-      toast.error('Failed to process consignments');
     } finally {
       setIsLoading(false);
     }
@@ -98,9 +105,11 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
 
   useEffect(() => {
     console.log('Setting up consignment fetching for facility:', currentFacility);
+    
+    // Initial fetch
     fetchConsignments();
     
-    // Use a more careful approach with the real-time subscription
+    // Set up realtime subscription with debounce protection
     const channel = supabase
       .channel('consignment-changes')
       .on('postgres_changes', { 
@@ -108,17 +117,17 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         schema: 'public', 
         table: 'consignment_log',
         filter: isAdmin ? undefined : `destination_facility=eq.${currentFacility}`
-      }, payload => {
-        // Only trigger refresh on relevant changes
-        console.log('Consignment data changed:', payload);
+      }, () => {
+        // Only trigger the debouncedFetch, not direct fetch
         debouncedFetch();
       })
       .subscribe();
       
     return () => {
+      console.log('Cleaning up consignment subscription');
       supabase.removeChannel(channel);
     };
-  }, [currentFacility, fetchConsignments, isAdmin, debouncedFetch]);
+  }, [currentFacility, isAdmin, debouncedFetch]);
 
   return {
     consignments,
