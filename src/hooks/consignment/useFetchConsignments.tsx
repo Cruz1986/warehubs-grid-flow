@@ -40,7 +40,9 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
       if (!isAdmin) {
         // Convert facility names to lowercase for case-insensitive comparison
         console.log(`Filtering by destination facility: ${currentFacility}`);
-        query = query.ilike('destination_facility', `%${currentFacility}%`);
+        
+        // Try a more flexible approach - using ilike with both exact and substring match
+        query = query.or(`destination_facility.ilike.${currentFacility},destination_facility.ilike.%${currentFacility}%`);
       }
 
       const { data, error: fetchError } = await query.order('created_at', { ascending: false });
@@ -57,6 +59,16 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
       
       if (!data || data.length === 0) {
         console.log('No consignments found after filtering');
+        console.log('Current facility value used for filtering:', currentFacility);
+        
+        // Additional debug - check for any consignments that might be close matches
+        const { data: fuzzyData } = await supabase
+          .from('consignment_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+          
+        console.log('Latest 5 consignments in system (for debug):', fuzzyData);
         setConsignments([]);
         return;
       }
