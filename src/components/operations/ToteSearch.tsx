@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -97,7 +96,7 @@ const ToteSearch = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold">Staged Time</h3>
-                  <p>{formatDate(searchResult.stagged_timestamp)}</p>
+                  <p>{formatDate(searchResult.staged_timestamp)}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold">Outbound Time</h3>

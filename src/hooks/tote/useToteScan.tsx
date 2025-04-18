@@ -63,14 +63,15 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
       // Get the username from localStorage
       const username = localStorage.getItem('username') || 'unknown';
       
-      // Check if tote exists in register to determine source info
+      // Check if tote exists in register to determine if it's a new tote
       const existingTote = await getToteRegisterInfo(toteId);
-      
-      // If tote doesn't exist in the register, it's a new tote being added to the system
       const isNewTote = !existingTote;
       
-      // Determine the source facility - use existing data or current facility
-      const sourceFacility = existingTote?.current_facility || userFacility;
+      // For outbound scans, current_facility is ALWAYS the user's facility
+      const currentFacility = userFacility;
+      
+      // Source facility is either from existing data or the user's facility for new totes
+      const sourceFacility = isNewTote ? userFacility : (existingTote?.source_facility || userFacility);
       
       // Insert into outbound
       const timestamp = new Date().toISOString();
@@ -107,12 +108,13 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         await logToteError(toteId, 'outbound', `Failed to track facility transfer`);
       }
       
-      // Also update the tote register directly to ensure it's in sync
+      // Update the tote register to ensure source and current facility are set correctly
       const updateData = {
         current_status: 'outbound',
-        current_facility: sourceFacility,
+        current_facility: currentFacility, // Always user's facility
+        source_facility: sourceFacility, // Preserved from history or set to user facility
         destination: selectedDestination,
-        staged_destination: selectedDestination, // Ensure staged_destination is set
+        staged_destination: selectedDestination,
         ob_timestamp: timestamp,
         outbound_by: username,
         activity: `Outbound scan from ${sourceFacility} to ${selectedDestination}`
@@ -124,17 +126,17 @@ export const useToteScan = (userFacility: string, selectedDestination: string) =
         await logToteError(toteId, 'outbound', `Failed to update tote register`);
       }
       
-      // Add to local state
+      // Add to local state with correct facility information
       const newTote: Tote = {
         id: toteId,
-        status: 'outbound' as 'outbound',
+        status: 'outbound',
         source: sourceFacility,
         destination: selectedDestination,
         timestamp: timestamp,
         user: username,
-        currentFacility: sourceFacility,
+        currentFacility: currentFacility,
         isNewTote: isNewTote,
-        consignmentId: null // Initialize consignmentId to ensure it's present in the object
+        consignmentId: null
       };
       
       setRecentScans(prevScans => [newTote, ...prevScans]);

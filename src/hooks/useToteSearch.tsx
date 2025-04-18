@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,7 +12,6 @@ export interface ToteHistory {
   status?: string;
 }
 
-// Modified search result type to handle optional properties
 export interface ToteSearchResult {
   tote_id: string;
   activity: string;
@@ -27,6 +25,7 @@ export interface ToteSearchResult {
   ob_timestamp?: string | null;
   source_facility?: string | null;
   updated_at?: string | null;
+  staged_timestamp?: string | null;
 }
 
 export const useToteSearch = () => {
@@ -51,35 +50,29 @@ export const useToteSearch = () => {
     try {
       console.log('Searching for tote:', toteId);
       
-      // Query all tables independently to find any record of the tote
       const [registerData, inboundData, outboundData, stagingData] = await Promise.all([
-        // 1. Check tote_register first
         supabase
           .from('tote_register')
           .select('*')
           .eq('tote_id', toteId)
           .maybeSingle(),
           
-        // 2. Check tote_inbound table
         supabase
           .from('tote_inbound')
           .select('*')
           .eq('tote_id', toteId),
           
-        // 3. Check tote_outbound table
         supabase
           .from('tote_outbound')
           .select('*')
           .eq('tote_id', toteId),
           
-        // 4. Check tote_staging table
         supabase
           .from('tote_staging')
           .select('*')
           .eq('tote_id', toteId)
       ]);
       
-      // If we have any data in any of the tables, the tote exists
       const toteExistsInAnyTable = (
         (registerData.data !== null) || 
         (inboundData.data && inboundData.data.length > 0) || 
@@ -95,7 +88,6 @@ export const useToteSearch = () => {
         return null;
       }
       
-      // Construct the search result with all properties initialized
       const resultData: ToteSearchResult = {
         tote_id: toteId,
         activity: 'Unknown',
@@ -108,12 +100,11 @@ export const useToteSearch = () => {
         ib_timestamp: null,
         ob_timestamp: null,
         source_facility: null,
-        updated_at: null
+        updated_at: null,
+        staged_timestamp: null
       };
       
-      // Populate with register data if available
       if (registerData.data) {
-        // Instead of directly assigning, manually copy each field to handle optional properties
         const regData = registerData.data as ToteRegisterData;
         resultData.current_status = regData.current_status || resultData.current_status;
         resultData.current_facility = regData.current_facility || resultData.current_facility;
@@ -128,7 +119,6 @@ export const useToteSearch = () => {
         resultData.activity = regData.activity || resultData.activity;
       }
       
-      // Priority order for populating fields
       if (inboundData.data && inboundData.data.length > 0) {
         const latest = inboundData.data[0];
         resultData.current_status = resultData.current_status || 'inbound';
@@ -159,7 +149,6 @@ export const useToteSearch = () => {
       setSearchResult(resultData);
       console.log('Tote found:', resultData);
 
-      // Fetch tote history from all relevant tables
       const history: ToteHistory[] = [
         ...(inboundData.data?.map(entry => ({
           activity: 'Inbound',
