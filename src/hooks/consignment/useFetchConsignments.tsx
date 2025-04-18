@@ -8,11 +8,6 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  export const useFetchConsignments = (currentFacility: string, isAdmin: boolean = false) => {
-  const [consignments, setConsignments] = useState<Consignment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Debounced fetch to avoid excessive refreshes
