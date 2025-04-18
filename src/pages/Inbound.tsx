@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InboundProcessingForm from '@/components/operations/InboundProcessingForm';
@@ -8,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FacilityType } from '@/components/admin/GridMasterComponent';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import CurrentFacilityDisplay from '@/components/operations/CurrentFacilityDisplay';
 
 // Type definition for Facility
 interface Facility {
@@ -65,8 +65,10 @@ const Inbound = () => {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Inbound Operations</h1>
+      <div className="container mx-auto space-y-6">
+        <h1 className="text-2xl font-bold">Inbound Operations</h1>
+        
+        <CurrentFacilityDisplay facilityName={currentFacility} />
         
         <Tabs defaultValue="inbound" className="space-y-4">
           <TabsList>
