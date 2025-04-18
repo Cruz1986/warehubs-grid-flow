@@ -5,7 +5,7 @@ import ToteScanner from './ToteScanner';
 import { useToteSearch } from '@/hooks/useToteSearch';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { History, ArrowDownWideNarrow, AlertTriangle, CheckCircle } from 'lucide-react';
+import { History, ArrowDownWideNarrow, AlertTriangle, CheckCircle, Package } from 'lucide-react';
 
 const ToteSearch = () => {
   const { searchTote, searchResult, toteHistory, isLoading, error, notFound } = useToteSearch();
@@ -61,7 +61,7 @@ const ToteSearch = () => {
 
           {searchResult && (
             <div className="mt-4 space-y-4 border rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold">Tote ID</h3>
                   <p>{searchResult.tote_id}</p>
@@ -103,9 +103,25 @@ const ToteSearch = () => {
                   <p>{formatDate(searchResult.ob_timestamp)}</p>
                 </div>
                 {searchResult.consignment_no && (
-                  <div className="col-span-2">
-                    <h3 className="font-semibold">Consignment Number</h3>
-                    <p>{searchResult.consignment_no}</p>
+                  <div className="col-span-2 bg-blue-50 p-3 rounded-md">
+                    <h3 className="font-semibold flex items-center">
+                      <Package className="h-4 w-4 mr-2 text-blue-600" />
+                      Consignment Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                      <div>
+                        <p className="text-sm text-blue-700">Consignment ID</p>
+                        <p className="font-medium">{searchResult.consignment_no}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-blue-700">Status</p>
+                        <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                          {searchResult.current_status === 'delivered' ? 'Delivered' : 
+                           searchResult.current_status === 'intransit' ? 'In Transit' : 
+                           searchResult.current_status || 'Unknown'}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -129,6 +145,9 @@ const ToteSearch = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{event.activity}</span>
                         <Badge variant="outline">{event.status}</Badge>
+                        {event.activity.toLowerCase().includes('consignment') && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">Consignment</Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
                         <span>Facility: {event.facility}</span>
