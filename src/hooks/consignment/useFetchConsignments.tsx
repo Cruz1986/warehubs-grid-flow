@@ -24,13 +24,17 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         
       console.log('All consignments in database:', allConsignments);
       
+      if (allConsError) {
+        console.error('Error fetching all consignments:', allConsError);
+      }
+      
       // Then perform the filtered query
       let query = supabase
         .from('consignment_log')
         .select('*');
         
-      // Filter by status
-      query = query.in('status', ['intransit', 'pending']);
+      // Filter by status - include 'created' status as well
+      query = query.in('status', ['intransit', 'pending', 'created']);
       
       // Only filter by facility if not admin
       if (!isAdmin) {
@@ -69,6 +73,7 @@ export const useFetchConsignments = (currentFacility: string, isAdmin: boolean =
         notes: log.notes
       }));
       
+      console.log('Mapped consignments:', mappedConsignments);
       setConsignments(mappedConsignments);
     } catch (err) {
       console.error('Error processing consignments:', err);

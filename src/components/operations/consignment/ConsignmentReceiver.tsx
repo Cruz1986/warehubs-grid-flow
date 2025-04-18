@@ -31,8 +31,17 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
   // Force refresh consignments on mount and log data for debugging
   useEffect(() => {
     console.log('ConsignmentReceiver mounted - fetching consignments...');
+    console.log(`Current facility: "${currentFacility}" (type: ${typeof currentFacility}), isAdmin: ${isAdmin}`);
     refetchConsignments();
-  }, [refetchConsignments]);
+    
+    // Set up an interval to refresh data every 30 seconds
+    const intervalId = setInterval(() => {
+      console.log('Auto-refreshing consignments...');
+      refetchConsignments();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [refetchConsignments, currentFacility, isAdmin]);
 
   // Add debug logging for component renders
   console.info('ConsignmentReceiver render:', {
@@ -40,7 +49,8 @@ const ConsignmentReceiver: React.FC<ConsignmentReceiverProps> = ({
     error,
     consignmentsCount: consignments.length,
     currentFacility,
-    isAdmin
+    isAdmin,
+    consignmentsData: consignments
   });
 
   return (
