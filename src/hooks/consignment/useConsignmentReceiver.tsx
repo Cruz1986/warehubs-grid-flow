@@ -1,99 +1,126 @@
-export const useFetchConsignments = (currentFacility: string, isAdmin: boolean = false) => {
-  const [consignments, setConsignments] = useState<Consignment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchCount, setFetchCount] = useState(0); // Add a counter to track fetch attempts
 
-  const fetchConsignments = useCallback(async () => {
-    console.log(`Fetching consignments (attempt ${fetchCount + 1}) for facility:`, currentFacility);
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Add a timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000)
-      );
-      
-      const fetchPromise = supabase
-        .from('consignment_log')
-        .select('*')
-        .in('status', ['intransit', 'pending'])
-        .order('created_at', { ascending: false });
-        
-      // Only filter by facility if not admin
-      if (!isAdmin) {
-        fetchPromise.eq('destination_facility', currentFacility);
-      }
+import { useState, useCallback } from 'react';
+import { useFetchConsignments } from './useFetchConsignments';
+import { Consignment } from '@/types/consignment';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-      // Race between fetch and timeout
-      const result = await Promise.race([
-        fetchPromise,
-        timeoutPromise
-      ]) as { data: any[], error: any };
+export const useConsignmentReceiver = (currentFacility: string, isAdmin: boolean = false) => {
+  // Use the existing hook to fetch consignments
+  const {
+    consignments,
+    isLoading,
+    error,
+    refetchConsignments
+  } = useFetchConsignments(currentFacility, isAdmin);
 
-      if (result.error) {
-        throw result.error;
-      }
+  const [currentConsignment, setCurrentConsignment] = useState<Consignment | null>(null);
+  const [showDiscrepancy, setShowDiscrepancy] = useState(false);
 
-      console.log('Fetched consignments:', result.data);
-      
-      const mappedConsignments = (result.data || []).map((log) => ({
-        id: log.consignment_id,
-        source: log.source_facility,
-        destination: log.destination_facility,
-        status: log.status,
-        toteCount: log.tote_count,
-        createdAt: log.created_at || '',
-        received_count: log.received_count,
-        receivedTime: log.received_time,
-        notes: log.notes
-      }));
-      
-      setConsignments(mappedConsignments);
-      setFetchCount(prev => prev + 1);
-    } catch (err: any) {
-      console.error('Error fetching consignments:', err);
-      setError(`Failed to fetch consignments: ${err.message || 'Unknown error'}`);
-      toast.error('Failed to fetch consignments');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentFacility, isAdmin, fetchCount]);
+  // Format date utility function
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  useEffect(() => {
-    console.log("useFetchConsignments - Running initial fetch");
-    fetchConsignments();
+  // Handle receiving a consignment
+  const handleReceiveConsignment = useCallback(async (consignmentId: string) => {
+    console.log(`Receiving consignment ${consignmentId}`);
     
-    // Set up a more reliable subscription
-    const channel = supabase
-      .channel('consignment-changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'consignment_log',
-          filter: !isAdmin ? `destination_facility=eq.${currentFacility}` : undefined
-        }, 
-        (payload) => {
-          console.log('Consignment change detected:', payload);
-          fetchConsignments();
-        }
-      )
-      .subscribe((status) => {
-        console.log(`Supabase channel status: ${status}`);
-      });
+    try {
+      // Find the consignment in our local state
+      const consignment = consignments.find(c => c.id === consignmentId);
       
-    return () => {
-      console.log("Cleaning up subscription");
-      supabase.removeChannel(channel);
-    };
-  }, [currentFacility, isAdmin, fetchConsignments]);
+      if (!consignment) {
+        toast.error(`Consignment ${consignmentId} not found`);
+        return;
+      }
+      
+      setCurrentConsignment(consignment);
+      
+      // For this simple implementation, assume all totes are received
+      // In a real system, you would scan each tote and count them
+      const receivedCount = consignment.toteCount;
+      
+      // Check for discrepancy between expected and actual tote count
+      if (receivedCount !== consignment.toteCount) {
+        setShowDiscrepancy(true);
+        return;
+      }
+      
+      // If no discrepancy, proceed with receiving
+      await completeConsignmentReceiving(consignmentId, receivedCount);
+      
+    } catch (err) {
+      console.error('Error receiving consignment:', err);
+      toast.error('Failed to receive consignment');
+    }
+  }, [consignments]);
+
+  // Complete the consignment receiving process
+  const completeConsignmentReceiving = async (consignmentId: string, receivedCount: number) => {
+    try {
+      const timestamp = new Date().toISOString();
+      
+      const { error } = await supabase
+        .from('consignment_log')
+        .update({
+          status: 'received',
+          received_count: receivedCount,
+          received_time: timestamp,
+          received_by: localStorage.getItem('username') || 'unknown'
+        })
+        .eq('consignment_id', consignmentId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`Consignment ${consignmentId} received successfully`);
+      setCurrentConsignment(null);
+      refetchConsignments();
+      
+    } catch (err) {
+      console.error('Error completing consignment receive:', err);
+      toast.error('Failed to complete consignment receipt');
+    }
+  };
+
+  // Handle discrepancy confirmation 
+  const handleDiscrepancyConfirm = useCallback(() => {
+    if (!currentConsignment) {
+      setShowDiscrepancy(false);
+      return;
+    }
+    
+    // Even with discrepancy, proceed with receiving
+    completeConsignmentReceiving(currentConsignment.id, currentConsignment.receivedCount || 0);
+    setShowDiscrepancy(false);
+  }, [currentConsignment]);
+
+  // Handle discrepancy close/cancel
+  const handleDiscrepancyClose = useCallback(() => {
+    setShowDiscrepancy(false);
+    setCurrentConsignment(null);
+  }, []);
 
   return {
     consignments,
     isLoading,
     error,
-    refetchConsignments: fetchConsignments
+    handleReceiveConsignment,
+    currentConsignment,
+    showDiscrepancy,
+    handleDiscrepancyConfirm,
+    handleDiscrepancyClose,
+    formatDate,
+    refetchConsignments
   };
 };
